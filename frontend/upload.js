@@ -603,6 +603,23 @@ setTimeout(() => {
   }
 }, 0);
 
+// 分析推荐收放按钮事件
+setTimeout(() => {
+  const toggleBtn = document.getElementById('toggleSidebarBtn');
+  const menuDiv = document.getElementById('sidebarMenuBtns');
+  if (toggleBtn && menuDiv) {
+    toggleBtn.onclick = function() {
+      if (menuDiv.style.display === 'none') {
+        menuDiv.style.display = '';
+        toggleBtn.innerText = '分析推荐 ▼';
+      } else {
+        menuDiv.style.display = 'none';
+        toggleBtn.innerText = '分析推荐 ▲';
+      }
+    };
+  }
+}, 0);
+
 // 右上角当前时间
 function updateTime() {
   const timeEl = document.getElementById('currentTime');
