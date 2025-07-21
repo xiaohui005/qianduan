@@ -1,0 +1,29 @@
+
+# 可根据实际项目需要补充 
+[general]
+# 推荐的文件和目录结构
+require_directories = ["src", "public", "backend", "frontend"]
+
+# 推荐的文件类型
+allow_extensions = [".js", ".ts", ".jsx", ".tsx", ".json", ".html", ".css", ".scss", ".md", ".env", ".yml", ".yaml", ".py", ".go", ".java", ".c", ".cpp", ".rs"]
+
+# 忽略的文件和目录
+ignore_patterns = ["node_modules/", "dist/", "build/", ".git/", ".DS_Store", "*.log", "*.tmp", "__pycache__/", ".venv/", ".env*"]
+
+# 代码风格建议
+[style]
+indent = 2
+max_line_length = 120
+use_semicolons = true
+quote_style = "double"
+
+# 代码审查建议
+[review]
+require_code_review = true
+reviewers = ["html,js,css", "python"]
+
+# 其他建议
+[advice]
+- "前后端代码建议分离，便于维护和部署。"
+- "环境变量和敏感信息请勿提交到版本库。"
+- "建议使用README.md说明项目结构和启动方式。" 

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pandas
+mysql-connector-python
+redis
+python-dotenv 
+httpx
+beautifulsoup4 
+lunarcalendar 
