@@ -148,4 +148,52 @@ h2 {
 .recommend-type-btn.active, .recommend-type-btn:hover {
   background: #2980d9;
   color: #fff;
+}
+
+.tens-type-group {
+  display: inline-block;
+  border: 1px solid #2980d9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.tens-type-btn {
+  background: #fff;
+  color: #2980d9;
+  border: none;
+  border-left: 1px solid #2980d9;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tens-type-btn:first-child {
+  border-left: none;
+}
+.tens-type-btn.active, .tens-type-btn:hover {
+  background: #2980d9;
+  color: #fff;
+}
+
+.tens-pos-group {
+  border: 1px solid #2980d9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: 8px;
+}
+.tens-pos-btn {
+  background: #fff;
+  color: #2980d9;
+  border: none;
+  border-left: 1px solid #2980d9;
+  padding: 6px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tens-pos-btn:first-child {
+  border-left: none;
+}
+.tens-pos-btn.active, .tens-pos-btn:hover {
+  background: #2980d9;
+  color: #fff;
 } 

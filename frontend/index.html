@@ -12,6 +12,7 @@
       <button class="menu-btn" id="menuCollectBtn">采集</button>
       <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
       <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
+      <button class="menu-btn" id="menuTensBtn">第N位十位分析</button>
     </aside>
     <main class="main-content">
       <header class="page-header">
@@ -50,6 +51,27 @@
           </div>
         </div>
         <div id="recommendResult" style="margin-top:16px;"></div>
+      </div>
+      <div id="tensPage" style="display:none;">
+        <h2>第N位十位分析</h2>
+        <div style="margin-bottom:16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="tens-type-group">
+            <button class="tens-type-btn active" data-type="am">澳门</button>
+            <button class="tens-type-btn" data-type="hk">香港</button>
+          </div>
+          <label class="records-query-label" style="margin-left:24px;">选择位数：</label>
+          <div class="tens-pos-group" style="display:inline-block;">
+            <button class="tens-pos-btn active" data-pos="1">第1位</button>
+            <button class="tens-pos-btn" data-pos="2">第2位</button>
+            <button class="tens-pos-btn" data-pos="3">第3位</button>
+            <button class="tens-pos-btn" data-pos="4">第4位</button>
+            <button class="tens-pos-btn" data-pos="5">第5位</button>
+            <button class="tens-pos-btn" data-pos="6">第6位</button>
+            <button class="tens-pos-btn" data-pos="7">第7位</button>
+          </div>
+        </div>
+        <div id="tensResult" style="margin-top:16px;"></div>
       </div>
       <div id="recordsPage" style="display:none;">
         <h2>开奖记录</h2>
