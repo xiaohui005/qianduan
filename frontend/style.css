@@ -124,4 +124,28 @@ h2 {
   color: #1a237e;
   border-left: 5px solid #2980d9;
   padding-left: 12px;
+}
+
+.recommend-type-group {
+  display: inline-block;
+  border: 1px solid #2980d9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.recommend-type-btn {
+  background: #fff;
+  color: #2980d9;
+  border: none;
+  border-left: 1px solid #2980d9;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.recommend-type-btn:first-child {
+  border-left: none;
+}
+.recommend-type-btn.active, .recommend-type-btn:hover {
+  background: #2980d9;
+  color: #fff;
 } 

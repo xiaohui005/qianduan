@@ -107,17 +107,20 @@ def get_records(
     }
 
 @app.get("/recommend")
-def recommend_api():
+def recommend_api(lottery_type: str = Query('am')):
+    print(f"收到推荐请求，彩种: {lottery_type}")
     conn = collect.get_connection()
     cursor = conn.cursor(dictionary=True)
     # 查找最新的0或5结尾期号
-    cursor.execute("SELECT period FROM lottery_result WHERE RIGHT(period,1) IN ('0','5') ORDER BY period DESC LIMIT 1")
+    sql_base = "SELECT period FROM lottery_result WHERE RIGHT(period,1) IN ('0','5') AND lottery_type=%s ORDER BY period DESC LIMIT 1"
+    cursor.execute(sql_base, (lottery_type,))
     row = cursor.fetchone()
     if not row:
         return {"recommend": [], "latest_period": None}
     base_period = row['period']
-    sql = "SELECT period, numbers FROM lottery_result WHERE period <= %s ORDER BY period DESC LIMIT 50"
-    cursor.execute(sql, (base_period,))
+    sql = "SELECT period, numbers FROM lottery_result WHERE period <= %s AND lottery_type=%s ORDER BY period DESC LIMIT 50"
+    print(f"查询历史数据SQL: {sql} with params ({base_period}, {lottery_type})")
+    cursor.execute(sql, (base_period, lottery_type))
     rows = cursor.fetchall()
     pos_freq = [Counter() for _ in range(7)]
     pos_last_idx = [{} for _ in range(7)]
@@ -142,10 +145,19 @@ def recommend_api():
         if len(candidates) < 8:
             freq_sorted = [n for n, _ in pos_freq[i].most_common() if n not in candidates]
             candidates += freq_sorted[:8-len(candidates)]
-        print(f"位置 {i+1} 排序前: {candidates[:8]}")
         sorted_candidates = sorted(candidates[:8], key=int)
-        print(f"位置 {i+1} 排序后: {sorted_candidates}")
         recommend.append(sorted_candidates)
+    # 保存推荐结果到 recommend_result 表
+    for i, nums in enumerate(recommend):
+        cursor.execute(
+            """
+            INSERT INTO recommend_result (lottery_type, period, position, numbers, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON DUPLICATE KEY UPDATE numbers=VALUES(numbers), created_at=NOW()
+            """,
+            (lottery_type, base_period, i+1, ','.join(nums))
+        )
+    conn.commit()
     cursor.close()
     conn.close()
     return {

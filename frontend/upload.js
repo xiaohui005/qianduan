@@ -192,14 +192,13 @@ async function queryRecords(areaId, page = 1) {
 queryRecords('recordsTableAreaAm', 1);
 queryRecords('recordsTableAreaHk', 1);
 
-async function generateRecommend() {
+async function generateRecommend(type = 'am') {
   const resultDiv = document.getElementById('recommendResult');
-  if (!resultDiv) return; // Added check for resultDiv existence
   resultDiv.innerHTML = '正在生成推荐...';
   try {
-    const res = await fetch(window.BACKEND_URL + '/recommend');
+    const res = await fetch(window.BACKEND_URL + '/recommend?lottery_type=' + type);
     const data = await res.json();
-    if (!data.recommend) {
+    if (!data.recommend || data.recommend.length === 0) {
       resultDiv.innerHTML = '<span style="color:red;">暂无推荐结果</span>';
       return;
     }
@@ -218,6 +217,16 @@ async function generateRecommend() {
     resultDiv.innerHTML = '推荐失败：' + e;
   }
 }
+
+// 推荐彩种按钮切换
+document.querySelectorAll('.recommend-type-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.recommend-type-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    generateRecommend(this.dataset.type);
+  });
+});
+
 // 页面切换时自动生成推荐
 function showPage(page) {
   const collectPage = document.getElementById('collectPage');
