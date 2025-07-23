@@ -198,14 +198,11 @@ async function generateRecommend(type = 'am') {
   try {
     const res = await fetch(window.BACKEND_URL + '/recommend?lottery_type=' + type);
     const data = await res.json();
-    if (!data.recommend || data.recommend.length === 0) {
+    if (!data.recommend) {
       resultDiv.innerHTML = '<span style="color:red;">暂无推荐结果</span>';
       return;
     }
-    let html = `<div style='color:#2980d9;font-size:15px;margin-bottom:8px;'>
-      推荐基于期号：${data.latest_period}<br>
-      <small style="color:#555;">本推荐基于近50期历史开奖数据，统计出现频率和平均间隔，优先选择每5期左右出现一次且近期活跃的号码。<br>本推荐适用于期号${data.latest_period}及其后1~5期，直到下一个0或5结尾期号自动生成新推荐。</small>
-    </div>`;
+    let html = `<div style='color:#2980d9;font-size:15px;margin-bottom:8px;'>推荐基于期号：${data.used_period || ''}</div>`;
     html += '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">';
     html += '<tr><th>位置</th><th>推荐8码</th></tr>';
     data.recommend.forEach((nums, idx) => {
@@ -408,38 +405,67 @@ if (!document.getElementById('unitsPage')) {
 }
 
 // 3. 页面切换逻辑
-function showPage(page) {
-  const collectPage = document.getElementById('collectPage');
-  const recordsPage = document.getElementById('recordsPage');
-  const recommendPage = document.getElementById('recommendPage');
-  const tensPage = document.getElementById('tensPage');
-  const unitsPage = document.getElementById('unitsPage');
-  if (collectPage) collectPage.style.display = page === 'collect' ? 'block' : 'none';
-  if (recordsPage) recordsPage.style.display = page === 'records' ? 'block' : 'none';
-  if (recommendPage) recommendPage.style.display = page === 'recommend' ? 'block' : 'none';
-  if (tensPage) tensPage.style.display = page === 'tens' ? 'block' : 'none';
-  if (unitsPage) unitsPage.style.display = page === 'units' ? 'block' : 'none';
-  const menuCollectBtn = document.getElementById('menuCollectBtn');
-  const menuRecordsBtn = document.getElementById('menuRecordsBtn');
-  const menuRecommendBtn = document.getElementById('menuRecommendBtn');
-  const menuTensBtn = document.getElementById('menuTensBtn');
-  const menuUnitsBtn = document.getElementById('menuUnitsBtn');
-  const pageTitle = document.getElementById('pageTitle');
-  if (menuCollectBtn) menuCollectBtn.classList.toggle('active', page === 'collect');
-  if (menuRecordsBtn) menuRecordsBtn.classList.toggle('active', page === 'records');
-  if (menuRecommendBtn) menuRecommendBtn.classList.toggle('active', page === 'recommend');
-  if (menuTensBtn) menuTensBtn.classList.toggle('active', page === 'tens');
-  if (menuUnitsBtn) menuUnitsBtn.classList.toggle('active', page === 'units');
-  if (pageTitle) pageTitle.innerText =
-    page === 'collect' ? '数据采集' :
-    page === 'records' ? '开奖结果' :
-    page === 'recommend' ? '推荐8码' :
-    page === 'tens' ? '第N位十位分析' :
-    page === 'units' ? '第N个码个位分析' : '';
-  if (page === 'recommend') generateRecommend();
-  if (page === 'tens') loadTensAnalysis();
-  if (page === 'units') loadUnitsAnalysis();
-}
+const pageMap = {
+  menuCollectBtn: 'collectPage',
+  menuRecordsBtn: 'recordsPage',
+  menuRecommendBtn: 'recommendPage',
+  menuTensBtn: 'tensPage',
+  menuUnitsBtn: 'unitsPage',
+  menuRangeBtn: 'rangePage',
+};
+Object.keys(pageMap).forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.addEventListener('click', function() {
+      // 菜单高亮
+      document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // 页面切换
+      Object.values(pageMap).forEach(pid => {
+        const page = document.getElementById(pid);
+        if (page) page.style.display = 'none';
+      });
+      document.getElementById(pageMap[id]).style.display = '';
+      // 标题切换
+      const titleMap = {
+        collectPage: '数据采集',
+        recordsPage: '开奖记录',
+        recommendPage: '推荐8码',
+        tensPage: '第N位十位分析',
+        unitsPage: '第N个码个位分析',
+        rangePage: '+1~+20区间分析',
+      };
+      document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
+      // 自动加载数据
+      switch (id) {
+        case 'menuCollectBtn':
+          // 采集页面，清空结果
+          const collectResult = document.getElementById('collectResult');
+          if (collectResult) collectResult.innerHTML = '';
+          break;
+        case 'menuRecordsBtn':
+          queryRecords('recordsTableAreaAm', 1);
+          queryRecords('recordsTableAreaHk', 1);
+          break;
+        case 'menuRecommendBtn':
+          // 获取当前选中的彩种
+          let activeBtn = document.querySelector('.recommend-type-btn.active');
+          let type = activeBtn ? activeBtn.dataset.type : 'am';
+          generateRecommend(type);
+          break;
+        case 'menuTensBtn':
+          loadTensAnalysis(currentTensType, currentTensPos);
+          break;
+        case 'menuUnitsBtn':
+          loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
+          break;
+        case 'menuRangeBtn':
+          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis();
+          break;
+      }
+    });
+  }
+});
 
 // 4. 菜单按钮事件
 // 修复左侧菜单按钮切换事件，保证每个按钮都能切换页面和高亮
@@ -454,14 +480,56 @@ menuBtnMap.forEach(item => {
   const btn = document.getElementById(item.id);
   if (btn) {
     btn.onclick = function() {
-      if (item.page === 'tens') {
-        showPage('tens');
-        loadTensAnalysis(undefined, 7);
-      } else if (item.page === 'units') {
-        showPage('units');
-        loadUnitsAnalysis(undefined, 7);
-      } else {
-        showPage(item.page);
+      // 统一页面切换和高亮逻辑，避免showPage未定义
+      document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const pageMap = {
+        menuCollectBtn: 'collectPage',
+        menuRecordsBtn: 'recordsPage',
+        menuRecommendBtn: 'recommendPage',
+        menuTensBtn: 'tensPage',
+        menuUnitsBtn: 'unitsPage',
+        menuRangeBtn: 'rangePage',
+      };
+      Object.values(pageMap).forEach(pid => {
+        const page = document.getElementById(pid);
+        if (page) page.style.display = 'none';
+      });
+      document.getElementById(pageMap[item.id]).style.display = '';
+      // 标题切换
+      const titleMap = {
+        collectPage: '数据采集',
+        recordsPage: '开奖记录',
+        recommendPage: '推荐8码',
+        tensPage: '第N位十位分析',
+        unitsPage: '第N个码个位分析',
+        rangePage: '+1~+20区间分析',
+      };
+      document.getElementById('pageTitle').innerText = titleMap[pageMap[item.id]] || '';
+      // 自动加载数据
+      switch (item.id) {
+        case 'menuCollectBtn':
+          const collectResult = document.getElementById('collectResult');
+          if (collectResult) collectResult.innerHTML = '';
+          break;
+        case 'menuRecordsBtn':
+          queryRecords('recordsTableAreaAm', 1);
+          queryRecords('recordsTableAreaHk', 1);
+          break;
+        case 'menuRecommendBtn':
+          let activeBtn = document.querySelector('.recommend-type-btn.active');
+          let type = activeBtn ? activeBtn.dataset.type : 'am';
+          generateRecommend(type);
+          break;
+        case 'menuTensBtn':
+          loadTensAnalysis(currentTensType, currentTensPos);
+          break;
+        case 'menuUnitsBtn':
+          loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
+          break;
+        case 'menuRangeBtn':
+          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1);
+          break;
       }
     };
   }
@@ -499,7 +567,7 @@ function renderUnitsTable(data, pos, page = 1) {
   const PAGE_SIZE = 20;
   const unitsResult = document.getElementById('unitsResult');
   if (!data || !data.data || !data.data[pos-1]) {
-    unitsResult.innerHTML = '<span style=\"color:red;\">暂无数据</span>';
+    unitsResult.innerHTML = '<span style="color:red;">暂无数据</span>';
     return;
   }
   const posData = data.data[pos-1];
@@ -510,10 +578,10 @@ function renderUnitsTable(data, pos, page = 1) {
   }
   let yearBtnsHtml = '';
   if (years.length > 0) {
-    yearBtnsHtml = '<div style=\"margin-bottom:10px;\"><b>年份：</b>';
-    yearBtnsHtml += `<button class=\"units-year-btn${!currentUnitsYear ? ' active' : ''}\" data-year=\"\">全部</button>`;
+    yearBtnsHtml = '<div style="margin-bottom:10px;"><b>年份：</b>';
+    yearBtnsHtml += `<button class="units-year-btn${!currentUnitsYear ? ' active' : ''}" data-year="">全部</button>`;
     years.forEach(y => {
-      yearBtnsHtml += `<button class=\"units-year-btn${currentUnitsYear == y ? ' active' : ''}\" data-year=\"${y}\">${y}</button>`;
+      yearBtnsHtml += `<button class="units-year-btn${currentUnitsYear == y ? ' active' : ''}" data-year="${y}">${y}</button>`;
     });
     yearBtnsHtml += '</div>';
   }
@@ -544,7 +612,7 @@ function renderUnitsTable(data, pos, page = 1) {
   // 表格
   let anyThresholdHtml = '<div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;">';
   anyThresholdHtml += '<label for="anyMissThresholdInput" style="font-weight:bold;font-size:15px;color:#c0392b;">高亮阀值：</label>';
-  anyThresholdHtml += '<input type="number" id="anyMissThresholdInput" value="' + window.anyMissThreshold + '" min="1" max="99" style="width:70px;height:32px;font-size:16px;border:1px solid #e0b5b5;border-radius:6px;padding:0 10px;outline:none;transition:border 0.2s;box-shadow:0 1px 2px #f0f4fa;">';
+  anyThresholdHtml += '<input type="number" id="anyMissThresholdInput" value="' + (window.anyMissThreshold || 8) + '" min="1" max="99" style="width:70px;height:32px;font-size:16px;border:1px solid #e0b5b5;border-radius:6px;padding:0 10px;outline:none;transition:border 0.2s;box-shadow:0 1px 2px #f0f4fa;">';
   anyThresholdHtml += '</div>';
 
   let html = anyThresholdHtml + yearBtnsHtml + descHtml + missHtml;
@@ -594,7 +662,7 @@ setTimeout(() => {
   });
   const input = document.getElementById('anyMissThresholdInput');
   if (input) {
-    input.value = window.anyMissThreshold;
+    input.value = window.anyMissThreshold || 8;
     input.oninput = function() {
       window.anyMissThreshold = parseInt(this.value) || 8;
       input.value = window.anyMissThreshold;
@@ -602,6 +670,209 @@ setTimeout(() => {
     };
   }
 }, 0);
+
+// 2. 主内容区添加+1~+20区间分析页面容器（优化：加彩种和下一期球位置下拉选择+查询按钮+年份选择）
+if (!document.getElementById('rangePage')) {
+  const mainContent = document.querySelector('.main-content');
+  const rangeDiv = document.createElement('div');
+  rangeDiv.id = 'rangePage';
+  rangeDiv.style.display = 'none';
+  rangeDiv.innerHTML = `
+    <h2>+1~+20区间分析</h2>
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:24px;">
+      <div>
+        <label class="records-query-label">选择彩种：</label>
+        <div id="rangeTypeBtns" style="display:inline-block;">
+          <button class="range-type-btn active" data-type="am">澳门</button>
+          <button class="range-type-btn" data-type="hk">香港</button>
+        </div>
+      </div>
+      <div>
+        <label class="records-query-label">下一期号码位置：</label>
+        <div id="rangePosBtns" style="display:inline-block;">
+          <button class="range-pos-btn active" data-pos="1">第1位</button>
+          <button class="range-pos-btn" data-pos="2">第2位</button>
+          <button class="range-pos-btn" data-pos="3">第3位</button>
+          <button class="range-pos-btn" data-pos="4">第4位</button>
+          <button class="range-pos-btn" data-pos="5">第5位</button>
+          <button class="range-pos-btn" data-pos="6">第6位</button>
+          <button class="range-pos-btn" data-pos="7">第7位</button>
+        </div>
+      </div>
+      <button id="rangeQueryBtn" style="padding:6px 18px;font-size:15px;">查询</button>
+    </div>
+    <div id="rangeYearBtns" style="margin-bottom:12px;"></div>
+    <div id="rangeResult" style="margin-top:16px;"></div>
+  `;
+  mainContent.appendChild(rangeDiv);
+}
+
+let currentRangeType = 'am';
+let currentRangePos = 1;
+let currentRangeNextPos = 7; // 默认第7位
+let currentRangePage = 1;
+let currentRangeYear = '';
+function loadRangeAnalysis(type, nextPos, page, year) {
+  if (typeof type === 'string' && type) currentRangeType = type;
+  if (typeof nextPos !== 'undefined' && nextPos !== null && nextPos !== '') currentRangeNextPos = Number(nextPos) || 1;
+  if (typeof page !== 'undefined' && page !== null && page !== '') currentRangePage = Number(page) || 1;
+  if (typeof year !== 'undefined') currentRangeYear = year;
+  // 按钮高亮
+  document.querySelectorAll('.range-type-btn').forEach(btn => {
+    if (btn.dataset.type === currentRangeType) {
+      btn.classList.add('active');
+      btn.style.background = '#2980d9';
+      btn.style.color = '#fff';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = '#f0f0f0';
+      btn.style.color = '#333';
+    }
+  });
+  document.querySelectorAll('.range-pos-btn').forEach(btn => {
+    if (btn.dataset.pos == currentRangeNextPos) {
+      btn.classList.add('active');
+      btn.style.background = '#d35400';
+      btn.style.color = '#fff';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = '#f0f0f0';
+      btn.style.color = '#333';
+    }
+  });
+  const rangeResult = document.getElementById('rangeResult');
+  rangeResult.innerHTML = '加载中...';
+  let url = `${window.BACKEND_URL}/range_analysis?lottery_type=${currentRangeType}&pos=${currentRangeNextPos}&page=${currentRangePage}&page_size=20`;
+  if (currentRangeYear) url += `&year=${currentRangeYear}`;
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      years = data.years || [];
+      yearBtnsHtml = '';
+      if (years.length > 0) {
+        yearBtnsHtml = '<div style="margin-bottom:10px;"><b>年份：</b>';
+        yearBtnsHtml += `<button class="range-year-btn${!currentRangeYear ? ' active' : ''}" data-year="">全部</button>`;
+        years.forEach(y => {
+          yearBtnsHtml += `<button class="range-year-btn${currentRangeYear == y ? ' active' : ''}" data-year="${y}">${y}</button>`;
+        });
+        yearBtnsHtml += '</div>';
+      }
+      document.getElementById('rangeYearBtns').innerHTML = yearBtnsHtml;
+      // 年份按钮事件
+      document.querySelectorAll('.range-year-btn').forEach(btn => {
+        btn.onclick = function() {
+          loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, this.dataset.year);
+        };
+      });
+      // 最新一期开奖号码展示
+      let lastOpenHtml = '';
+      if (data && data.last_open && data.last_open.balls) {
+        const period = data.last_open.period;
+        const openTime = data.last_open.open_time;
+        const balls = data.last_open.balls;
+        lastOpenHtml = `<div style=\"margin-bottom:10px;padding:8px 16px;border:1px solid #bbb;border-radius:8px;background:#f8fafd;\">` +
+          `<span style=\"font-weight:bold;color:#2980d9;\">最新一期开奖号码（${period} ${openTime}）：</span> ` +
+          balls.map((b, i) => `<span style=\"display:inline-block;margin-right:8px;\"><b>球${i+1}:</b> <span class='${getBallColorClass(b)}' style=\"display:inline-block;padding:2px 10px;border-radius:16px;color:#fff;min-width:28px;\">${b}</span></span>`).join('') +
+          `</div>`;
+      } else if (data && data.data && data.data.length > 0) {
+        // 兼容无last_open时用表格第一行
+        let lastRow = data.data[0];
+        if (lastRow && lastRow.length >= 9) {
+          const period = lastRow[0];
+          const openTime = lastRow[1];
+          const balls = lastRow.slice(2, 9); // 7个球
+          lastOpenHtml = `<div style=\"margin-bottom:10px;padding:8px 16px;border:1px solid #bbb;border-radius:8px;background:#f8fafd;\">` +
+            `<span style=\"font-weight:bold;color:#2980d9;\">最新一期开奖号码（${period} ${openTime}）：</span> ` +
+            balls.map((b, i) => `<span style=\"display:inline-block;margin-right:8px;\"><b>球${i+1}:</b> <span class='${getBallColorClass(b.split('<')[0])}' style=\"display:inline-block;padding:2px 10px;border-radius:16px;color:#fff;min-width:28px;\">${b.split('<')[0]}</span></span>`).join('') +
+            `</div>`;
+        }
+      }
+      // 最新一期预测统计
+      let predictHtml = '';
+      if (data.predict && data.predict.ranges) {
+        predictHtml = `<div style=\"margin-bottom:16px;padding:10px 16px;border:2px solid #d35400;border-radius:10px;background:#fffbe9;\">` +
+          `<div style=\"font-size:17px;font-weight:bold;color:#d35400;margin-bottom:6px;\">${data.predict.desc || '最新一期预测'}</div>`;
+        for (let i = 0; i < data.predict.ranges.length; i++) {
+          predictHtml += `<div style=\"border:1px solid #2980d9;border-radius:7px;padding:8px 18px;background:#f4f8ff;min-width:180px;margin-bottom:8px;display:inline-block;margin-right:18px;\">`;
+          predictHtml += `<div style=\"color:#2980d9;font-weight:bold;font-size:15px;\">球${i+1}</div>`;
+          for (let j = 0; j < data.predict.ranges[i].length; j++) {
+            const label = data.predict.ranges[i][j].label;
+            const rng = data.predict.ranges[i][j].range;
+            predictHtml += `<div style=\"margin-bottom:2px;\"><span style=\"color:#333;\">${label}: <b>${rng}</b></span></div>`;
+          }
+          predictHtml += '</div>';
+        }
+        predictHtml += '</div>';
+      }
+      // 区间表格上方统计信息
+      let missHtml = '';
+      if (data.max_miss && data.cur_miss && data.max_miss_period) {
+        missHtml = '<div style="margin-bottom:12px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">';
+        for (let i = 0; i < 7; i++) {
+          missHtml += `<div style="border:1px solid #2980d9;border-radius:7px;padding:8px 18px;background:#f4f8ff;min-width:180px;margin-bottom:8px;">
+            <div style=\"color:#2980d9;font-weight:bold;font-size:15px;\">球${i+1}</div>`;
+          for (let j = 0; j < 6; j++) {
+            const label = ['+1~+20', '+5~+24', '+10~+29', '+15~+34', '+20~+39', '+25~+44'][j];
+            const maxMiss = data.max_miss[i][j];
+            const maxMissPeriod = data.max_miss_period[i][j];
+            const curMiss = data.cur_miss[i][j];
+            missHtml += `<div style=\"margin-bottom:2px;\"><span style=\"color:#333;\">${label}</span> ` +
+              `<span style=\"color:#c0392b;\">最大遗漏: <b>${maxMiss}</b></span> ` +
+              `<span style=\"color:#555;\">期号: <b>${maxMissPeriod}</b></span> ` +
+              `<span style=\"color:#2980d9;\">当前遗漏: <b>${curMiss}</b></span></div>`;
+          }
+          missHtml += '</div>';
+        }
+        missHtml += '</div>';
+      }
+      // 区间表格
+      if (!data.data || !data.data.length) {
+        rangeResult.innerHTML = lastOpenHtml + predictHtml + missHtml + '<span style="color:red;">暂无数据</span>';
+        return;
+      }
+      let html = lastOpenHtml + predictHtml + missHtml + '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;font-size:13px;">';
+      html += '<tr>' + data.header.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      let pageData = data.data;
+      if (currentRangeYear) {
+        pageData = pageData.filter(row => String(row[0]).startsWith(currentRangeYear));
+      }
+      pageData.forEach(row => {
+        html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+      });
+      html += '</table>';
+      html += `<div style='margin-top:8px;'>第 ${data.page} / ${Math.ceil(data.total/data.page_size)} 页`;
+      if (data.page > 1) html += ` <button id='rangePrevPage'>上一页</button>`;
+      if (data.page < Math.ceil(data.total/data.page_size)) html += ` <button id='rangeNextPage'>下一页</button>`;
+      html += `</div>`;
+      rangeResult.innerHTML = html;
+      if (data.page > 1) document.getElementById('rangePrevPage').onclick = () => loadRangeAnalysis(currentRangeType, currentRangeNextPos, data.page-1, currentRangeYear);
+      if (data.page < Math.ceil(data.total/data.page_size)) document.getElementById('rangeNextPage').onclick = () => loadRangeAnalysis(currentRangeType, currentRangeNextPos, data.page+1, currentRangeYear);
+    });
+}
+setTimeout(() => {
+  // 彩种按钮事件
+  document.querySelectorAll('.range-type-btn').forEach(btn => {
+    btn.onclick = function() {
+      loadRangeAnalysis(this.dataset.type, currentRangeNextPos, 1, currentRangeYear);
+    };
+  });
+  // 号码位置按钮事件
+  document.querySelectorAll('.range-pos-btn').forEach(btn => {
+    btn.onclick = function() {
+      loadRangeAnalysis(currentRangeType, this.dataset.pos, 1, currentRangeYear);
+    };
+  });
+  // 查询按钮事件
+  const queryBtn = document.getElementById('rangeQueryBtn');
+  if (queryBtn) {
+    queryBtn.onclick = function() {
+      loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, currentRangeYear);
+    };
+  }
+}, 0);
+if (document.getElementById('rangePage')) {
+  loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
+}
 
 // 分析推荐收放按钮事件
 setTimeout(() => {
