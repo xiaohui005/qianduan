@@ -18,12 +18,17 @@ pip install -r requirements.txt
 
 ### 3. 启动后端服务
 ```bash
+cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 4. 打开前端页面
 直接用浏览器打开 `frontend/index.html`
-
+### 3. 启动前端服务
+```bash
+cd frontend 
+python -m http.server 8080
+```
 ## 功能说明
 - 支持上传CSV彩票数据，后端用pandas分析
 - 可扩展MySQL存储、Redis缓存
