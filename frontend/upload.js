@@ -408,16 +408,18 @@ if (!document.getElementById('unitsPage')) {
 // 文件顶部只声明一次 pageMap，后续扩展直接复用
 if (typeof pageMap === 'undefined') {
   var pageMap = {
-    menuCollectBtn: 'collectPage',
-    menuRecordsBtn: 'recordsPage',
-    menuRecommendBtn: 'recommendPage',
-    menuTensBtn: 'tensPage',
-    menuUnitsBtn: 'unitsPage',
-    menuRangeBtn: 'rangePage',
+  menuCollectBtn: 'collectPage',
+  menuRecordsBtn: 'recordsPage',
+  menuRecommendBtn: 'recommendPage',
+  menuTensBtn: 'tensPage',
+  menuUnitsBtn: 'unitsPage',
+  menuRangeBtn: 'rangePage',
     menuMinusRangeBtn: 'minusRangePage',
-  };
+    menuPlusMinus6Btn: 'plusMinus6Page',
+};
 } else {
   pageMap.menuMinusRangeBtn = 'minusRangePage';
+  pageMap.menuPlusMinus6Btn = 'plusMinus6Page';
 }
 Object.keys(pageMap).forEach(id => {
   const btn = document.getElementById(id);
@@ -441,6 +443,7 @@ Object.keys(pageMap).forEach(id => {
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
+        plusMinus6Page: '加减前6码分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据
@@ -472,6 +475,9 @@ Object.keys(pageMap).forEach(id => {
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
           break;
+        case 'menuPlusMinus6Btn':
+          loadPlusMinus6Analysis();
+          break;
       }
     });
   }
@@ -487,6 +493,7 @@ const menuBtnMap = [
   {id: 'menuUnitsBtn', page: 'units'},
   {id: 'menuRangeBtn', page: 'range'},
   {id: 'menuMinusRangeBtn', page: 'minusRange'},
+  {id: 'menuPlusMinus6Btn', page: 'plusMinus6'},
 ];
 menuBtnMap.forEach(item => {
   const btn = document.getElementById(item.id);
@@ -503,6 +510,7 @@ menuBtnMap.forEach(item => {
         menuUnitsBtn: 'unitsPage',
         menuRangeBtn: 'rangePage',
         menuMinusRangeBtn: 'minusRangePage',
+        menuPlusMinus6Btn: 'plusMinus6Page',
       };
       Object.values(pageMap).forEach(pid => {
         const page = document.getElementById(pid);
@@ -518,6 +526,7 @@ menuBtnMap.forEach(item => {
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
+        plusMinus6Page: '加减前6码分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[item.id]] || '';
       // 自动加载数据
@@ -546,6 +555,9 @@ menuBtnMap.forEach(item => {
           break;
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
+          break;
+        case 'menuPlusMinus6Btn':
+          loadPlusMinus6Analysis();
           break;
       }
     };
@@ -956,6 +968,7 @@ Object.keys(pageMap).forEach(id => {
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
+        plusMinus6Page: '加减前6码分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       switch (id) {
@@ -983,6 +996,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
+          break;
+        case 'menuPlusMinus6Btn':
+          loadPlusMinus6Analysis();
           break;
       }
     });
@@ -1312,3 +1328,261 @@ function bindMinusRangeBtnEvents() {
     };
   }
 }
+
+// 1. 左侧菜单添加加减前6码分析按钮（放到分析推荐菜单内）
+if (sidebarMenu && !document.getElementById('menuPlusMinus6Btn')) {
+  const pm6Btn = document.createElement('button');
+  pm6Btn.className = 'menu-btn';
+  pm6Btn.id = 'menuPlusMinus6Btn';
+  pm6Btn.innerText = '加减前6码分析';
+  sidebarMenu.appendChild(pm6Btn);
+}
+// 2. 主内容区添加加减前6码分析页面容器
+if (!document.getElementById('plusMinus6Page')) {
+  const mainContent = document.querySelector('.main-content');
+  const pm6Div = document.createElement('div');
+  pm6Div.id = 'plusMinus6Page';
+  pm6Div.style.display = 'none';
+  pm6Div.innerHTML = `
+    <h2>加减前6码分析</h2>
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:24px;">
+      <div>
+        <label class="records-query-label">选择彩种：</label>
+        <div id="pm6TypeBtns" style="display:inline-block;">
+          <button class="pm6-type-btn active" data-type="am">澳门</button>
+          <button class="pm6-type-btn" data-type="hk">香港</button>
+        </div>
+      </div>
+      <div>
+        <label class="records-query-label">位数：</label>
+        <div id="pm6PosBtns" style="display:inline-block;">
+          <button class="pm6-pos-btn active" data-pos="1">第1位</button>
+          <button class="pm6-pos-btn" data-pos="2">第2位</button>
+          <button class="pm6-pos-btn" data-pos="3">第3位</button>
+          <button class="pm6-pos-btn" data-pos="4">第4位</button>
+          <button class="pm6-pos-btn" data-pos="5">第5位</button>
+          <button class="pm6-pos-btn" data-pos="6">第6位</button>
+          <button class="pm6-pos-btn" data-pos="7">第7位</button>
+        </div>
+      </div>
+      <button id="pm6QueryBtn" style="padding:6px 18px;font-size:15px;">查询</button>
+    </div>
+    <div id="pm6YearBtns" style="margin-bottom:12px;"></div>
+    <div id="pm6Stats" style="margin-bottom:12px;"></div>
+    <div id="pm6Latest" style="margin-bottom:12px;"></div>
+    <div id="pm6Predict" style="margin-bottom:12px;"></div>
+    <div id="pm6Result" style="margin-top:16px;"></div>
+  `;
+  mainContent.appendChild(pm6Div);
+}
+// 3. 页面切换逻辑扩展
+if (typeof pageMap === 'undefined') {
+  var pageMap = {
+    menuCollectBtn: 'collectPage',
+    menuRecordsBtn: 'recordsPage',
+    menuRecommendBtn: 'recommendPage',
+    menuTensBtn: 'tensPage',
+    menuUnitsBtn: 'unitsPage',
+    menuRangeBtn: 'rangePage',
+    menuMinusRangeBtn: 'minusRangePage',
+    menuPlusMinus6Btn: 'plusMinus6Page',
+  };
+} else {
+  pageMap.menuPlusMinus6Btn = 'plusMinus6Page';
+}
+Object.keys(pageMap).forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(pageMap).forEach(pid => {
+        const page = document.getElementById(pid);
+        if (page) page.style.display = 'none';
+      });
+      document.getElementById(pageMap[id]).style.display = '';
+      const titleMap = {
+        collectPage: '数据采集',
+        recordsPage: '开奖记录',
+        recommendPage: '推荐8码',
+        tensPage: '第N位十位分析',
+        unitsPage: '第N个码个位分析',
+        rangePage: '+1~+20区间分析',
+        minusRangePage: '-1~-20区间分析',
+        plusMinus6Page: '加减前6码分析',
+      };
+      document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
+      switch (id) {
+        case 'menuPlusMinus6Btn':
+          currentPm6Pos = 7; // 默认第7位
+          loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, 1, currentPm6Year);
+          break;
+        // ... existing code ...
+      }
+    });
+  }
+});
+// 4. 查询与渲染逻辑
+let currentPm6Type = 'am';
+let currentPm6Pos = 1;
+let currentPm6Page = 1;
+let currentPm6Year = '';
+function loadPlusMinus6Analysis(type, pos, page, year) {
+  if (typeof type === 'string' && type) currentPm6Type = type;
+  if (typeof pos !== 'undefined' && pos !== null && pos !== '') currentPm6Pos = Number(pos) || 1;
+  if (typeof page !== 'undefined' && page !== null && page !== '') currentPm6Page = Number(page) || 1;
+  if (typeof year !== 'undefined') currentPm6Year = year;
+  // 按钮高亮
+  document.querySelectorAll('.pm6-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === currentPm6Type);
+    if (btn.dataset.type === currentPm6Type) {
+      btn.style.background = '#2980d9';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = 'bold';
+      btn.style.border = '2px solid #2980d9';
+      btn.style.boxShadow = '0 2px 8px #e3eaf7';
+    } else {
+      btn.style.background = '#f0f0f0';
+      btn.style.color = '#333';
+      btn.style.fontWeight = 'normal';
+      btn.style.border = '1px solid #b5c6e0';
+      btn.style.boxShadow = 'none';
+    }
+  });
+  document.querySelectorAll('.pm6-pos-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.pos == currentPm6Pos);
+    if (btn.dataset.pos == currentPm6Pos) {
+      btn.style.background = '#d35400';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = 'bold';
+      btn.style.border = '2px solid #d35400';
+      btn.style.boxShadow = '0 2px 8px #fbeee3';
+    } else {
+      btn.style.background = '#f0f0f0';
+      btn.style.color = '#333';
+      btn.style.fontWeight = 'normal';
+      btn.style.border = '1px solid #b5c6e0';
+      btn.style.boxShadow = 'none';
+    }
+  });
+  document.querySelectorAll('.pm6-year-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.year == currentPm6Year);
+    if (btn.dataset.year == currentPm6Year) {
+      btn.style.background = '#27ae60';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = 'bold';
+      btn.style.border = '2px solid #27ae60';
+      btn.style.boxShadow = '0 2px 8px #e3f7e7';
+    } else {
+      btn.style.background = '#f0f0f0';
+      btn.style.color = '#333';
+      btn.style.fontWeight = 'normal';
+      btn.style.border = '1px solid #b5c6e0';
+      btn.style.boxShadow = 'none';
+    }
+  });
+  const pm6Result = document.getElementById('pm6Result');
+  pm6Result.innerHTML = '加载中...';
+  let url = `${window.BACKEND_URL}/plus_minus6_analysis?lottery_type=${currentPm6Type}&pos=${currentPm6Pos}&page=${currentPm6Page}&page_size=20`;
+  if (currentPm6Year) url += `&year=${currentPm6Year}`;
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      // 年份按钮组
+      let years = data.years || [];
+      let yearBtnsHtml = '';
+      if (years.length > 0) {
+        yearBtnsHtml = '<div style="margin-bottom:10px;"><b>年份：</b>';
+        yearBtnsHtml += `<button class="pm6-year-btn${!currentPm6Year ? ' active' : ''}" data-year="">全部</button>`;
+        years.forEach(y => {
+          yearBtnsHtml += `<button class="pm6-year-btn${currentPm6Year == y ? ' active' : ''}" data-year="${y}">${y}</button>`;
+        });
+        yearBtnsHtml += '</div>';
+      }
+      document.getElementById('pm6YearBtns').innerHTML = yearBtnsHtml;
+      // 年份按钮事件
+      document.querySelectorAll('.pm6-year-btn').forEach(btn => {
+        btn.onclick = function() {
+          loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, 1, this.dataset.year);
+        };
+      });
+      // 最大遗漏和当前遗漏
+      let statsHtml = '';
+      if (Array.isArray(data.max_miss) && Array.isArray(data.cur_miss) && data.max_miss.length === 6 && data.cur_miss.length === 6) {
+        statsHtml = '<div style="margin-bottom:8px;">';
+        for (let i = 0; i < 6; i++) {
+          statsHtml += `<div style="margin-bottom:2px;">加减${i+1} 最大遗漏：<b>${data.max_miss[i] ?? '-'}</b>，当前遗漏：<b>${data.cur_miss[i] ?? '-'}</b></div>`;
+        }
+        statsHtml += '</div>';
+      } else {
+        statsHtml = '<div style="margin-bottom:8px;">最大遗漏/当前遗漏数据缺失</div>';
+      }
+      document.getElementById('pm6Stats').innerHTML = statsHtml;
+      // 只在最大遗漏后展示12码预测分组
+      let predictHtml = '';
+      if (data.predict && Array.isArray(data.predict.groups)) {
+        predictHtml += `<div style='margin-bottom:18px;padding:10px 16px;border:2px solid #27ae60;border-radius:10px;background:#f4f8ff;'>`;
+        predictHtml += `<div style='font-size:17px;font-weight:bold;color:#27ae60;margin-bottom:6px;'>${data.predict.desc || '最新一期12码预测'}</div>`;
+        data.predict.groups.forEach(g => {
+          predictHtml += `<div style='margin-bottom:4px;'><b>加减${g.n}：</b> <span style='color:#2980d9;'>${g.numbers.join(', ')}</span></div>`;
+        });
+        predictHtml += '</div>';
+      }
+      document.getElementById('pm6Predict').innerHTML = predictHtml;
+      // 渲染表格
+      let html = '';
+      if (data.header && data.data) {
+        // 动态渲染所有表头和所有列，保证"下一期开奖号码"能展示出来
+        html += '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">';
+        html += '<tr>' + data.header.map(h => `<th>${h}</th>`).join('') + '</tr>';
+        data.data.forEach(row => {
+          html += '<tr>';
+          row.forEach((cell, idx) => {
+            if (idx === 2 && Array.isArray(cell)) {
+              // 加减1~6组详情
+              let groupHtml = '';
+              cell.forEach(g => {
+                groupHtml += `<div>加减${g.n}: ${g.numbers.join(',')} ｜ <span style='color:${g.hit?'#27ae60':'#c0392b'}'>${g.hit?'命中':'未中'}</span> ｜ 当前遗漏: <b>${g.miss}</b></div>`;
+              });
+              html += `<td>${groupHtml}</td>`;
+            } else {
+              html += `<td>${cell}</td>`;
+            }
+          });
+          html += '</tr>';
+        });
+        html += '</table>';
+        // 分页
+        html += `<div style='margin-top:12px;'>`;
+        if (data.page > 1) html += ` <button id='pm6PrevPage'>上一页</button>`;
+        if (data.page < Math.ceil(data.total/data.page_size)) html += ` <button id='pm6NextPage'>下一页</button>`;
+        html += `</div>`;
+      } else {
+        html = '<span style="color:red;">暂无数据</span>';
+      }
+      pm6Result.innerHTML = html;
+      // 分页按钮事件
+      if (data.page > 1) document.getElementById('pm6PrevPage').onclick = () => loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, data.page-1, currentPm6Year);
+      if (data.page < Math.ceil(data.total/data.page_size)) document.getElementById('pm6NextPage').onclick = () => loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, data.page+1, currentPm6Year);
+    });
+}
+// 5. 按钮事件绑定
+setTimeout(() => {
+  document.querySelectorAll('.pm6-type-btn').forEach(btn => {
+    btn.onclick = function() {
+      loadPlusMinus6Analysis(this.dataset.type, currentPm6Pos, 1, currentPm6Year);
+    };
+  });
+  document.querySelectorAll('.pm6-pos-btn').forEach(btn => {
+    btn.onclick = function() {
+      loadPlusMinus6Analysis(currentPm6Type, this.dataset.pos, 1, currentPm6Year);
+    };
+  });
+  const queryBtn = document.getElementById('pm6QueryBtn');
+  if (queryBtn) {
+    queryBtn.onclick = function() {
+      loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, 1, currentPm6Year);
+    };
+  }
+}, 0);
+// ... existing code ...

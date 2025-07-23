@@ -163,7 +163,8 @@ def recommend_api(lottery_type: str = Query('am')):
     conn.close()
     return {
         "recommend": recommend,
-        "latest_period": base_period
+        "latest_period": base_period,
+        "used_period": base_period
     }
 
 @app.get("/tens_analysis")
@@ -575,6 +576,151 @@ def range_analysis_minus_api(
     cursor.close()
     conn.close()
     return {"header": header, "data": data, "total": total, "page": page, "page_size": page_size, "desc": desc, "years": years, "max_miss": max_miss, "max_miss_period": max_miss_period, "cur_miss": cur_miss, "predict": predict_info, "last_open": last_open}
+
+@app.get("/plus_minus6_analysis")
+def plus_minus6_analysis_api(
+    lottery_type: str = Query('am'),
+    pos: int = Query(1, ge=1, le=7),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    year: str = Query(None)
+):
+    """
+    每期取前6个号码，分别加减1~6，分为6组，每组12个数。每组用下一期第N位（N=1~7可选）判断是否命中，统计每组的遗漏期数（连续多少期未命中），最大遗漏、当前遗漏。返回每组的号码、命中、遗漏、最大遗漏、当前遗漏。
+    """
+    def plus49(n, k):
+        v = (n + k - 1) % 49 + 1
+        return str(v).zfill(2)
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
+        (lottery_type,)
+    )
+    all_rows = cursor.fetchall()
+    if not all_rows or len(all_rows) < 2:
+        return {"data": [], "desc": "无该彩种历史数据或数据不足"}
+    # 年份过滤
+    if year:
+        all_rows = [row for row in all_rows if str(row['period']).startswith(year)]
+        if len(all_rows) < 2:
+            return {"data": [], "desc": f"{year}年无数据或数据不足"}
+    N_range = list(range(1, 7))  # N=1~6
+    group_miss_counter = [0]*6
+    group_max_miss = [0]*6
+    group_max_miss_period = ['']*6
+    group_cur_miss = [0]*6
+    all_data = []
+    group_stats = []
+    for idx in range(len(all_rows)-1):
+        row = all_rows[idx]
+        next_row = all_rows[idx+1]
+        period = row['period']
+        open_time = row['open_time'].strftime('%Y-%m-%d') if hasattr(row['open_time'], 'strftime') else str(row['open_time'])
+        nums = row['numbers'].split(',')
+        next_nums = next_row['numbers'].split(',')
+        group_numbers = []
+        group_hit = []
+        for n in N_range:
+            group = set()
+            for i in range(6):
+                if i < len(nums):
+                    num = int(nums[i])
+                    group.add(plus49(num, n))
+                    group.add(plus49(num, -n))
+            group = sorted(list(group))
+            group_numbers.append(group)
+            # 命中统计
+            if pos-1 < len(next_nums):
+                next_ball = str(int(next_nums[pos-1])).zfill(2)
+                hit = next_ball in group
+                group_hit.append(hit)
+                if hit:
+                    if group_miss_counter[n-1] > group_max_miss[n-1]:
+                        group_max_miss[n-1] = group_miss_counter[n-1]
+                        group_max_miss_period[n-1] = period
+                    group_miss_counter[n-1] = 0
+                else:
+                    group_miss_counter[n-1] += 1
+            else:
+                group_hit.append(False)
+        # 下一期第N码
+        if pos-1 < len(next_nums):
+            next_n_ball = str(next_nums[pos-1]).zfill(2)
+        else:
+            next_n_ball = '-'
+        # 新增：下一期开奖号码
+        next_nums_str = ",".join([str(int(n)).zfill(2) for n in next_nums[:7]]) if next_nums else "-"
+        # 记录每组命中、遗漏
+        all_data.append([
+            period, open_time,
+            [
+                {
+                    'n': n,
+                    'numbers': group_numbers[n-1],
+                    'hit': group_hit[n-1],
+                    'miss': group_miss_counter[n-1]
+                } for n in N_range
+            ],
+            next_n_ball,
+            next_nums_str  # 下一期开奖号码
+        ])
+    # 统计当前遗漏
+    for n in N_range:
+        group_cur_miss[n-1] = group_miss_counter[n-1]
+    all_data.reverse()
+    years = sorted({str(row['period'])[:4] for row in all_rows})
+    total = len(all_data)
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    data = all_data[start_idx:end_idx]
+    header = ["期号", "开奖时间", "加减1~6组详情", f"下一期球{pos}", "下一期开奖号码"]
+    desc = f"每期前6码加减1~6分为6组，每组12个数，用下一期第{pos}位判断命中，统计每组遗漏。"
+    # 最新一期开奖号码
+    last_open = None
+    if all_rows:
+        last_row = all_rows[-1]
+        last_open = {
+            'period': str(last_row['period']),
+            'open_time': last_row['open_time'].strftime('%Y-%m-%d') if hasattr(last_row['open_time'], 'strftime') else str(last_row['open_time']),
+            'balls': [str(int(n)).zfill(2) for n in last_row['numbers'].split(',')[:6]]
+        }
+    # 最新一期推算12码
+    predict_info = None
+    if all_rows:
+        last_row = all_rows[-1]
+        nums = last_row['numbers'].split(',')
+        predict_groups = []
+        for n in N_range:
+            group = set()
+            for i in range(6):
+                if i < len(nums):
+                    num = int(nums[i])
+                    group.add(plus49(num, n))
+                    group.add(plus49(num, -n))
+            group = sorted(list(group))
+            predict_groups.append({'n': n, 'numbers': group})
+        predict_info = {
+            'period': str(int(last_open['period'])+1) if last_open else '-',
+            'groups': predict_groups,
+            'desc': f"最新一期({str(int(last_open['period'])+1) if last_open else '-'})推算12码"
+        }
+    cursor.close()
+    conn.close()
+    return {
+        "header": header,
+        "data": data,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "desc": desc,
+        "years": years,
+        "max_miss": group_max_miss,
+        "max_miss_period": group_max_miss_period,
+        "cur_miss": group_cur_miss,
+        "predict": predict_info,
+        "last_open": last_open
+    }
 
 @app.get("/restart")
 def restart_api(background_tasks: BackgroundTasks):
