@@ -1586,3 +1586,63 @@ setTimeout(() => {
   }
 }, 0);
 // ... existing code ...
+
+// 登记点分析展开/折叠按钮事件绑定
+setTimeout(() => {
+  const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
+  const registerMenuBtns = document.getElementById('registerMenuBtns');
+  const registerCollapseIcon = document.getElementById('registerCollapseIcon');
+  if (toggleRegisterBtn && registerMenuBtns && registerCollapseIcon) {
+    toggleRegisterBtn.onclick = function() {
+      if (registerMenuBtns.style.display === 'none' || registerMenuBtns.style.display === '') {
+        registerMenuBtns.style.display = 'block';
+        registerCollapseIcon.innerText = '▲';
+      } else {
+        registerMenuBtns.style.display = 'none';
+        registerCollapseIcon.innerText = '▼';
+      }
+    };
+  }
+}, 0);
+
+// ... existing code ...
+// 登记点分析下拉菜单按钮事件绑定
+setTimeout(() => {
+  const btnMap = [
+    { btn: 'menuRegisterFocusBtn', page: 'registerFocusPage', title: '登记关注点' },
+    { btn: 'menuRegisterBetBtn', page: 'registerBetPage', title: '投注登记点' },
+    { btn: 'menuRegisterFocusResultBtn', page: 'registerFocusResultPage', title: '关注点登记结果' },
+    { btn: 'menuRegisterFocusAnalysisBtn', page: 'registerFocusAnalysisPage', title: '关注点分析' },
+    { btn: 'menuRegisterBetReportBtn', page: 'registerBetReportPage', title: '投注点报表' },
+  ];
+  btnMap.forEach(item => {
+    const btn = document.getElementById(item.btn);
+    if (btn) {
+      btn.onclick = function() {
+        // 高亮
+        btnMap.forEach(i => {
+          const b = document.getElementById(i.btn);
+          if (b) b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        // 页面切换
+        // 隐藏所有主内容区页面
+        const allPages = [
+          'collectPage', 'recordsPage', 'recommendPage', 'tensPage', 'unitsPage', 'rangePage', 'minusRangePage', 'plusMinus6Page',
+          'registerFocusPage', 'registerBetPage', 'registerFocusResultPage', 'registerFocusAnalysisPage', 'registerBetReportPage'
+        ];
+        allPages.forEach(pid => {
+          const page = document.getElementById(pid);
+          if (page) page.style.display = 'none';
+        });
+        // 只显示当前页面
+        const showPage = document.getElementById(item.page);
+        if (showPage) showPage.style.display = '';
+        // 标题切换
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) pageTitle.innerText = item.title;
+      };
+    }
+  });
+}, 0);
+// ... existing code ...
