@@ -441,6 +441,141 @@ def range_analysis_api(
     conn.close()
     return {"header": header, "data": data, "total": total, "page": page, "page_size": page_size, "desc": desc, "years": years, "max_miss": max_miss, "max_miss_period": max_miss_period, "cur_miss": cur_miss, "predict": predict_info, "last_open": last_open}
 
+@app.get("/range_analysis_minus")
+def range_analysis_minus_api(
+    lottery_type: str = Query('am'),
+    pos: int = Query(1, ge=1, le=7),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    year: str = Query(None)
+):
+    """
+    负区间分析API，返回每期开奖信息、7个球的区间命中情况（命中为0，未命中为距离上次命中的期数，区间只显示头和尾两个数），每个球的区间只和下一期同位置的球比较。最后一列只显示下一期的第N个球。期号倒序，分页返回。
+    header=[期号, 开奖时间, 球1, ..., 球7, 下一期球N]。
+    新增返回：每个球每个区间的历史最大遗漏、最大遗漏发生期号、当前遗漏，支持按年份过滤。
+    区间为-1~-20, -5~-24, -10~-29, -15~-34, -20~-39, -25~-44。
+    """
+    def plus49(n, k):
+        v = (n + k - 1) % 49 + 1
+        return str(v).zfill(2)
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
+        (lottery_type,)
+    )
+    all_rows = cursor.fetchall()
+    if not all_rows or len(all_rows) < 2:
+        return {"data": [], "desc": "无该彩种历史数据或数据不足"}
+    # 年份过滤
+    if year:
+        all_rows = [row for row in all_rows if str(row['period']).startswith(year)]
+        if len(all_rows) < 2:
+            return {"data": [], "desc": f"{year}年无数据或数据不足"}
+    intervals = [('-1~-20', -1, -20), ('-5~-24', -5, -24), ('-10~-29', -10, -29), ('-15~-34', -15, -34), ('-20~-39', -20, -39), ('-25~-44', -25, -44)]
+    miss_counter = [[0 for _ in intervals] for _ in range(7)]
+    max_miss = [[0 for _ in intervals] for _ in range(7)]
+    max_miss_period = [['' for _ in intervals] for _ in range(7)]
+    cur_miss = [[0 for _ in intervals] for _ in range(7)]
+    all_data = []
+    for idx in range(len(all_rows)-1):
+        row = all_rows[idx]
+        next_row = all_rows[idx+1]
+        period = row['period']
+        open_time = row['open_time'].strftime('%Y-%m-%d') if hasattr(row['open_time'], 'strftime') else str(row['open_time'])
+        nums = row['numbers'].split(',')
+        next_nums = next_row['numbers'].split(',')
+        balls = []
+        for i in range(7):
+            cell = '-'
+            if i < len(nums):
+                num = int(nums[i])
+                cell = f"{str(num).zfill(2)}"
+                for j, (label, start, end) in enumerate(intervals):
+                    head = plus49(num, start)
+                    tail = plus49(num, end)
+                    rng_str = f"{head}~{tail}"
+                    rng = set()
+                    # 负区间累加
+                    for k in range(start, end-1, -1):
+                        rng.add(str(int(plus49(num, k))).zfill(2))
+                    # 只和下一期同位置的球比较
+                    if pos-1 < len(next_nums):
+                        next_ball = str(int(next_nums[pos-1])).zfill(2)
+                        hit = next_ball in rng
+                        if hit:
+                            if miss_counter[i][j] > max_miss[i][j]:
+                                max_miss[i][j] = miss_counter[i][j]
+                                max_miss_period[i][j] = period
+                            miss_counter[i][j] = 0
+                        else:
+                            miss_counter[i][j] += 1
+                    else:
+                        pass
+                    cell += f"<br>{label}:{rng_str} <b>{miss_counter[i][j]}</b>"
+            balls.append(cell)
+        if pos-1 < len(next_nums):
+            next_n_ball = str(next_nums[pos-1]).zfill(2)
+        else:
+            next_n_ball = '-'
+        all_data.append([period, open_time] + balls + [next_n_ball])
+    # 统计当前遗漏
+    for i in range(7):
+        for j in range(len(intervals)):
+            cur_miss[i][j] = miss_counter[i][j]
+    all_data.reverse()
+    years = sorted({str(row['period'])[:4] for row in all_rows})
+    total = len(all_data)
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    data = all_data[start_idx:end_idx]
+    header = ["期号", "开奖时间"] + [f"球{i+1}" for i in range(7)] + [f"下一期球{pos}"]
+    desc = f"负区间分析，每期开奖信息、7个球的区间命中情况（命中为0，未命中为距离上次命中的期数，区间只显示头和尾两个数，每个球的区间只和下一期同位置的球比较），最后一列只显示下一期的第{pos}个球。期号倒序，分页返回。"
+    # 最新一期开奖号码
+    last_open = None
+    if all_rows:
+        last_row = all_rows[-1]
+        last_open = {
+            'period': str(last_row['period']),
+            'open_time': last_row['open_time'].strftime('%Y-%m-%d') if hasattr(last_row['open_time'], 'strftime') else str(last_row['open_time']),
+            'balls': [str(int(n)).zfill(2) for n in last_row['numbers'].split(',')[:7]]
+        }
+    # 最新一期预测（最大期号+1，开奖号码未知）
+    if all_rows:
+        last_period = str(all_rows[-1]['period'])
+        try:
+            predict_period = str(int(last_period) + 1)
+        except Exception:
+            predict_period = last_period + '_next'
+        # 预测区间范围（每球每区间的头尾）
+        predict_ranges = []
+        if all_rows:
+            last_row = all_rows[-1]
+            nums = last_row['numbers'].split(',')
+            for i in range(7):
+                ball_ranges = []
+                if i < len(nums):
+                    num = int(nums[i])
+                    for (label, start, end) in intervals:
+                        head = plus49(num, start)
+                        tail = plus49(num, end)
+                        rng_str = f"{head}~{tail}"
+                        ball_ranges.append({'label': label, 'range': rng_str})
+                else:
+                    for (label, start, end) in intervals:
+                        ball_ranges.append({'label': label, 'range': '-'})
+                predict_ranges.append(ball_ranges)
+        predict_info = {
+            'period': predict_period,
+            'ranges': predict_ranges,
+            'desc': f"最新一期({predict_period})预测区间范围如下"
+        }
+    else:
+        predict_info = None
+    cursor.close()
+    conn.close()
+    return {"header": header, "data": data, "total": total, "page": page, "page_size": page_size, "desc": desc, "years": years, "max_miss": max_miss, "max_miss_period": max_miss_period, "cur_miss": cur_miss, "predict": predict_info, "last_open": last_open}
+
 @app.get("/restart")
 def restart_api(background_tasks: BackgroundTasks):
     import os

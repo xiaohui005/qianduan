@@ -405,14 +405,20 @@ if (!document.getElementById('unitsPage')) {
 }
 
 // 3. 页面切换逻辑
-const pageMap = {
-  menuCollectBtn: 'collectPage',
-  menuRecordsBtn: 'recordsPage',
-  menuRecommendBtn: 'recommendPage',
-  menuTensBtn: 'tensPage',
-  menuUnitsBtn: 'unitsPage',
-  menuRangeBtn: 'rangePage',
-};
+// 文件顶部只声明一次 pageMap，后续扩展直接复用
+if (typeof pageMap === 'undefined') {
+  var pageMap = {
+    menuCollectBtn: 'collectPage',
+    menuRecordsBtn: 'recordsPage',
+    menuRecommendBtn: 'recommendPage',
+    menuTensBtn: 'tensPage',
+    menuUnitsBtn: 'unitsPage',
+    menuRangeBtn: 'rangePage',
+    menuMinusRangeBtn: 'minusRangePage',
+  };
+} else {
+  pageMap.menuMinusRangeBtn = 'minusRangePage';
+}
 Object.keys(pageMap).forEach(id => {
   const btn = document.getElementById(id);
   if (btn) {
@@ -434,6 +440,7 @@ Object.keys(pageMap).forEach(id => {
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
+        minusRangePage: '-1~-20区间分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据
@@ -460,7 +467,10 @@ Object.keys(pageMap).forEach(id => {
           loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
           break;
         case 'menuRangeBtn':
-          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis();
+          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
+          break;
+        case 'menuMinusRangeBtn':
+          loadMinusRangeAnalysis(1);
           break;
       }
     });
@@ -474,7 +484,9 @@ const menuBtnMap = [
   {id: 'menuRecordsBtn', page: 'records'},
   {id: 'menuRecommendBtn', page: 'recommend'},
   {id: 'menuTensBtn', page: 'tens'},
-  {id: 'menuUnitsBtn', page: 'units'}
+  {id: 'menuUnitsBtn', page: 'units'},
+  {id: 'menuRangeBtn', page: 'range'},
+  {id: 'menuMinusRangeBtn', page: 'minusRange'},
 ];
 menuBtnMap.forEach(item => {
   const btn = document.getElementById(item.id);
@@ -490,6 +502,7 @@ menuBtnMap.forEach(item => {
         menuTensBtn: 'tensPage',
         menuUnitsBtn: 'unitsPage',
         menuRangeBtn: 'rangePage',
+        menuMinusRangeBtn: 'minusRangePage',
       };
       Object.values(pageMap).forEach(pid => {
         const page = document.getElementById(pid);
@@ -504,6 +517,7 @@ menuBtnMap.forEach(item => {
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
+        minusRangePage: '-1~-20区间分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[item.id]] || '';
       // 自动加载数据
@@ -528,7 +542,10 @@ menuBtnMap.forEach(item => {
           loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
           break;
         case 'menuRangeBtn':
-          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1);
+          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, currentRangeYear);
+          break;
+        case 'menuMinusRangeBtn':
+          loadMinusRangeAnalysis(1);
           break;
       }
     };
@@ -790,8 +807,8 @@ function loadRangeAnalysis(type, nextPos, page, year) {
       // 最新一期预测统计
       let predictHtml = '';
       if (data.predict && data.predict.ranges) {
-        predictHtml = `<div style=\"margin-bottom:16px;padding:10px 16px;border:2px solid #d35400;border-radius:10px;background:#fffbe9;\">` +
-          `<div style=\"font-size:17px;font-weight:bold;color:#d35400;margin-bottom:6px;\">${data.predict.desc || '最新一期预测'}</div>`;
+        predictHtml = `<div style=\"margin-bottom:16px;padding:10px 16px;border:2px solid #2980d9;border-radius:10px;background:#f4f8ff;\">` +
+          `<div style=\"font-size:17px;font-weight:bold;color:#2980d9;margin-bottom:6px;\">${data.predict.desc || '最新一期预测'}</div>`;
         for (let i = 0; i < data.predict.ranges.length; i++) {
           predictHtml += `<div style=\"border:1px solid #2980d9;border-radius:7px;padding:8px 18px;background:#f4f8ff;min-width:180px;margin-bottom:8px;display:inline-block;margin-right:18px;\">`;
           predictHtml += `<div style=\"color:#2980d9;font-weight:bold;font-size:15px;\">球${i+1}</div>`;
@@ -817,7 +834,7 @@ function loadRangeAnalysis(type, nextPos, page, year) {
             const maxMissPeriod = data.max_miss_period[i][j];
             const curMiss = data.cur_miss[i][j];
             missHtml += `<div style=\"margin-bottom:2px;\"><span style=\"color:#333;\">${label}</span> ` +
-              `<span style=\"color:#c0392b;\">最大遗漏: <b>${maxMiss}</b></span> ` +
+              `<span style=\"color:#2980d9;\">最大遗漏: <b>${maxMiss}</b></span> ` +
               `<span style=\"color:#555;\">期号: <b>${maxMissPeriod}</b></span> ` +
               `<span style=\"color:#2980d9;\">当前遗漏: <b>${curMiss}</b></span></div>`;
           }
@@ -874,7 +891,265 @@ if (document.getElementById('rangePage')) {
   loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
 }
 
-// 分析推荐收放按钮事件
+// 1. 左侧菜单添加-1~-20区间分析按钮（放到分析推荐菜单内）
+const sidebarMenu = document.getElementById('sidebarMenuBtns');
+if (sidebarMenu && !document.getElementById('menuMinusRangeBtn')) {
+  const minusBtn = document.createElement('button');
+  minusBtn.className = 'menu-btn';
+  minusBtn.id = 'menuMinusRangeBtn';
+  minusBtn.innerText = '-1~-20区间分析';
+  sidebarMenu.appendChild(minusBtn);
+}
+// 2. 主内容区添加-1~-20区间分析页面容器
+if (!document.getElementById('minusRangePage')) {
+  const mainContent = document.querySelector('.main-content');
+  const minusDiv = document.createElement('div');
+  minusDiv.id = 'minusRangePage';
+  minusDiv.style.display = 'none';
+  minusDiv.innerHTML = `
+    <h2>-1~-20区间分析</h2>
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:24px;">
+      <div>
+        <label class="records-query-label" for="minusTypeAm">选择彩种：</label>
+        <div id="minusRangeTypeBtns" style="display:inline-block;">
+          <button class="minus-range-type-btn" id="minusTypeAm" data-type="am">澳门</button>
+          <button class="minus-range-type-btn" id="minusTypeHk" data-type="hk">香港</button>
+        </div>
+      </div>
+      <div>
+        <label class="records-query-label" for="minusPos1">下一期号码位置：</label>
+        <div id="minusRangePosBtns" style="display:inline-block;">
+          <button class="minus-range-pos-btn" id="minusPos1" data-pos="1">第1位</button>
+          <button class="minus-range-pos-btn" id="minusPos2" data-pos="2">第2位</button>
+          <button class="minus-range-pos-btn" id="minusPos3" data-pos="3">第3位</button>
+          <button class="minus-range-pos-btn" id="minusPos4" data-pos="4">第4位</button>
+          <button class="minus-range-pos-btn" id="minusPos5" data-pos="5">第5位</button>
+          <button class="minus-range-pos-btn" id="minusPos6" data-pos="6">第6位</button>
+          <button class="minus-range-pos-btn" id="minusPos7" data-pos="7">第7位</button>
+        </div>
+      </div>
+      <button id="minusRangeQueryBtn" style="padding:6px 18px;font-size:15px;">查询</button>
+    </div>
+    <div id="minusRangeYearBtns" style="margin-bottom:12px;"></div>
+    <div id="minusRangeResult" style="margin-top:16px;"></div>
+  `;
+  mainContent.appendChild(minusDiv);
+}
+// 3. 页面切换逻辑扩展
+// 直接复用顶部声明的 pageMap
+Object.keys(pageMap).forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(pageMap).forEach(pid => {
+        const page = document.getElementById(pid);
+        if (page) page.style.display = 'none';
+      });
+      document.getElementById(pageMap[id]).style.display = '';
+      const titleMap = {
+        collectPage: '数据采集',
+        recordsPage: '开奖记录',
+        recommendPage: '推荐8码',
+        tensPage: '第N位十位分析',
+        unitsPage: '第N个码个位分析',
+        rangePage: '+1~+20区间分析',
+        minusRangePage: '-1~-20区间分析',
+      };
+      document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
+      switch (id) {
+        case 'menuCollectBtn':
+          const collectResult = document.getElementById('collectResult');
+          if (collectResult) collectResult.innerHTML = '';
+          break;
+        case 'menuRecordsBtn':
+          queryRecords('recordsTableAreaAm', 1);
+          queryRecords('recordsTableAreaHk', 1);
+          break;
+        case 'menuRecommendBtn':
+          let activeBtn = document.querySelector('.recommend-type-btn.active');
+          let type = activeBtn ? activeBtn.dataset.type : 'am';
+          generateRecommend(type);
+          break;
+        case 'menuTensBtn':
+          loadTensAnalysis(currentTensType, currentTensPos);
+          break;
+        case 'menuUnitsBtn':
+          loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
+          break;
+        case 'menuRangeBtn':
+          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
+          break;
+        case 'menuMinusRangeBtn':
+          loadMinusRangeAnalysis(1);
+          break;
+      }
+    });
+  }
+});
+// 4. -1~-20区间分析渲染与查询
+window.currentMinusRangeType = 'am';
+window.currentMinusRangeNextPos = 7;
+window.currentMinusRangePage = 1;
+window.currentMinusRangeYear = '';
+// 1. 声明高亮函数，放在 loadMinusRangeAnalysis 之前
+function updateMinusRangeBtnHighlight() {
+  document.querySelectorAll('.minus-range-type-btn').forEach(btn => {
+    const isActive = btn.dataset.type === window.currentMinusRangeType;
+    btn.classList.toggle('minus-active', isActive);
+    btn.classList.toggle('active', isActive);
+  });
+  document.querySelectorAll('.minus-range-pos-btn').forEach(btn => {
+    const isActive = btn.dataset.pos === String(window.currentMinusRangeNextPos);
+    btn.classList.toggle('minus-active', isActive);
+    btn.classList.toggle('active', isActive);
+  });
+  document.querySelectorAll('.minus-range-year-btn').forEach(btn => {
+    const isActive = btn.dataset.year === window.currentMinusRangeYear;
+    btn.classList.toggle('minus-active', isActive);
+    btn.classList.toggle('active', isActive);
+  });
+}
+function loadMinusRangeAnalysis(page, type, nextPos, year) {
+  // 参数兜底，防止 undefined
+  if (!type) type = 'am';
+  if (!nextPos) nextPos = 7;
+  if (!page) page = 1;
+  if (typeof type === 'string' && type) window.currentMinusRangeType = type;
+  if (typeof nextPos !== 'undefined' && nextPos !== null && nextPos !== '') window.currentMinusRangeNextPos = Number(nextPos) || 1;
+  if (typeof page !== 'undefined' && page !== null && page !== '') window.currentMinusRangePage = Number(page) || 1;
+  if (typeof year !== 'undefined') window.currentMinusRangeYear = year;
+  // 修改按钮class切换逻辑，全部用.minus-active
+  document.querySelectorAll('.minus-range-type-btn').forEach(btn => {
+    btn.classList.toggle('minus-active', btn.dataset.type === currentMinusRangeType);
+  });
+  document.querySelectorAll('.minus-range-pos-btn').forEach(btn => {
+    btn.classList.toggle('minus-active', btn.dataset.pos === String(currentMinusRangeNextPos));
+  });
+  document.querySelectorAll('.minus-range-year-btn').forEach(btn => {
+    btn.classList.toggle('minus-active', btn.dataset.year === currentMinusRangeYear);
+  });
+  const minusResult = document.getElementById('minusRangeResult');
+  minusResult.innerHTML = '加载中...';
+  let url = `${window.BACKEND_URL}/range_analysis_minus?lottery_type=${type}&pos=${nextPos}&page=${page}&page_size=20`;
+  if (year) url += `&year=${year}`;
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      // 年份按钮组
+      let years = data.years || [];
+      let yearBtnsHtml = '';
+      if (years.length > 0) {
+        yearBtnsHtml = '<div style="margin-bottom:10px;"><b>年份：</b>';
+        yearBtnsHtml += `<button class="minus-range-year-btn${!year ? ' active' : ''}" data-year="">全部</button>`;
+        years.forEach(y => {
+          yearBtnsHtml += `<button class="minus-range-year-btn${year == y ? ' active' : ''}" data-year="${y}">${y}</button>`;
+        });
+        yearBtnsHtml += '</div>';
+      }
+      document.getElementById('minusRangeYearBtns').innerHTML = yearBtnsHtml;
+      // 年份按钮事件
+      document.querySelectorAll('.minus-range-year-btn').forEach(btn => {
+        btn.onclick = function() {
+          loadMinusRangeAnalysis(1, window.currentMinusRangeType, window.currentMinusRangeNextPos, this.dataset.year);
+          updateMinusRangeBtnHighlight();
+        };
+      });
+      // 复用+1~+20区间分析的渲染逻辑（下方略）
+      // 最新一期开奖号码展示
+      let lastOpenHtml = '';
+      if (data && data.last_open && data.last_open.balls) {
+        const period = data.last_open.period;
+        const openTime = data.last_open.open_time;
+        const balls = data.last_open.balls;
+        lastOpenHtml = `<div style=\"margin-bottom:10px;padding:8px 16px;border:1px solid #bbb;border-radius:8px;background:#f8fafd;\">` +
+          `<span style=\"font-weight:bold;color:#2980d9;\">最新一期开奖号码（${period} ${openTime}）：</span> ` +
+          balls.map((b, i) => `<span style=\"display:inline-block;margin-right:8px;\"><b>球${i+1}:</b> <span class='${getBallColorClass(b)}' style=\"display:inline-block;padding:2px 10px;border-radius:16px;color:#fff;min-width:28px;\">${b}</span></span>`).join('') +
+          `</div>`;
+      }
+      let predictHtml = '';
+      if (data.predict && data.predict.ranges) {
+        predictHtml = `<div style=\"margin-bottom:16px;padding:10px 16px;border:2px solid #2980d9;border-radius:10px;background:#f4f8ff;\">` +
+          `<div style=\"font-size:17px;font-weight:bold;color:#2980d9;margin-bottom:6px;\">${data.predict.desc || '最新一期预测'}</div>`;
+        for (let i = 0; i < data.predict.ranges.length; i++) {
+          predictHtml += `<div style=\"border:1px solid #2980d9;border-radius:7px;padding:8px 18px;background:#f4f8ff;min-width:180px;margin-bottom:8px;display:inline-block;margin-right:18px;\">`;
+          predictHtml += `<div style=\"color:#2980d9;font-weight:bold;font-size:15px;\">球${i+1}</div>`;
+          for (let j = 0; j < data.predict.ranges[i].length; j++) {
+            const label = data.predict.ranges[i][j].label;
+            const rng = data.predict.ranges[i][j].range;
+            predictHtml += `<div style=\"margin-bottom:2px;\"><span style=\"color:#333;\">${label}: <b>${rng}</b></span></div>`;
+          }
+          predictHtml += '</div>';
+        }
+        predictHtml += '</div>';
+      }
+      let missHtml = '';
+      if (data.max_miss && data.cur_miss && data.max_miss_period) {
+        missHtml = '<div style="margin-bottom:12px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">';
+        for (let i = 0; i < 7; i++) {
+          missHtml += `<div style="border:1px solid #2980d9;border-radius:7px;padding:8px 18px;background:#f4f8ff;min-width:180px;margin-bottom:8px;">
+            <div style=\"color:#2980d9;font-weight:bold;font-size:15px;\">球${i+1}</div>`;
+          for (let j = 0; j < 6; j++) {
+            const label = ['-1~-20', '-5~-24', '-10~-29', '-15~-34', '-20~-39', '-25~-44'][j];
+            const maxMiss = data.max_miss[i][j];
+            const maxMissPeriod = data.max_miss_period[i][j];
+            const curMiss = data.cur_miss[i][j];
+            missHtml += `<div style=\"margin-bottom:2px;\"><span style=\"color:#333;\">${label}</span> ` +
+              `<span style=\"color:#c0392b;\">最大遗漏: <b>${maxMiss}</b></span> ` +
+              `<span style=\"color:#555;\">期号: <b>${maxMissPeriod}</b></span> ` +
+              `<span style=\"color:#2980d9;\">当前遗漏: <b>${curMiss}</b></span></div>`;
+          }
+          missHtml += '</div>';
+        }
+        missHtml += '</div>';
+      }
+      if (!data.data || !data.data.length) {
+        minusResult.innerHTML = lastOpenHtml + predictHtml + missHtml + '<span style="color:red;">暂无数据</span>';
+        return;
+      }
+      let html = lastOpenHtml + predictHtml + missHtml + '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;font-size:13px;">';
+      html += '<tr>' + data.header.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      let pageData = data.data;
+      pageData.forEach(row => {
+        html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+      });
+      html += '</table>';
+      html += `<div style='margin-top:8px;'>第 ${data.page} / ${Math.ceil(data.total/data.page_size)} 页`;
+      if (data.page > 1) html += ` <button id='minusRangePrevPage'>上一页</button>`;
+      if (data.page < Math.ceil(data.total/data.page_size)) html += ` <button id='minusRangeNextPage'>下一页</button>`;
+      html += `</div>`;
+      minusResult.innerHTML = html;
+      if (data.page > 1) document.getElementById('minusRangePrevPage').onclick = () => loadMinusRangeAnalysis(data.page-1, type, nextPos, year);
+      if (data.page < Math.ceil(data.total/data.page_size)) document.getElementById('minusRangeNextPage').onclick = () => loadMinusRangeAnalysis(data.page+1, type, nextPos, year);
+      // 查询按钮事件绑定（渲染后再绑定）
+      const queryBtn = document.getElementById('minusRangeQueryBtn');
+      if (queryBtn) {
+        queryBtn.onclick = function() {
+          loadMinusRangeAnalysis(1, window.currentMinusRangeType, window.currentMinusRangeNextPos, window.currentMinusRangeYear);
+          updateMinusRangeBtnHighlight();
+        };
+      }
+      // 彩种按钮事件
+      document.querySelectorAll('.minus-range-type-btn').forEach(btn => {
+        btn.onclick = function() {
+          loadMinusRangeAnalysis(1, this.dataset.type, window.currentMinusRangeNextPos, window.currentMinusRangeYear);
+          updateMinusRangeBtnHighlight();
+        };
+      });
+      // 号码位置按钮事件
+      document.querySelectorAll('.minus-range-pos-btn').forEach(btn => {
+        btn.onclick = function() {
+          loadMinusRangeAnalysis(1, window.currentMinusRangeType, this.dataset.pos, window.currentMinusRangeYear);
+          updateMinusRangeBtnHighlight();
+        };
+      });
+      // 每次渲染后都重新高亮
+      updateMinusRangeBtnHighlight();
+    });
+}
+
+// 分析推荐收放按钮事件，收起时隐藏minusRangePage，展开时显示
 setTimeout(() => {
   const toggleBtn = document.getElementById('toggleSidebarBtn');
   const menuDiv = document.getElementById('sidebarMenuBtns');
@@ -883,9 +1158,15 @@ setTimeout(() => {
       if (menuDiv.style.display === 'none') {
         menuDiv.style.display = '';
         toggleBtn.innerText = '分析推荐 ▼';
+        // 展开时显示minusRangePage（如果当前菜单是minusRangePage）
+        if (document.getElementById('menuMinusRangeBtn').classList.contains('active')) {
+          document.getElementById('minusRangePage').style.display = '';
+        }
       } else {
         menuDiv.style.display = 'none';
         toggleBtn.innerText = '分析推荐 ▲';
+        // 收起时隐藏minusRangePage
+        document.getElementById('minusRangePage').style.display = 'none';
       }
     };
   }
@@ -918,7 +1199,7 @@ document.getElementById('restartBtn').addEventListener('click', async function()
 (function(){
   const style = document.createElement('style');
   style.innerHTML = `
-    .units-year-btn, .tens-year-btn, .units-type-btn, .tens-type-btn, .units-pos-btn, .tens-pos-btn, .recommend-type-btn {
+    .minus-range-type-btn, .minus-range-pos-btn, .minus-range-year-btn {
       background: #f4f6fa;
       color: #2980d9;
       border: 1px solid #b5c6e0;
@@ -930,13 +1211,104 @@ document.getElementById('restartBtn').addEventListener('click', async function()
       cursor: pointer;
       transition: background 0.2s, color 0.2s;
     }
-    .units-year-btn.active, .tens-year-btn.active, .units-type-btn.active, .tens-type-btn.active, .units-pos-btn.active, .tens-pos-btn.active, .recommend-type-btn.active {
+    .minus-range-type-btn.active, .minus-range-type-btn.minus-active {
       background: #2980d9 !important;
+      border-color: #2980d9 !important;
       color: #fff !important;
-      border-color: #2980d9;
       font-weight: bold;
       box-shadow: 0 2px 8px #e3eaf7;
+    }
+    .minus-range-pos-btn.active, .minus-range-pos-btn.minus-active {
+      background: #d35400 !important;
+      border-color: #d35400 !important;
+      color: #fff !important;
+      font-weight: bold;
+      box-shadow: 0 2px 8px #fbeee3;
+    }
+    .minus-range-year-btn.active, .minus-range-year-btn.minus-active {
+      background: #2980d9 !important;
+      border-color: #2980d9 !important;
+      color: #fff !important;
+      font-weight: bold;
+      box-shadow: 0 2px 8px #e3eaf7;
+    }
+    .minus-range-type-btn:not(.active):not(.minus-active), .minus-range-pos-btn:not(.active):not(.minus-active), .minus-range-year-btn:not(.active):not(.minus-active) {
+      background: #f0f0f0 !important;
+      color: #333 !important;
+      border-color: #d0d0d0 !important;
+    }
+    .minus-range-type-btn:hover:not(.active):not(.minus-active), .minus-range-pos-btn:hover:not(.active):not(.minus-active), .minus-range-year-btn:hover:not(.active):not(.minus-active) {
+      background: #e3eaf7 !important;
+      color: #2980d9 !important;
+    }
+    .minus-range-type-btn:focus, .minus-range-pos-btn:focus, .minus-range-year-btn:focus {
+      outline: 2px solid #ffb300;
+      background: #ffe9b3 !important;
+      color: #c0392b !important;
+      z-index: 2;
     }
   `;
   document.head.appendChild(style);
 })(); 
+
+// 调试按钮聚焦高亮
+// 恢复并增强 focusin/focusout 事件监听，打印日志
+
+document.addEventListener('focusin', function(e) {
+  if (e.target.classList.contains('minus-range-type-btn') || e.target.classList.contains('minus-range-pos-btn') || e.target.classList.contains('minus-range-year-btn')) {
+    console.log('focusin', e.target, e.target.className);
+    e.target.classList.add('minus-active');
+  }
+});
+document.addEventListener('focusout', function(e) {
+  if (e.target.classList.contains('minus-range-type-btn')) {
+    if (e.target.dataset.type !== window.currentMinusRangeType) {
+      console.log('focusout', e.target, e.target.className);
+      e.target.classList.remove('minus-active');
+    }
+  }
+  if (e.target.classList.contains('minus-range-pos-btn')) {
+    if (e.target.dataset.pos !== String(window.currentMinusRangeNextPos)) {
+      console.log('focusout', e.target, e.target.className);
+      e.target.classList.remove('minus-active');
+    }
+  }
+  if (e.target.classList.contains('minus-range-year-btn')) {
+    if (e.target.dataset.year !== window.currentMinusRangeYear) {
+      console.log('focusout', e.target, e.target.className);
+      e.target.classList.remove('minus-active');
+    }
+  }
+}); 
+
+// 绑定按钮事件，点击时更新全局变量并高亮
+function bindMinusRangeBtnEvents() {
+  document.querySelectorAll('.minus-range-type-btn').forEach(btn => {
+    btn.onclick = function() {
+      window.currentMinusRangeType = this.dataset.type;
+      loadMinusRangeAnalysis(1, this.dataset.type, window.currentMinusRangeNextPos, window.currentMinusRangeYear);
+      updateMinusRangeBtnHighlight();
+    };
+  });
+  document.querySelectorAll('.minus-range-pos-btn').forEach(btn => {
+    btn.onclick = function() {
+      window.currentMinusRangeNextPos = this.dataset.pos;
+      loadMinusRangeAnalysis(1, window.currentMinusRangeType, this.dataset.pos, window.currentMinusRangeYear);
+      updateMinusRangeBtnHighlight();
+    };
+  });
+  document.querySelectorAll('.minus-range-year-btn').forEach(btn => {
+    btn.onclick = function() {
+      window.currentMinusRangeYear = this.dataset.year;
+      loadMinusRangeAnalysis(1, window.currentMinusRangeType, window.currentMinusRangeNextPos, this.dataset.year);
+      updateMinusRangeBtnHighlight();
+    };
+  });
+  const queryBtn = document.getElementById('minusRangeQueryBtn');
+  if (queryBtn) {
+    queryBtn.onclick = function() {
+      loadMinusRangeAnalysis(1, window.currentMinusRangeType, window.currentMinusRangeNextPos, window.currentMinusRangeYear);
+      updateMinusRangeBtnHighlight();
+    };
+  }
+}
