@@ -404,22 +404,29 @@ if (!document.getElementById('unitsPage')) {
   mainContent.appendChild(unitsDiv);
 }
 
-// 3. 页面切换逻辑
-// 文件顶部只声明一次 pageMap，后续扩展直接复用
+// 页面切换通用函数
+function showOnlyPage(pageId) {
+  // 隐藏所有主内容区页面（id以Page结尾的div）
+  document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+    div.style.display = 'none';
+  });
+  // 只显示目标页面
+  const page = document.getElementById(pageId);
+  if (page) page.style.display = '';
+}
+
+// 1. 左侧主菜单按钮切换逻辑优化
 if (typeof pageMap === 'undefined') {
   var pageMap = {
-  menuCollectBtn: 'collectPage',
-  menuRecordsBtn: 'recordsPage',
-  menuRecommendBtn: 'recommendPage',
-  menuTensBtn: 'tensPage',
-  menuUnitsBtn: 'unitsPage',
-  menuRangeBtn: 'rangePage',
+    menuCollectBtn: 'collectPage',
+    menuRecordsBtn: 'recordsPage',
+    menuRecommendBtn: 'recommendPage',
+    menuTensBtn: 'tensPage',
+    menuUnitsBtn: 'unitsPage',
+    menuRangeBtn: 'rangePage',
     menuMinusRangeBtn: 'minusRangePage',
     menuPlusMinus6Btn: 'plusMinus6Page',
-};
-} else {
-  pageMap.menuMinusRangeBtn = 'minusRangePage';
-  pageMap.menuPlusMinus6Btn = 'plusMinus6Page';
+  };
 }
 Object.keys(pageMap).forEach(id => {
   const btn = document.getElementById(id);
@@ -429,11 +436,7 @@ Object.keys(pageMap).forEach(id => {
       document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       // 页面切换
-      Object.values(pageMap).forEach(pid => {
-        const page = document.getElementById(pid);
-        if (page) page.style.display = 'none';
-      });
-      document.getElementById(pageMap[id]).style.display = '';
+      showOnlyPage(pageMap[id]);
       // 标题切换
       const titleMap = {
         collectPage: '数据采集',
@@ -446,10 +449,9 @@ Object.keys(pageMap).forEach(id => {
         plusMinus6Page: '加减前6码分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
-      // 自动加载数据
+      // 自动加载数据（如有需要）
       switch (id) {
         case 'menuCollectBtn':
-          // 采集页面，清空结果
           const collectResult = document.getElementById('collectResult');
           if (collectResult) collectResult.innerHTML = '';
           break;
@@ -458,7 +460,6 @@ Object.keys(pageMap).forEach(id => {
           queryRecords('recordsTableAreaHk', 1);
           break;
         case 'menuRecommendBtn':
-          // 获取当前选中的彩种
           let activeBtn = document.querySelector('.recommend-type-btn.active');
           let type = activeBtn ? activeBtn.dataset.type : 'am';
           generateRecommend(type);
@@ -482,6 +483,35 @@ Object.keys(pageMap).forEach(id => {
     });
   }
 });
+
+// 2. 登记点分析下拉菜单按钮切换逻辑优化
+setTimeout(() => {
+  const btnMap = [
+    { btn: 'menuRegisterFocusBtn', page: 'registerFocusPage', title: '登记关注点' },
+    { btn: 'menuRegisterBetBtn', page: 'registerBetPage', title: '投注登记点' },
+    { btn: 'menuRegisterFocusResultBtn', page: 'registerFocusResultPage', title: '关注点登记结果' },
+    { btn: 'menuRegisterFocusAnalysisBtn', page: 'registerFocusAnalysisPage', title: '关注点分析' },
+    { btn: 'menuRegisterBetReportBtn', page: 'registerBetReportPage', title: '投注点报表' },
+  ];
+  btnMap.forEach(item => {
+    const btn = document.getElementById(item.btn);
+    if (btn) {
+      btn.onclick = function() {
+        // 高亮
+        btnMap.forEach(i => {
+          const b = document.getElementById(i.btn);
+          if (b) b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        // 页面切换
+        showOnlyPage(item.page);
+        // 标题切换
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) pageTitle.innerText = item.title;
+      };
+    }
+  });
+}, 0);
 
 // 4. 菜单按钮事件
 // 修复左侧菜单按钮切换事件，保证每个按钮都能切换页面和高亮
@@ -1646,3 +1676,395 @@ setTimeout(() => {
   });
 }, 0);
 // ... existing code ...
+
+// 关注点管理：增删改查
+(function() {
+  // 工具函数
+  function renderPlacesTable(places) {
+    const tbody = document.querySelector('#placesTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    places.forEach(place => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${place.name}</td>
+        <td>${place.description || ''}</td>
+        <td>${place.created_at ? place.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
+        <td>
+          <button class="edit-place-btn" data-id="${place.id}">编辑</button>
+          <button class="delete-place-btn" data-id="${place.id}">删除</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function loadPlaces() {
+    const res = await fetch(window.BACKEND_URL + '/api/places');
+    const data = await res.json();
+    renderPlacesTable(data);
+  }
+
+  async function addPlace(place) {
+    await fetch(window.BACKEND_URL + '/api/places', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(place)
+    });
+  }
+
+  async function updatePlace(id, place) {
+    await fetch(window.BACKEND_URL + '/api/places/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(place)
+    });
+  }
+
+  async function deletePlace(id) {
+    if (!confirm('确定要删除该关注点吗？')) return;
+    await fetch(window.BACKEND_URL + '/api/places/' + id, { method: 'DELETE' });
+    loadPlaces();
+  }
+
+  // 表单事件
+  const form = document.getElementById('placeForm');
+  if (form) {
+    form.onsubmit = async function(e) {
+      e.preventDefault();
+      const id = document.getElementById('placeId').value;
+      const name = document.getElementById('placeName').value.trim();
+      const description = document.getElementById('placeDescription').value.trim();
+      const place = { name, description };
+      if (id) {
+        await updatePlace(id, place);
+      } else {
+        await addPlace(place);
+      }
+      form.reset();
+      document.getElementById('placeId').value = '';
+      document.getElementById('cancelEditBtn').style.display = 'none';
+      loadPlaces();
+    };
+  }
+  // 取消编辑
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if (cancelBtn) {
+    cancelBtn.onclick = function() {
+      form.reset();
+      document.getElementById('placeId').value = '';
+      cancelBtn.style.display = 'none';
+    };
+  }
+  // 编辑/删除事件委托
+  const placesTable = document.getElementById('placesTable');
+  if (placesTable) {
+    placesTable.addEventListener('click', function(e) {
+      if (e.target.classList.contains('edit-place-btn')) {
+        const id = e.target.getAttribute('data-id');
+        fetch(window.BACKEND_URL + '/api/places')
+          .then(res => res.json())
+          .then(data => {
+            const place = data.find(p => String(p.id) === String(id));
+            if (place) {
+              document.getElementById('placeId').value = place.id;
+              document.getElementById('placeName').value = place.name;
+              document.getElementById('placeDescription').value = place.description || '';
+              document.getElementById('cancelEditBtn').style.display = '';
+            }
+          });
+      } else if (e.target.classList.contains('delete-place-btn')) {
+        const id = e.target.getAttribute('data-id');
+        deletePlace(id);
+      }
+    });
+  }
+  // 页面切换时自动加载
+  const menuRegisterFocusBtn = document.getElementById('menuRegisterFocusBtn');
+  if (menuRegisterFocusBtn) {
+    menuRegisterFocusBtn.addEventListener('click', function() {
+      loadPlaces();
+    });
+  }
+  // 如果页面初始就显示，也可自动加载
+  if (document.getElementById('registerFocusPage').style.display !== 'none') {
+    loadPlaces();
+  }
+})();
+
+// 投注登记点管理：增删改查（模糊搜索关注点）
+(function() {
+  let allPlaces = [];
+  let selectedPlaceId = null;
+
+  // 加载所有关注点到内存
+  async function fetchAllPlaces() {
+    const res = await fetch(window.BACKEND_URL + '/api/places');
+    allPlaces = await res.json();
+  }
+
+  // 渲染投注记录表格
+  function renderBetsTable(bets) {
+    const tbody = document.querySelector('#betsTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    bets.forEach(bet => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${bet.place_name || ''}</td>
+        <td>${bet.qishu}</td>
+        <td>${bet.bet_amount}</td>
+        <td>${bet.win_amount}</td>
+        <td>${bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误')}</td>
+        <td>${bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
+        <td>
+          <button class="edit-bet-btn" data-id="${bet.id}">编辑</button>
+          <button class="delete-bet-btn" data-id="${bet.id}">删除</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function loadBets() {
+    const res = await fetch(window.BACKEND_URL + '/api/bets');
+    const data = await res.json();
+    renderBetsTable(data);
+  }
+
+  async function addBet(bet) {
+    await fetch(window.BACKEND_URL + '/api/bets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bet)
+    });
+  }
+
+  async function updateBet(id, bet) {
+    await fetch(window.BACKEND_URL + '/api/bets/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bet)
+    });
+  }
+
+  async function deleteBet(id) {
+    if (!confirm('确定要删除该投注记录吗？')) return;
+    await fetch(window.BACKEND_URL + '/api/bets/' + id, { method: 'DELETE' });
+    loadBets();
+  }
+
+  // 关注点输入框模糊匹配
+  function setupPlaceInput() {
+    const input = document.getElementById('betPlaceInput');
+    const suggest = document.getElementById('betPlaceSuggest');
+    if (!input || !suggest) return;
+    input.oninput = function() {
+      const val = input.value.trim().toLowerCase();
+      if (!val) {
+        suggest.innerHTML = '';
+        selectedPlaceId = null;
+        return;
+      }
+      const matches = allPlaces.filter(p => p.name.toLowerCase().includes(val));
+      if (matches.length === 0) {
+        suggest.innerHTML = '<div style="background:#fffbe9;padding:4px 8px;">无匹配关注点</div>';
+        selectedPlaceId = null;
+        return;
+      }
+      suggest.innerHTML = matches.map(p => `<div class="bet-place-suggest-item" data-id="${p.id}" style="padding:4px 8px;cursor:pointer;">${p.name}</div>`).join('');
+      // 绑定点击
+      Array.from(suggest.querySelectorAll('.bet-place-suggest-item')).forEach(item => {
+        item.onclick = function() {
+          input.value = this.textContent;
+          selectedPlaceId = this.getAttribute('data-id');
+          suggest.innerHTML = '';
+        };
+      });
+    };
+    // 失焦时稍后隐藏建议
+    input.onblur = function() {
+      setTimeout(() => { suggest.innerHTML = ''; }, 200);
+    };
+  }
+
+  // 表单事件
+  const betForm = document.getElementById('betForm');
+  if (betForm) {
+    betForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const id = document.getElementById('betId').value;
+      const placeName = document.getElementById('betPlaceInput').value.trim();
+      // 根据输入的名称找id
+      let place_id = selectedPlaceId;
+      if (!place_id) {
+        // 尝试精确匹配
+        const found = allPlaces.find(p => p.name === placeName);
+        if (found) place_id = found.id;
+      }
+      if (!place_id) {
+        alert('请选择有效的关注点');
+        return;
+      }
+      const qishu = document.getElementById('betQishu').value.trim();
+      const bet_amount = document.getElementById('betAmount').value;
+      const win_amount = document.getElementById('winAmount').value;
+      const is_correct = document.getElementById('betIsCorrect').value;
+      const bet = { place_id, qishu, bet_amount, win_amount, is_correct: is_correct === '' ? null : Number(is_correct) };
+      if (id) {
+        await updateBet(id, bet);
+      } else {
+        await addBet(bet);
+      }
+      betForm.reset();
+      document.getElementById('betId').value = '';
+      document.getElementById('cancelBetEditBtn').style.display = 'none';
+      selectedPlaceId = null;
+      loadBets();
+    };
+  }
+  // 取消编辑
+  const cancelBetBtn = document.getElementById('cancelBetEditBtn');
+  if (cancelBetBtn) {
+    cancelBetBtn.onclick = function() {
+      betForm.reset();
+      document.getElementById('betId').value = '';
+      cancelBetBtn.style.display = 'none';
+      selectedPlaceId = null;
+    };
+  }
+  // 编辑/删除事件委托
+  const betsTable = document.getElementById('betsTable');
+  if (betsTable) {
+    betsTable.addEventListener('click', function(e) {
+      if (e.target.classList.contains('edit-bet-btn')) {
+        const id = e.target.getAttribute('data-id');
+        fetch(window.BACKEND_URL + '/api/bets')
+          .then(res => res.json())
+          .then(data => {
+            const bet = data.find(b => String(b.id) === String(id));
+            if (bet) {
+              document.getElementById('betId').value = bet.id;
+              document.getElementById('betPlaceInput').value = bet.place_name || '';
+              selectedPlaceId = bet.place_id;
+              document.getElementById('betQishu').value = bet.qishu;
+              document.getElementById('betAmount').value = bet.bet_amount;
+              document.getElementById('winAmount').value = bet.win_amount;
+              document.getElementById('betIsCorrect').value = bet.is_correct === null || bet.is_correct === undefined ? '' : String(bet.is_correct);
+              document.getElementById('cancelBetEditBtn').style.display = '';
+            }
+          });
+      } else if (e.target.classList.contains('delete-bet-btn')) {
+        const id = e.target.getAttribute('data-id');
+        deleteBet(id);
+      }
+    });
+  }
+  // 页面切换时自动加载
+  const menuRegisterBetBtn = document.getElementById('menuRegisterBetBtn');
+  if (menuRegisterBetBtn) {
+    menuRegisterBetBtn.addEventListener('click', async function() {
+      await fetchAllPlaces();
+      setupPlaceInput();
+      loadBets();
+    });
+  }
+  // 如果页面初始就显示，也可自动加载
+  if (document.getElementById('registerBetPage').style.display !== 'none') {
+    fetchAllPlaces().then(setupPlaceInput);
+    loadBets();
+  }
+})();
+
+// ... existing code ...
+// 6. 每期分析交互与渲染
+(function() {
+  const menuEachIssueBtn = document.getElementById('menuEachIssueBtn');
+  const eachIssuePage = document.getElementById('eachIssuePage');
+  const eachIssueResult = document.getElementById('eachIssueResult');
+  const typeBtns = document.querySelectorAll('.each-issue-type-btn');
+  let currentType = 'am';
+  let currentPage = 1;
+  let pageSize = 20;
+  let totalPages = 1;
+
+  if (menuEachIssueBtn) {
+    menuEachIssueBtn.addEventListener('click', function() {
+      document.querySelectorAll('main > div').forEach(div => div.style.display = 'none');
+      eachIssuePage.style.display = '';
+      currentPage = 1;
+      loadEachIssueAnalysis(currentType, currentPage);
+    });
+  }
+  if (typeBtns.length) {
+    typeBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        typeBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentType = this.dataset.type;
+        currentPage = 1;
+        loadEachIssueAnalysis(currentType, currentPage);
+      });
+    });
+  }
+
+  async function loadEachIssueAnalysis(type = 'am', page = 1) {
+    eachIssueResult.innerHTML = '加载中...';
+    try {
+      const res = await fetch(window.BACKEND_URL + `/each_issue_analysis?lottery_type=${type}&page=${page}&page_size=${pageSize}`);
+      const data = await res.json();
+      totalPages = Math.ceil(data.total / data.page_size);
+      renderEachIssueTable(
+        data.data || [],
+        data.page,
+        totalPages,
+        data.current_max_miss,
+        data.current_max_miss_period,
+        data.history_max_miss,
+        data.history_max_miss_period
+      );
+    } catch (e) {
+      eachIssueResult.innerHTML = '加载失败：' + e;
+    }
+  }
+
+  function renderEachIssueTable(rows, page, totalPages, currentMaxMiss, currentMaxMissPeriod, historyMaxMiss, historyMaxMissPeriod) {
+    if (!rows.length) {
+      eachIssueResult.innerHTML = '<span style="color:red;">暂无数据</span>';
+      return;
+    }
+    let html = '';
+    html += `<div style='margin-bottom:12px;'>
+      <b>当前最大遗漏：</b><span style='color:#c0392b;font-weight:bold;'>${currentMaxMiss}</span>
+      <span style='color:#888;'>(期号: ${currentMaxMissPeriod || '-'})</span>
+      &nbsp;&nbsp;
+      <b>历史最大遗漏：</b><span style='color:#2980d9;font-weight:bold;'>${historyMaxMiss}</span>
+      <span style='color:#888;'>(期号: ${historyMaxMissPeriod || '-'})</span>
+    </div>`;
+    html += `<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+      <tr><th>期号</th><th>开奖时间</th><th>开奖号码</th><th>已经有几期没有开了</th><th>状态</th></tr>`;
+    rows.forEach(row => {
+      let statusHtml = '';
+      if (row.stop_reason === 'hit') {
+        statusHtml = '<span style="color:green;font-weight:bold;">已命中</span>';
+      } else if (row.stop_reason === 'end') {
+        statusHtml = '<span style="color:orange;font-weight:bold;">未命中到末期</span>';
+      } else {
+        statusHtml = '-';
+      }
+      html += `<tr><td>${row.period}</td><td>${row.open_time}</td><td>${row.numbers}</td><td>${row.miss_count}</td><td>${statusHtml}</td></tr>`;
+    });
+    html += '</table>';
+    html += `<div style='margin-top:8px;'>第 ${page} / ${totalPages} 页`;
+    if (page > 1) html += ` <button class='eachIssuePrevPage'>上一页</button>`;
+    if (page < totalPages) html += ` <button class='eachIssueNextPage'>下一页</button>`;
+    html += `</div>`;
+    eachIssueResult.innerHTML = html;
+    // 事件绑定
+    const prevBtn = eachIssueResult.querySelector('.eachIssuePrevPage');
+    const nextBtn = eachIssueResult.querySelector('.eachIssueNextPage');
+    if (prevBtn) prevBtn.onclick = () => { currentPage -= 1; loadEachIssueAnalysis(currentType, currentPage); };
+    if (nextBtn) nextBtn.onclick = () => { currentPage += 1; loadEachIssueAnalysis(currentType, currentPage); };
+  }
+// ... existing code ...
+})();

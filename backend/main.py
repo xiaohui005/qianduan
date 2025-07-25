@@ -9,6 +9,8 @@ from typing import Optional
 from collections import defaultdict, Counter
 import subprocess
 import analysis  # 新增导入
+from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 
@@ -722,6 +724,85 @@ def plus_minus6_analysis_api(
         "last_open": last_open
     }
 
+@app.get("/each_issue_analysis")
+def each_issue_analysis_api(
+    lottery_type: str = Query('am'),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100)
+):
+    """
+    取近100期，按期号升序，每一期独立累加miss_count，只有自己命中（后续某一期的第7个号码在本期7个号码中）才定格，否则一直累加到最后一期。
+    增加 stop_reason 字段，标识是因为命中（hit）还是到最后一期（end）停止累加。
+    支持分页，返回时按期号从大到小排序。
+    返回：{total, page, page_size, data: [{period, open_time, numbers, miss_count, stop_reason}]}
+    """
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    # 先查出近300期，按期号升序
+    cursor.execute(
+        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC LIMIT 300",
+        (lottery_type,)
+    )
+    all_rows = cursor.fetchall()[::-1]  # 逆序变为升序
+    result = []
+    n = len(all_rows)
+    for idx in range(n):
+        row = all_rows[idx]
+        period = row['period']
+        open_time = row['open_time'].strftime('%Y-%m-%d') if hasattr(row['open_time'], 'strftime') else str(row['open_time'])
+        numbers = row['numbers'].split(',')
+        miss_count = 1
+        stop_reason = 'end'
+        # 从当前期往后找，直到命中或到最后一期
+        for j in range(idx+1, n):
+            next_row = all_rows[j]
+            next_numbers = next_row['numbers'].split(',')
+            next_num7 = next_numbers[6] if len(next_numbers) >= 7 else ''
+            if next_num7 and next_num7 in numbers:
+                stop_reason = 'hit'
+                break
+            else:
+                miss_count += 1
+        result.append({
+            'period': period,
+            'open_time': open_time,
+            'numbers': ','.join(numbers),
+            'miss_count': miss_count,
+            'stop_reason': stop_reason
+        })
+    # 按期号从大到小排序
+    result = sorted(result, key=lambda x: x['period'], reverse=True)
+    total = len(result)
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_data = result[start:end]
+    # 统计当前最大遗漏和历史最大遗漏及其期号
+    history_max_miss = 0
+    history_max_miss_period = ''
+    current_max_miss = 0
+    current_max_miss_period = ''
+    for item in result:
+        if item['stop_reason'] == 'hit':
+            if item['miss_count'] > history_max_miss:
+                history_max_miss = item['miss_count']
+                history_max_miss_period = item['period']
+        elif item['stop_reason'] == 'end':
+            if item['miss_count'] > current_max_miss:
+                current_max_miss = item['miss_count']
+                current_max_miss_period = item['period']
+    cursor.close()
+    conn.close()
+    return {
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'data': page_data,
+        'current_max_miss': current_max_miss,
+        'current_max_miss_period': current_max_miss_period,
+        'history_max_miss': history_max_miss,
+        'history_max_miss_period': history_max_miss_period
+    }
+
 @app.get("/restart")
 def restart_api(background_tasks: BackgroundTasks):
     import os
@@ -736,6 +817,136 @@ def restart_api(background_tasks: BackgroundTasks):
         os._exit(0)
     background_tasks.add_task(kill_self)
     return {"msg": "后端即将重启，请稍后手动刷新页面"}
+
+# --- 关注点 places 表的增删改查 API ---
+@app.get("/api/places")
+def get_places():
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM places ORDER BY created_at DESC, id DESC")
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonable_encoder(rows)
+
+@app.post("/api/places")
+def add_place(req: Request):
+    import asyncio
+    async def inner():
+        data = await req.json()
+        name = data.get("name")
+        description = data.get("description")
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO places (name, description) VALUES (%s, %s)",
+            (name, description)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"success": True}
+    return asyncio.run(inner())
+
+@app.put("/api/places/{place_id}")
+def update_place(place_id: int, req: Request):
+    import asyncio
+    async def inner():
+        data = await req.json()
+        name = data.get("name")
+        description = data.get("description")
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE places SET name=%s, description=%s WHERE id=%s",
+            (name, description, place_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"success": True}
+    return asyncio.run(inner())
+
+@app.delete("/api/places/{place_id}")
+def delete_place(place_id: int):
+    conn = collect.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM places WHERE id=%s", (place_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"success": True}
+# --- END ---
+
+# --- 投注记录 bets 表的增删改查 API ---
+
+@app.get("/api/bets")
+def get_bets(place_id: int = None):
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    if place_id:
+        cursor.execute("SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id WHERE b.place_id=%s ORDER BY b.created_at DESC, b.id DESC", (place_id,))
+    else:
+        cursor.execute("SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id ORDER BY b.created_at DESC, b.id DESC")
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonable_encoder(rows)
+
+@app.post("/api/bets")
+def add_bet(req: Request):
+    import asyncio
+    async def inner():
+        data = await req.json()
+        place_id = data.get("place_id")
+        qishu = data.get("qishu")
+        bet_amount = data.get("bet_amount")
+        win_amount = data.get("win_amount")
+        is_correct = data.get("is_correct")
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO bets (place_id, qishu, bet_amount, win_amount, is_correct) VALUES (%s, %s, %s, %s, %s)",
+            (place_id, qishu, bet_amount, win_amount, is_correct if is_correct != '' else None)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"success": True}
+    return asyncio.run(inner())
+
+@app.put("/api/bets/{bet_id}")
+def update_bet(bet_id: int, req: Request):
+    import asyncio
+    async def inner():
+        data = await req.json()
+        place_id = data.get("place_id")
+        qishu = data.get("qishu")
+        bet_amount = data.get("bet_amount")
+        win_amount = data.get("win_amount")
+        is_correct = data.get("is_correct")
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE bets SET place_id=%s, qishu=%s, bet_amount=%s, win_amount=%s, is_correct=%s WHERE id=%s",
+            (place_id, qishu, bet_amount, win_amount, is_correct if is_correct != '' else None, bet_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"success": True}
+    return asyncio.run(inner())
+
+@app.delete("/api/bets/{bet_id}")
+def delete_bet(bet_id: int):
+    conn = collect.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM bets WHERE id=%s", (bet_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"success": True}
+# --- END ---
 
 if __name__ == "__main__":
     import uvicorn

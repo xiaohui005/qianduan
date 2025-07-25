@@ -18,6 +18,7 @@
         <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
         <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
+        <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
       </div>
       <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
         登记点分析 <span id="registerCollapseIcon">▼</span>
@@ -57,8 +58,63 @@
         </div>
         <div id="collectResult" style="margin-top:16px;"></div>
       </div>
-      <div id="registerFocusPage" style="display:none;"><h2>登记关注点</h2></div>
-      <div id="registerBetPage" style="display:none;"><h2>投注登记点</h2></div>
+      <div id="registerFocusPage" style="display:none;">
+        <h2>登记关注点</h2>
+        <form id="placeForm" style="margin-bottom:16px;">
+          <input type="hidden" id="placeId">
+          <input type="text" id="placeName" placeholder="关注点名称" required style="width:120px;">
+          <input type="text" id="placeDescription" placeholder="描述" style="width:200px;">
+          <button type="submit">保存</button>
+          <button type="button" id="cancelEditBtn" style="display:none;">取消</button>
+        </form>
+        <table id="placesTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>描述</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="registerBetPage" style="display:none;">
+        <h2>投注登记点</h2>
+        <form id="betForm" style="margin-bottom:16px;">
+          <input type="hidden" id="betId">
+          <label>关注点：</label>
+          <input type="text" id="betPlaceInput" autocomplete="off" required style="width:160px;">
+          <div id="betPlaceSuggest" style="position:relative;z-index:10;"></div>
+          <label>期数：</label>
+          <input type="text" id="betQishu" required style="width:100px;">
+          <label>投注金额：</label>
+          <input type="number" id="betAmount" step="0.01" min="0" required style="width:80px;">
+          <label>赢取金额：</label>
+          <input type="number" id="winAmount" step="0.01" min="0" required style="width:80px;">
+          <select id="betIsCorrect">
+            <option value="">未判断</option>
+            <option value="1">正确</option>
+            <option value="0">错误</option>
+          </select>
+          <button type="submit">保存</button>
+          <button type="button" id="cancelBetEditBtn" style="display:none;">取消</button>
+        </form>
+        <table id="betsTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+          <thead>
+            <tr>
+              <th>关注点</th>
+              <th>期数</th>
+              <th>投注金额</th>
+              <th>赢取金额</th>
+              <th>是否正确</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
       <div id="registerFocusResultPage" style="display:none;"><h2>关注点登记结果</h2></div>
       <div id="registerFocusAnalysisPage" style="display:none;"><h2>关注点分析</h2></div>
       <div id="registerBetReportPage" style="display:none;"><h2>投注点报表</h2></div>
@@ -111,6 +167,17 @@
           <div id="recordsTableAreaAm" style="flex:1;"></div>
           <div id="recordsTableAreaHk" style="flex:1;"></div>
         </div>
+      </div>
+      <div id="eachIssuePage" style="display:none;">
+        <h2>每期分析</h2>
+        <div style="margin-bottom:16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="each-issue-type-group">
+            <button class="each-issue-type-btn active" data-type="am">澳门</button>
+            <button class="each-issue-type-btn" data-type="hk">香港</button>
+          </div>
+        </div>
+        <div id="eachIssueResult" style="margin-top:16px;"></div>
       </div>
     </main>
   </div>
