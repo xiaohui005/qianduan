@@ -1898,12 +1898,44 @@ setTimeout(() => {
     allPlaces = await res.json();
   }
 
+  // 全局变量用于分页
+  let allBetsData = [];
+  let originalBetsData = []; // 保存原始数据用于重置
+  let filteredBetsData = []; // 保存过滤后的数据
+  let currentPage = 1;
+  const pageSize = 5;
+
   // 渲染投注记录表格
-  function renderBetsTable(bets) {
+  function renderBetsTable(bets, page = 1) {
     const tbody = document.querySelector('#betsTable tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    bets.forEach(bet => {
+    
+    // 计算分页
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pageBets = bets.slice(startIndex, endIndex);
+    
+    pageBets.forEach(bet => {
+      // 计算输赢金额
+      let profitLoss = '';
+      let profitClass = '';
+      if (bet.is_correct !== null && bet.is_correct !== undefined) {
+        const winAmount = parseFloat(bet.win_amount) || 0;
+        const betAmount = parseFloat(bet.bet_amount) || 0;
+        const profit = winAmount - betAmount;
+        profitLoss = profit.toFixed(2);
+        
+        // 根据输赢金额设置样式类
+        if (profit > 0) {
+          profitClass = 'profit-positive';
+        } else if (profit < 0) {
+          profitClass = 'profit-negative';
+        } else {
+          profitClass = 'profit-zero';
+        }
+      }
+      
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${bet.place_name || ''}</td>
@@ -1911,6 +1943,7 @@ setTimeout(() => {
         <td>${bet.bet_amount}</td>
         <td>${bet.win_amount}</td>
         <td>${bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误')}</td>
+        <td class="${profitClass}">${profitLoss}</td>
         <td>${bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
         <td>
           <button class="edit-bet-btn" data-id="${bet.id}">编辑</button>
@@ -1919,6 +1952,12 @@ setTimeout(() => {
       `;
       tbody.appendChild(tr);
     });
+    
+    // 更新统计信息
+    updateBetsStats(bets, pageBets);
+    
+    // 更新分页控件
+    updateBetsPagination(bets, page);
     // 添加导出按钮（如果不存在）
     let table = document.getElementById('betsTable');
     if (table && !document.getElementById('export-bets-btn')) {
@@ -1929,15 +1968,27 @@ setTimeout(() => {
       table.parentNode.insertBefore(btn, table);
       btn.onclick = () => {
         const csvRows = [
-          ['关注点','期数','投注金额','赢取金额','是否正确','创建时间'],
-          ...bets.map(bet => [
-            bet.place_name || '',
-            bet.qishu,
-            bet.bet_amount,
-            bet.win_amount,
-            bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
-            bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
-          ])
+          ['关注点','期数','投注金额','赢取金额','是否正确','输赢金额','创建时间'],
+          ...bets.map(bet => {
+            // 计算输赢金额
+            let profitLoss = '';
+            if (bet.is_correct !== null && bet.is_correct !== undefined) {
+              const winAmount = parseFloat(bet.win_amount) || 0;
+              const betAmount = parseFloat(bet.bet_amount) || 0;
+              const profit = winAmount - betAmount;
+              profitLoss = profit.toFixed(2);
+            }
+            
+            return [
+              bet.place_name || '',
+              bet.qishu,
+              bet.bet_amount,
+              bet.win_amount,
+              bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
+              profitLoss,
+              bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
+            ];
+          })
         ];
         downloadCSV(csvRows, '投注记录表.csv');
       };
@@ -1952,25 +2003,442 @@ setTimeout(() => {
         const res = await fetch(window.BACKEND_URL + '/api/bets');
         const allBets = await res.json();
         const csvRows = [
-          ['关注点','期数','投注金额','赢取金额','是否正确','创建时间'],
-          ...allBets.map(bet => [
-            bet.place_name || '',
-            bet.qishu,
-            bet.bet_amount,
-            bet.win_amount,
-            bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
-            bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
-          ])
+          ['关注点','期数','投注金额','赢取金额','是否正确','输赢金额','创建时间'],
+          ...allBets.map(bet => {
+            // 计算输赢金额
+            let profitLoss = '';
+            if (bet.is_correct !== null && bet.is_correct !== undefined) {
+              const winAmount = parseFloat(bet.win_amount) || 0;
+              const betAmount = parseFloat(bet.bet_amount) || 0;
+              const profit = winAmount - betAmount;
+              profitLoss = profit.toFixed(2);
+            }
+            
+            return [
+              bet.place_name || '',
+              bet.qishu,
+              bet.bet_amount,
+              bet.win_amount,
+              bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
+              profitLoss,
+              bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
+            ];
+          })
         ];
         downloadCSV(csvRows, '投注记录表_全部.csv');
       };
     }
   }
 
+  // 更新统计信息
+  function updateBetsStats(bets, pageBets = []) {
+    // 总体统计
+    const totalBetAmount = bets.reduce((sum, bet) => sum + (parseFloat(bet.bet_amount) || 0), 0);
+    const totalWinAmount = bets.reduce((sum, bet) => sum + (parseFloat(bet.win_amount) || 0), 0);
+    const totalProfitLoss = totalWinAmount - totalBetAmount;
+    
+    document.getElementById('totalBetAmount').textContent = `¥${totalBetAmount.toFixed(2)}`;
+    document.getElementById('totalWinAmount').textContent = `¥${totalWinAmount.toFixed(2)}`;
+    document.getElementById('totalProfitLoss').textContent = `¥${totalProfitLoss.toFixed(2)}`;
+    document.getElementById('totalRecords').textContent = bets.length;
+    
+    // 为总输赢金额设置颜色
+    const totalProfitElement = document.getElementById('totalProfitLoss');
+    totalProfitElement.className = 'stats-value';
+    if (totalProfitLoss > 0) {
+      totalProfitElement.classList.add('profit-positive');
+    } else if (totalProfitLoss < 0) {
+      totalProfitElement.classList.add('profit-negative');
+    } else {
+      totalProfitElement.classList.add('profit-zero');
+    }
+    
+    // 本页统计
+    const pageBetAmount = pageBets.reduce((sum, bet) => sum + (parseFloat(bet.bet_amount) || 0), 0);
+    const pageWinAmount = pageBets.reduce((sum, bet) => sum + (parseFloat(bet.win_amount) || 0), 0);
+    const pageProfitLoss = pageWinAmount - pageBetAmount;
+    
+    document.getElementById('pageBetAmount').textContent = `¥${pageBetAmount.toFixed(2)}`;
+    document.getElementById('pageWinAmount').textContent = `¥${pageWinAmount.toFixed(2)}`;
+    document.getElementById('pageProfitLoss').textContent = `¥${pageProfitLoss.toFixed(2)}`;
+    document.getElementById('pageRecords').textContent = pageBets.length;
+    
+    // 为本页输赢金额设置颜色
+    const pageProfitElement = document.getElementById('pageProfitLoss');
+    pageProfitElement.className = 'stats-value';
+    if (pageProfitLoss > 0) {
+      pageProfitElement.classList.add('profit-positive');
+    } else if (pageProfitLoss < 0) {
+      pageProfitElement.classList.add('profit-negative');
+    } else {
+      pageProfitElement.classList.add('profit-zero');
+    }
+  }
+
+  // 更新分页控件
+  function updateBetsPagination(bets, currentPage) {
+    const totalPages = Math.ceil(bets.length / pageSize);
+    const startRecord = (currentPage - 1) * pageSize + 1;
+    const endRecord = Math.min(currentPage * pageSize, bets.length);
+    
+    // 更新分页信息
+    document.getElementById('paginationInfo').textContent = 
+      `显示 ${startRecord}-${endRecord} 条，共 ${bets.length} 条记录`;
+    
+    // 更新按钮状态
+    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+    
+    // 生成页码按钮
+    const pageNumbersContainer = document.getElementById('pageNumbers');
+    pageNumbersContainer.innerHTML = '';
+    
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const pageBtn = document.createElement('span');
+      pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+      pageBtn.textContent = i;
+      pageBtn.onclick = () => goToPage(i);
+      pageNumbersContainer.appendChild(pageBtn);
+    }
+  }
+
+  // 跳转到指定页面
+  function goToPage(page) {
+    currentPage = page;
+    renderBetsTable(filteredBetsData, page);
+  }
+
   async function loadBets() {
     const res = await fetch(window.BACKEND_URL + '/api/bets');
     const data = await res.json();
-    renderBetsTable(data);
+    allBetsData = data;
+    originalBetsData = [...data]; // 保存原始数据
+    filteredBetsData = [...data]; // 初始化过滤数据
+    currentPage = 1;
+    renderBetsTable(data, 1);
+    
+    // 绑定分页按钮事件
+    bindPaginationEvents();
+    
+    // 绑定查询按钮事件
+    bindQueryEvents();
+  }
+  
+  // 绑定分页按钮事件
+  function bindPaginationEvents() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    
+    if (prevBtn) {
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          goToPage(currentPage - 1);
+        }
+      };
+    }
+    
+    if (nextBtn) {
+      nextBtn.onclick = () => {
+        const totalPages = Math.ceil(filteredBetsData.length / pageSize);
+        if (currentPage < totalPages) {
+          goToPage(currentPage + 1);
+        }
+      };
+    }
+  }
+  
+  // 绑定查询按钮事件
+  function bindQueryEvents() {
+    const queryBtn = document.getElementById('queryBetsBtn');
+    const resetBtn = document.getElementById('resetQueryBtn');
+    const clearBtn = document.getElementById('clearQueryBtn');
+    
+    if (queryBtn) {
+      queryBtn.onclick = () => {
+        filterBets();
+      };
+    }
+    
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        resetQuery();
+      };
+    }
+    
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        clearQuery();
+      };
+    }
+    
+    // 绑定关注点自动完成功能
+    setupQueryPlaceAutocomplete();
+  }
+  
+  // 过滤投注记录
+  function filterBets() {
+    const queryPlace = document.getElementById('queryPlace').value.trim().toLowerCase();
+    const queryQishu = document.getElementById('queryQishu').value.trim();
+    const queryBetAmount = document.getElementById('queryBetAmount').value;
+    const queryWinAmount = document.getElementById('queryWinAmount').value;
+    const queryIsCorrect = document.getElementById('queryIsCorrect').value;
+    const queryProfitLoss = document.getElementById('queryProfitLoss').value;
+    const queryStartDate = document.getElementById('queryStartDate').value;
+    const queryEndDate = document.getElementById('queryEndDate').value;
+    
+    // 调试信息
+    console.log('查询条件:', {
+      queryPlace,
+      queryQishu,
+      queryBetAmount,
+      queryWinAmount,
+      queryIsCorrect,
+      queryProfitLoss,
+      queryStartDate,
+      queryEndDate
+    });
+    
+    // 从原始数据开始过滤
+    const filteredBets = originalBetsData.filter(bet => {
+      // 关注点过滤
+      if (queryPlace && !bet.place_name?.toLowerCase().includes(queryPlace)) {
+        return false;
+      }
+      
+      // 期数过滤
+      if (queryQishu && !bet.qishu?.includes(queryQishu)) {
+        return false;
+      }
+      
+      // 投注金额过滤
+      if (queryBetAmount) {
+        const betAmount = parseFloat(bet.bet_amount) || 0;
+        const [minAmount, maxAmount] = parseAmountRange(queryBetAmount);
+        
+        if (betAmount < minAmount || betAmount > maxAmount) {
+          return false;
+        }
+      }
+      
+      // 赢取金额过滤
+      if (queryWinAmount) {
+        const winAmount = parseFloat(bet.win_amount) || 0;
+        const [minAmount, maxAmount] = parseAmountRange(queryWinAmount);
+        
+        if (winAmount < minAmount || winAmount > maxAmount) {
+          return false;
+        }
+      }
+      
+      // 是否正确过滤
+      if (queryIsCorrect !== '') {
+        if (queryIsCorrect === 'null') {
+          if (bet.is_correct !== null && bet.is_correct !== undefined) {
+            return false;
+          }
+        } else {
+          const isCorrect = parseInt(queryIsCorrect);
+          if (bet.is_correct !== isCorrect) {
+            return false;
+          }
+        }
+      }
+      
+      // 输赢金额过滤
+      if (queryProfitLoss) {
+        if (bet.is_correct !== null && bet.is_correct !== undefined) {
+          const winAmount = parseFloat(bet.win_amount) || 0;
+          const betAmount = parseFloat(bet.bet_amount) || 0;
+          const profitLoss = winAmount - betAmount;
+          
+          const [minProfit, maxProfit] = parseAmountRange(queryProfitLoss);
+          
+          if (profitLoss < minProfit || profitLoss > maxProfit) {
+            return false;
+          }
+        } else {
+          // 如果查询输赢金额但记录未判断，则过滤掉
+          return false;
+        }
+      }
+      
+      // 创建时间过滤
+      if (queryStartDate || queryEndDate) {
+        const createdDate = bet.created_at ? bet.created_at.split('T')[0] : '';
+        if (queryStartDate && createdDate < queryStartDate) {
+          return false;
+        }
+        if (queryEndDate && createdDate > queryEndDate) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    console.log('过滤前数据量:', originalBetsData.length);
+    console.log('过滤后数据量:', filteredBets.length);
+    
+    // 更新过滤后的数据
+    filteredBetsData = filteredBets;
+    currentPage = 1;
+    renderBetsTable(filteredBets, 1);
+    
+    // 显示查询结果提示
+    if (filteredBets.length === 0) {
+      alert('未找到符合条件的记录，请检查查询条件');
+    } else {
+      console.log('查询成功，找到', filteredBets.length, '条记录');
+    }
+  }
+  
+  // 重置查询
+  async function resetQuery() {
+    // 恢复原始数据
+    filteredBetsData = [...originalBetsData];
+    currentPage = 1;
+    renderBetsTable(filteredBetsData, 1);
+    
+    // 清空查询条件
+    clearQuery();
+  }
+  
+  // 解析金额范围
+  function parseAmountRange(rangeStr) {
+    if (!rangeStr) return [0, Infinity];
+    
+    if (rangeStr.includes('-')) {
+      const parts = rangeStr.split('-');
+      const min = parseFloat(parts[0]) || 0;
+      const max = parseFloat(parts[1]) || Infinity;
+      return [min, max];
+    } else if (rangeStr.includes('+')) {
+      const min = parseFloat(rangeStr.replace('+', '')) || 0;
+      return [min, Infinity];
+    }
+    
+    return [0, Infinity];
+  }
+  
+  // 清空查询条件
+  function clearQuery() {
+    document.getElementById('queryPlace').value = '';
+    document.getElementById('queryQishu').value = '';
+    document.getElementById('queryBetAmount').value = '';
+    document.getElementById('queryWinAmount').value = '';
+    document.getElementById('queryIsCorrect').value = '';
+    document.getElementById('queryProfitLoss').value = '';
+    document.getElementById('queryStartDate').value = '';
+    document.getElementById('queryEndDate').value = '';
+    
+    // 隐藏建议下拉框
+    const suggest = document.getElementById('queryPlaceSuggest');
+    if (suggest) {
+      suggest.style.display = 'none';
+    }
+  }
+  
+  // 设置关注点自动完成功能
+  function setupQueryPlaceAutocomplete() {
+    const input = document.getElementById('queryPlace');
+    const suggest = document.getElementById('queryPlaceSuggest');
+    
+    if (!input || !suggest) return;
+    
+    let selectedIndex = -1;
+    let suggestions = [];
+    
+    // 输入事件
+    input.addEventListener('input', function() {
+      const value = this.value.trim().toLowerCase();
+      
+      if (!value) {
+        suggest.style.display = 'none';
+        return;
+      }
+      
+      // 从原始数据中获取所有唯一的关注点
+      const allPlaces = [...new Set(originalBetsData.map(bet => bet.place_name).filter(name => name))];
+      
+      // 过滤匹配的关注点
+      suggestions = allPlaces.filter(place => 
+        place.toLowerCase().includes(value)
+      );
+      
+      if (suggestions.length === 0) {
+        suggest.style.display = 'none';
+        return;
+      }
+      
+      // 显示建议
+      suggest.innerHTML = suggestions.map((place, index) => 
+        `<div class="autocomplete-suggestion-item" data-index="${index}">${place}</div>`
+      ).join('');
+      
+      suggest.style.display = 'block';
+      selectedIndex = -1;
+    });
+    
+    // 键盘事件
+    input.addEventListener('keydown', function(e) {
+      const items = suggest.querySelectorAll('.autocomplete-suggestion-item');
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items, selectedIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection(items, selectedIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          input.value = suggestions[selectedIndex];
+          suggest.style.display = 'none';
+        }
+      } else if (e.key === 'Escape') {
+        suggest.style.display = 'none';
+        selectedIndex = -1;
+      }
+    });
+    
+    // 点击事件
+    suggest.addEventListener('click', function(e) {
+      if (e.target.classList.contains('autocomplete-suggestion-item')) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        input.value = suggestions[index];
+        suggest.style.display = 'none';
+        selectedIndex = -1;
+      }
+    });
+    
+    // 失焦事件
+    input.addEventListener('blur', function() {
+      setTimeout(() => {
+        suggest.style.display = 'none';
+        selectedIndex = -1;
+      }, 200);
+    });
+    
+    // 更新选中状态
+    function updateSelection(items, index) {
+      items.forEach((item, i) => {
+        if (i === index) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
   }
 
   async function addBet(bet) {
@@ -1992,7 +2460,20 @@ setTimeout(() => {
   async function deleteBet(id) {
     if (!confirm('确定要删除该投注记录吗？')) return;
     await fetch(window.BACKEND_URL + '/api/bets/' + id, { method: 'DELETE' });
-    loadBets();
+    // 重新加载数据并保持当前页面
+    const res = await fetch(window.BACKEND_URL + '/api/bets');
+    const data = await res.json();
+    allBetsData = data;
+    originalBetsData = [...data]; // 更新原始数据
+    filteredBetsData = [...data]; // 更新过滤数据
+    
+    // 如果当前页面没有数据了，回到上一页
+    const totalPages = Math.ceil(filteredBetsData.length / pageSize);
+    if (currentPage > totalPages && totalPages > 0) {
+      currentPage = totalPages;
+    }
+    
+    renderBetsTable(filteredBetsData, currentPage);
   }
 
   // 关注点输入框模糊匹配
@@ -2061,7 +2542,15 @@ setTimeout(() => {
       document.getElementById('betId').value = '';
       document.getElementById('cancelBetEditBtn').style.display = 'none';
       selectedPlaceId = null;
-      loadBets();
+      
+      // 重新加载数据并跳转到第一页
+      const res = await fetch(window.BACKEND_URL + '/api/bets');
+      const data = await res.json();
+      allBetsData = data;
+      originalBetsData = [...data]; // 更新原始数据
+      filteredBetsData = [...data]; // 更新过滤数据
+      currentPage = 1;
+      renderBetsTable(filteredBetsData, 1);
     };
   }
   // 取消编辑

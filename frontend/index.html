@@ -60,24 +60,34 @@
       </div>
       <div id="registerFocusPage" style="display:none;">
         <h2>登记关注点</h2>
-        <form id="placeForm" style="margin-bottom:16px;">
+        <form id="placeForm" class="focus-form">
           <input type="hidden" id="placeId">
-          <input type="text" id="placeName" placeholder="关注点名称" required style="width:120px;">
-          <input type="text" id="placeDescription" placeholder="描述" style="width:200px;">
-          <button type="submit">保存</button>
-          <button type="button" id="cancelEditBtn" style="display:none;">取消</button>
+          <div class="form-group">
+            <label for="placeName">关注点名称：</label>
+            <input type="text" id="placeName" placeholder="请输入关注点名称" required>
+          </div>
+          <div class="form-group">
+            <label for="placeDescription">描述：</label>
+            <input type="text" id="placeDescription" placeholder="请输入描述信息">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">保存</button>
+            <button type="button" id="cancelEditBtn" class="btn-secondary" style="display:none;">取消</button>
+          </div>
         </form>
-        <table id="placesTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>描述</th>
-              <th>创建时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-container">
+          <table id="placesTable" class="data-table">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>描述</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div id="registerBetPage" style="display:none;">
         <h2>投注登记点</h2>
@@ -91,7 +101,7 @@
           <label>投注金额：</label>
           <input type="number" id="betAmount" step="0.01" min="0" required style="width:80px;">
           <label>赢取金额：</label>
-          <input type="number" id="winAmount" step="0.01" min="0" required style="width:80px;">
+          <input type="number" id="winAmount" step="0.01" min="0" value="0" required style="width:80px;">
           <select id="betIsCorrect">
             <option value="">未判断</option>
             <option value="1">正确</option>
@@ -100,6 +110,86 @@
           <button type="submit">保存</button>
           <button type="button" id="cancelBetEditBtn" style="display:none;">取消</button>
         </form>
+        
+        <!-- 查询表单 -->
+        <div id="betsQueryForm" class="query-form">
+          <h3 class="query-title">查询条件</h3>
+          <div class="query-grid">
+            <div class="query-item">
+              <label for="queryPlace">关注点：</label>
+              <div class="autocomplete-container">
+                <input type="text" id="queryPlace" placeholder="请输入关注点名称" autocomplete="off">
+                <div id="queryPlaceSuggest" class="autocomplete-suggestions"></div>
+              </div>
+            </div>
+            <div class="query-item">
+              <label for="queryQishu">期数：</label>
+              <input type="text" id="queryQishu" placeholder="请输入期数">
+            </div>
+            <div class="query-item">
+              <label>金额范围：</label>
+              <div class="amount-range-container">
+                <div class="amount-range-item">
+                  <span class="amount-label">投注金额：</span>
+                  <select id="queryBetAmount" class="amount-select">
+                    <option value="">全部</option>
+                    <option value="0-100">0-100</option>
+                    <option value="100-500">100-500</option>
+                    <option value="500-1000">500-1000</option>
+                    <option value="1000-5000">1000-5000</option>
+                    <option value="5000+">5000+</option>
+                  </select>
+                </div>
+                <div class="amount-range-item">
+                  <span class="amount-label">赢取金额：</span>
+                  <select id="queryWinAmount" class="amount-select">
+                    <option value="">全部</option>
+                    <option value="0-100">0-100</option>
+                    <option value="100-500">100-500</option>
+                    <option value="500-1000">500-1000</option>
+                    <option value="1000-5000">1000-5000</option>
+                    <option value="5000+">5000+</option>
+                  </select>
+                </div>
+                <div class="amount-range-item">
+                  <span class="amount-label">输赢金额：</span>
+                  <select id="queryProfitLoss" class="amount-select">
+                    <option value="">全部</option>
+                    <option value="-1000-0">亏损1000以内</option>
+                    <option value="-500-0">亏损500以内</option>
+                    <option value="0-0">持平</option>
+                    <option value="0-500">盈利500以内</option>
+                    <option value="0-1000">盈利1000以内</option>
+                    <option value="1000+">盈利1000+</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="query-item">
+              <label for="queryIsCorrect">是否正确：</label>
+              <select id="queryIsCorrect">
+                <option value="">全部</option>
+                <option value="1">正确</option>
+                <option value="0">错误</option>
+                <option value="null">未判断</option>
+              </select>
+            </div>
+            <div class="query-item">
+              <label for="queryStartDate">创建时间：</label>
+              <div class="date-inputs">
+                <input type="date" id="queryStartDate">
+                <span class="range-separator">-</span>
+                <input type="date" id="queryEndDate">
+              </div>
+            </div>
+          </div>
+          <div class="query-actions">
+            <button type="button" id="queryBetsBtn" class="btn-primary">查询</button>
+            <button type="button" id="resetQueryBtn" class="btn-secondary">重置</button>
+            <button type="button" id="clearQueryBtn" class="btn-secondary">清空</button>
+          </div>
+        </div>
+        
         <table id="betsTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
           <thead>
             <tr>
@@ -108,12 +198,72 @@
               <th>投注金额</th>
               <th>赢取金额</th>
               <th>是否正确</th>
+              <th>输赢金额</th>
               <th>创建时间</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+        
+        <!-- 统计信息 -->
+        <div id="betsStats" class="stats-container">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总投注金额：</span>
+                <span class="stats-value" id="totalBetAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">总赢取金额：</span>
+                <span class="stats-value" id="totalWinAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">总输赢金额：</span>
+                <span class="stats-value" id="totalProfitLoss">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">记录总数：</span>
+                <span class="stats-value" id="totalRecords">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stats-section">
+            <h3 class="stats-title">本页统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">本页投注金额：</span>
+                <span class="stats-value" id="pageBetAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页赢取金额：</span>
+                <span class="stats-value" id="pageWinAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页输赢金额：</span>
+                <span class="stats-value" id="pageProfitLoss">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页记录数：</span>
+                <span class="stats-value" id="pageRecords">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 分页控件 -->
+        <div id="betsPagination" class="pagination-container">
+          <div class="pagination-info">
+            <span id="paginationInfo">显示 0-0 条，共 0 条记录</span>
+          </div>
+          <div class="pagination-controls">
+            <button id="prevPageBtn" class="pagination-btn" disabled>上一页</button>
+            <span id="pageNumbers" class="page-numbers"></span>
+            <button id="nextPageBtn" class="pagination-btn" disabled>下一页</button>
+          </div>
+        </div>
       </div>
       <div id="registerFocusResultPage" style="display:none;"><h2>关注点登记结果</h2></div>
       <div id="registerFocusAnalysisPage" style="display:none;"><h2>关注点分析</h2></div>
