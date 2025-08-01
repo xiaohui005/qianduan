@@ -134,7 +134,9 @@ function renderRecordsTable(data, areaId, title) {
     area.innerHTML = `<div>${title}暂无数据</div>`;
     return;
   }
-  let html = `<h3>${title}</h3><table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+  // 导出按钮
+  let html = `<h3>${title}</h3><button class="export-records-btn" style="margin-bottom:8px;">导出本页</button> <button class="export-records-all-btn" style="margin-bottom:8px;">导出全部</button>`;
+  html += `<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
     <tr><th>期号</th><th>开奖时间</th><th>开奖号码/生肖</th></tr>`;
   data.records.forEach(r => {
     const nums = r.numbers ? r.numbers.split(',') : [];
@@ -168,6 +170,41 @@ function renderRecordsTable(data, areaId, title) {
   Array.from(area.querySelectorAll('.recordsNextPage')).forEach(btn => {
     btn.onclick = () => queryRecords(areaId, data.page + 1);
   });
+  // 导出本页事件
+  const exportBtn = area.querySelector('.export-records-btn');
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      const csvRows = [
+        ['期号','开奖时间','开奖号码/生肖'],
+        ...data.records.map(r => [
+          r.period,
+          r.open_time ? r.open_time.substring(0,10) : '',
+          r.numbers + (r.animals ? ' / ' + r.animals : '')
+        ])
+      ];
+      downloadCSV(csvRows, `${title}_records.csv`);
+    };
+  }
+  // 导出全部事件
+  const exportAllBtn = area.querySelector('.export-records-all-btn');
+  if (exportAllBtn) {
+    exportAllBtn.onclick = async () => {
+      const type = areaId === 'recordsTableAreaAm' ? 'am' : 'hk';
+      let url = `${window.BACKEND_URL}/records?page=1&page_size=10000&lottery_type=${type}`;
+      // 其它参数可按需拼接
+      const res = await fetch(url);
+      const allData = await res.json();
+      const csvRows = [
+        ['期号','开奖时间','开奖号码/生肖'],
+        ...allData.records.map(r => [
+          r.period,
+          r.open_time ? r.open_time.substring(0,10) : '',
+          r.numbers + (r.animals ? ' / ' + r.animals : '')
+        ])
+      ];
+      downloadCSV(csvRows, `${title}_records_all.csv`);
+    };
+  }
 }
 
 async function queryRecords(areaId, page = 1) {
@@ -244,7 +281,6 @@ function renderTensTable(data, pos, page = 1) {
   const startIdx = (page - 1) * TENS_PAGE_SIZE;
   const pageData = posData.slice(startIdx, startIdx + TENS_PAGE_SIZE);
   tensPageNum = page;
-
   // 年份按钮组
   let years = [];
   if (posData.length > 0) {
@@ -259,7 +295,6 @@ function renderTensTable(data, pos, page = 1) {
     });
     yearBtnsHtml += '</div>';
   }
-
   // 组合和最大遗漏信息框
   let infoBox = '<div style="border:1px solid #bbb;padding:10px 12px;margin-bottom:12px;border-radius:8px;background:#fafbfc;">';
   infoBox += '<div style="margin-bottom:6px;"><b>组合：</b>';
@@ -277,19 +312,18 @@ function renderTensTable(data, pos, page = 1) {
     </div>`;
   });
   infoBox += '</div></div>';
-
-  // 在十位分析页面顶部添加美化后的阀值输入框
+  // 阀值输入框
   let thresholdHtml = '<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">';
   thresholdHtml += '<label for="tensThresholdInput" style="font-weight:bold;font-size:15px;color:#2980d9;">遗漏高亮阀值：</label>';
   thresholdHtml += '<input type="number" id="tensThresholdInput" value="' + (window.tensThreshold || 12) + '" min="1" max="99" style="width:70px;height:32px;font-size:16px;border:1px solid #b5c6e0;border-radius:6px;padding:0 10px;outline:none;transition:border 0.2s;box-shadow:0 1px 2px #f0f4fa;">';
   thresholdHtml += '</div>';
-
-  let html = thresholdHtml + yearBtnsHtml + infoBox;
+  // 导出按钮
+  let exportBtnHtml = '<button class="export-tens-btn" style="margin-bottom:8px;">导出本页</button> <button class="export-tens-all-btn" style="margin-bottom:8px;">导出全部</button>';
+  let html = thresholdHtml + yearBtnsHtml + infoBox + exportBtnHtml;
   html += '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;font-size:13px;">';
   html += '<tr><th>期号</th><th>开奖号码</th>';
   tensCols.forEach(col => html += `<th>${col}</th>`);
   html += '</tr>';
-  // 不再按年份过滤，只高亮所选年份
   const threshold = window.tensThreshold || 12;
   pageData.forEach(row => {
     const rowYear = row.period.substring(0, 4);
@@ -313,7 +347,6 @@ function renderTensTable(data, pos, page = 1) {
   if (page < totalPages) html += ` <button id='tensNextPage'>下一页</button>`;
   html += `</div>`;
   tensResult.innerHTML = html;
-
   // 年份按钮事件
   document.querySelectorAll('.tens-year-btn').forEach(btn => {
     btn.onclick = function() {
@@ -323,6 +356,43 @@ function renderTensTable(data, pos, page = 1) {
   });
   if (page > 1) document.getElementById('tensPrevPage').onclick = () => queryRecords(areaId, data.page - 1);
   if (page < totalPages) document.getElementById('tensNextPage').onclick = () => queryRecords(areaId, data.page + 1);
+  // 导出本页
+  const exportBtn = tensResult.querySelector('.export-tens-btn');
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      const csvRows = [
+        ['期号','开奖号码',...tensCols],
+        ...pageData.map(row => [
+          row.period,
+          row.num,
+          ...tensCols.map(col => row.miss[col])
+        ])
+      ];
+      downloadCSV(csvRows, '十位分析表.csv');
+    };
+  }
+  // 导出全部
+  const exportAllBtn = tensResult.querySelector('.export-tens-all-btn');
+  if (exportAllBtn) {
+    exportAllBtn.onclick = async () => {
+      const type = currentTensType || 'am';
+      const pos = currentTensPos || 1;
+      let url = `${window.BACKEND_URL}/tens_analysis?lottery_type=${type}&pos=${pos}&page=1&page_size=10000`;
+      const res = await fetch(url);
+      const allData = await res.json();
+      const tensColsAll = allData.tens_cols || tensCols;
+      const allRows = (allData.data && allData.data[pos-1]) || [];
+      const csvRows = [
+        ['期号','开奖号码',...tensColsAll],
+        ...allRows.map(row => [
+          row.period,
+          row.num,
+          ...tensColsAll.map(col => row.miss[col])
+        ])
+      ];
+      downloadCSV(csvRows, '十位分析表_全部.csv');
+    };
+  }
 }
 
 // 修改 loadTensAnalysis 支持 year 参数，但只用于最大遗漏等统计，不过滤表格数据
@@ -889,7 +959,7 @@ function loadRangeAnalysis(type, nextPos, page, year) {
         rangeResult.innerHTML = lastOpenHtml + predictHtml + missHtml + '<span style="color:red;">暂无数据</span>';
         return;
       }
-      let html = lastOpenHtml + predictHtml + missHtml + '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;font-size:13px;">';
+      let html = lastOpenHtml + predictHtml + missHtml + '<button class="export-range-btn" style="margin-bottom:8px;">导出本页</button> <button class="export-range-all-btn" style="margin-bottom:8px;">导出全部</button>' + '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;font-size:13px;">';
       html += '<tr>' + data.header.map(h => `<th>${h}</th>`).join('') + '</tr>';
       let pageData = data.data;
       if (currentRangeYear) {
@@ -906,6 +976,34 @@ function loadRangeAnalysis(type, nextPos, page, year) {
       rangeResult.innerHTML = html;
       if (data.page > 1) document.getElementById('rangePrevPage').onclick = () => loadRangeAnalysis(currentRangeType, currentRangeNextPos, data.page-1, currentRangeYear);
       if (data.page < Math.ceil(data.total/data.page_size)) document.getElementById('rangeNextPage').onclick = () => loadRangeAnalysis(currentRangeType, currentRangeNextPos, data.page+1, currentRangeYear);
+      // 导出本页
+      const exportBtn = rangeResult.querySelector('.export-range-btn');
+      if (exportBtn) {
+        exportBtn.onclick = () => {
+          const csvRows = [
+            data.header,
+            ...pageData
+          ];
+          downloadCSV(csvRows, '区间分析表.csv');
+        };
+      }
+      // 导出全部
+      const exportAllBtn = rangeResult.querySelector('.export-range-all-btn');
+      if (exportAllBtn) {
+        exportAllBtn.onclick = async () => {
+          const type = currentRangeType || 'am';
+          const pos = currentRangeNextPos || 1;
+          let url = `${window.BACKEND_URL}/range_analysis?lottery_type=${type}&pos=${pos}&page=1&page_size=10000`;
+          if (currentRangeYear) url += `&year=${currentRangeYear}`;
+          const res = await fetch(url);
+          const allData = await res.json();
+          const csvRows = [
+            allData.header,
+            ...(allData.data || [])
+          ];
+          downloadCSV(csvRows, '区间分析表_全部.csv');
+        };
+      }
     });
 }
 setTimeout(() => {
@@ -985,11 +1083,8 @@ Object.keys(pageMap).forEach(id => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      Object.values(pageMap).forEach(pid => {
-        const page = document.getElementById(pid);
-        if (page) page.style.display = 'none';
-      });
-      document.getElementById(pageMap[id]).style.display = '';
+      // 使用showOnlyPage函数确保正确隐藏其他模块
+      showOnlyPage(pageMap[id]);
       const titleMap = {
         collectPage: '数据采集',
         recordsPage: '开奖记录',
@@ -1824,6 +1919,52 @@ setTimeout(() => {
       `;
       tbody.appendChild(tr);
     });
+    // 添加导出按钮（如果不存在）
+    let table = document.getElementById('betsTable');
+    if (table && !document.getElementById('export-bets-btn')) {
+      const btn = document.createElement('button');
+      btn.textContent = '导出本页';
+      btn.id = 'export-bets-btn';
+      btn.style.marginBottom = '8px';
+      table.parentNode.insertBefore(btn, table);
+      btn.onclick = () => {
+        const csvRows = [
+          ['关注点','期数','投注金额','赢取金额','是否正确','创建时间'],
+          ...bets.map(bet => [
+            bet.place_name || '',
+            bet.qishu,
+            bet.bet_amount,
+            bet.win_amount,
+            bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
+            bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
+          ])
+        ];
+        downloadCSV(csvRows, '投注记录表.csv');
+      };
+      // 导出全部按钮
+      const allBtn = document.createElement('button');
+      allBtn.textContent = '导出全部';
+      allBtn.id = 'export-bets-all-btn';
+      allBtn.style.marginBottom = '8px';
+      allBtn.style.marginLeft = '8px';
+      table.parentNode.insertBefore(allBtn, table);
+      allBtn.onclick = async () => {
+        const res = await fetch(window.BACKEND_URL + '/api/bets');
+        const allBets = await res.json();
+        const csvRows = [
+          ['关注点','期数','投注金额','赢取金额','是否正确','创建时间'],
+          ...allBets.map(bet => [
+            bet.place_name || '',
+            bet.qishu,
+            bet.bet_amount,
+            bet.win_amount,
+            bet.is_correct === null || bet.is_correct === undefined ? '未判断' : (bet.is_correct ? '正确' : '错误'),
+            bet.created_at ? bet.created_at.replace('T', ' ').slice(0, 19) : ''
+          ])
+        ];
+        downloadCSV(csvRows, '投注记录表_全部.csv');
+      };
+    }
   }
 
   async function loadBets() {
@@ -1987,6 +2128,7 @@ setTimeout(() => {
   let currentPage = 1;
   let pageSize = 20;
   let totalPages = 1;
+  let currentUnitGroup = '';
 
   if (menuEachIssueBtn) {
     menuEachIssueBtn.addEventListener('click', function() {
@@ -2007,11 +2149,28 @@ setTimeout(() => {
       });
     });
   }
+  // 期数个位分组按钮事件
+  const unitBtns = document.querySelectorAll('.each-issue-unit-btn');
+  if (unitBtns.length) {
+    unitBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        unitBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentUnitGroup = this.dataset.group;
+        currentPage = 1;
+        loadEachIssueAnalysis(currentType, currentPage);
+      });
+    });
+  }
 
   async function loadEachIssueAnalysis(type = 'am', page = 1) {
     eachIssueResult.innerHTML = '加载中...';
     try {
-      const res = await fetch(window.BACKEND_URL + `/each_issue_analysis?lottery_type=${type}&page=${page}&page_size=${pageSize}`);
+      let url = `${window.BACKEND_URL}/each_issue_analysis?lottery_type=${type}&page=${page}&page_size=${pageSize}`;
+      if (currentUnitGroup) {
+        url += `&unit_group=${currentUnitGroup}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       totalPages = Math.ceil(data.total / data.page_size);
       renderEachIssueTable(
@@ -2034,6 +2193,23 @@ setTimeout(() => {
       return;
     }
     let html = '';
+    
+    // 显示当前筛选条件
+    let filterInfo = '';
+    if (currentUnitGroup) {
+      const groupNames = {
+        '0': '0/5组',
+        '1': '1/6组', 
+        '2': '2/7组',
+        '3': '3/8组',
+        '4': '4/9组'
+      };
+      filterInfo = `<div style='margin-bottom:12px;padding:8px 12px;background:#e8f4fd;border:1px solid #2980d9;border-radius:6px;color:#2980d9;font-weight:bold;'>
+        当前筛选：${groupNames[currentUnitGroup]}（只显示期号个位数为该分组的记录）
+      </div>`;
+    }
+    
+    html += filterInfo;
     html += `<div style='margin-bottom:12px;'>
       <b>当前最大遗漏：</b><span style='color:#c0392b;font-weight:bold;'>${currentMaxMiss}</span>
       <span style='color:#888;'>(期号: ${currentMaxMissPeriod || '-'})</span>
@@ -2041,6 +2217,7 @@ setTimeout(() => {
       <b>历史最大遗漏：</b><span style='color:#2980d9;font-weight:bold;'>${historyMaxMiss}</span>
       <span style='color:#888;'>(期号: ${historyMaxMissPeriod || '-'})</span>
     </div>`;
+    html += `<button class="export-each-issue-btn" style="margin-bottom:8px;">导出本页</button> <button class="export-each-issue-all-btn" style="margin-bottom:8px;">导出全部</button>`;
     html += `<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
       <tr><th>期号</th><th>开奖时间</th><th>开奖号码</th><th>已经有几期没有开了</th><th>状态</th></tr>`;
     rows.forEach(row => {
@@ -2052,7 +2229,7 @@ setTimeout(() => {
       } else {
         statusHtml = '-';
       }
-      html += `<tr><td>${row.period}</td><td>${row.open_time}</td><td>${row.numbers}</td><td>${row.miss_count}</td><td>${statusHtml}</td></tr>`;
+      html += `<tr><td>${row.period}</td><td>${row.open_time}</td><td>${row.numbers}</td><td>${row.miss_count}</td><td>${statusHtml.replace(/<[^>]+>/g, '')}</td></tr>`;
     });
     html += '</table>';
     html += `<div style='margin-top:8px;'>第 ${page} / ${totalPages} 页`;
@@ -2065,6 +2242,61 @@ setTimeout(() => {
     const nextBtn = eachIssueResult.querySelector('.eachIssueNextPage');
     if (prevBtn) prevBtn.onclick = () => { currentPage -= 1; loadEachIssueAnalysis(currentType, currentPage); };
     if (nextBtn) nextBtn.onclick = () => { currentPage += 1; loadEachIssueAnalysis(currentType, currentPage); };
+    // 导出本页
+    const exportBtn = eachIssueResult.querySelector('.export-each-issue-btn');
+    if (exportBtn) {
+      exportBtn.onclick = () => {
+        const csvRows = [
+          ['期号','开奖时间','开奖号码','已经有几期没有开了','状态'],
+          ...rows.map(row => [
+            row.period,
+            row.open_time,
+            row.numbers,
+            row.miss_count,
+            row.stop_reason === 'hit' ? '已命中' : (row.stop_reason === 'end' ? '未命中到末期' : '-')
+          ])
+        ];
+        downloadCSV(csvRows, '每期分析表.csv');
+      };
+    }
+    // 导出全部
+    const exportAllBtn = eachIssueResult.querySelector('.export-each-issue-all-btn');
+    if (exportAllBtn) {
+      exportAllBtn.onclick = async () => {
+        const type = currentType || 'am';
+        let url = `${window.BACKEND_URL}/each_issue_analysis?lottery_type=${type}&page=1&page_size=10000`;
+        if (currentUnitGroup) {
+          url += `&unit_group=${currentUnitGroup}`;
+        }
+        const res = await fetch(url);
+        const allData = await res.json();
+        const allRows = Array.isArray(allData.data) ? allData.data : [];
+        const csvRows = [
+          ['期号','开奖时间','开奖号码','已经有几期没有开了','状态'],
+          ...allRows.map(row => [
+            row.period,
+            row.open_time,
+            row.numbers,
+            row.miss_count,
+            row.stop_reason === 'hit' ? '已命中' : (row.stop_reason === 'end' ? '未命中到末期' : '-')
+          ])
+        ];
+        downloadCSV(csvRows, '每期分析表_全部.csv');
+      };
+    }
   }
 // ... existing code ...
 })();
+
+// 通用CSV导出函数
+function downloadCSV(rows, filename) {
+  const process = v => (v == null ? '' : ('' + v).replace(/"/g, '""'));
+  const csvContent = rows.map(row => row.map(process).map(v => `"${v}"`).join(',')).join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

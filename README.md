@@ -62,3 +62,61 @@ python -m http.server 8080
 - 代码风格、目录结构等建议见本文件前述内容。
 
 如需自定义更多忽略规则，请根据实际项目需求补充。 
+
+---
+
+## 一键启动与打包说明
+
+### 一键启动
+
+1. 运行 `launcher.py` 即可一键启动前后端服务，并在系统托盘区显示小图标。
+2. 托盘图标右键菜单：
+   - "打开网站"：自动打开前端主页（如 http://localhost:8080）
+   - "退出"：关闭所有相关进程并退出程序
+
+### 端口自定义
+
+- 可在根目录下的 `config.json` 文件中自定义前后端端口，例如：
+
+```json
+{
+  "backend_port": 8000,
+  "frontend_port": 8080
+}
+```
+
+- 若无 config.json，则默认后端8000，前端8080。
+
+### 依赖安装
+
+请先安装以下依赖：
+
+```bash
+pip install pystray pillow psutil uvicorn fastapi
+```
+
+### 打包为exe
+
+1. 准备好 `app.ico` 图标（可选，放根目录，未提供则自动生成蓝色图标）。
+2. 安装 PyInstaller：
+
+```bash
+pip install pyinstaller
+```
+
+3. 打包命令（在项目根目录下）：
+
+```bash
+pyinstaller --noconsole --onefile --icon=app.ico launcher.py
+```
+
+- 生成的 exe 在 `dist/launcher.exe`。
+- 双击 exe 即可一键启动，托盘区出现小图标。
+
+### 注意事项
+
+- 关闭程序请通过托盘图标右键菜单“退出”，以确保所有服务被正确关闭。
+- 若需更换端口，修改 config.json 后重启程序即可。
+- 若缺少 Python 运行环境，可将 exe 及 frontend/backend 目录一同分发。
+
+--- 

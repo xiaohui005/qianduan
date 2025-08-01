@@ -75,8 +75,11 @@ def get_records(
     end_time: Optional[str] = Query(None),
     period: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100)
+    page_size: int = Query(20, ge=1, le=10000)
 ):
+    """
+    获取开奖记录，支持分页，最大page_size=10000。
+    """
     conn = collect.get_connection()
     cursor = conn.cursor(dictionary=True)
     sql = "SELECT * FROM lottery_result WHERE 1=1"
@@ -316,11 +319,12 @@ def range_analysis_api(
     lottery_type: str = Query('am'),
     pos: int = Query(1, ge=1, le=7),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=10000),
     year: str = Query(None)
 ):
     """
-    区间分析API，返回每期开奖信息、7个球的区间命中情况（命中为0，未命中为距离上次命中的期数，区间只显示头和尾两个数），每个球的区间只和下一期同位置的球比较。最后一列只显示下一期的第N个球。期号倒序，分页返回。
+    区间分析API，支持分页，最大page_size=10000。
+    返回每期开奖信息、7个球的区间命中情况（命中为0，未命中为距离上次命中的期数，区间只显示头和尾两个数），每个球的区间只和下一期同位置的球比较。最后一列只显示下一期的第N个球。期号倒序，分页返回。
     header=[期号, 开奖时间, 球1, ..., 球7, 下一期球N]。
     新增返回：每个球每个区间的历史最大遗漏、最大遗漏发生期号、当前遗漏，支持按年份过滤。
     """
@@ -449,7 +453,7 @@ def range_analysis_minus_api(
     lottery_type: str = Query('am'),
     pos: int = Query(1, ge=1, le=7),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=10000),
     year: str = Query(None)
 ):
     """
@@ -584,10 +588,11 @@ def plus_minus6_analysis_api(
     lottery_type: str = Query('am'),
     pos: int = Query(1, ge=1, le=7),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=10000),
     year: str = Query(None)
 ):
     """
+    加减6分析API，支持分页，最大page_size=10000。
     每期取前6个号码，分别加减1~6，分为6组，每组12个数。每组用下一期第N位（N=1~7可选）判断是否命中，统计每组的遗漏期数（连续多少期未命中），最大遗漏、当前遗漏。返回每组的号码、命中、遗漏、最大遗漏、当前遗漏。
     """
     def plus49(n, k):
@@ -728,9 +733,17 @@ def plus_minus6_analysis_api(
 def each_issue_analysis_api(
     lottery_type: str = Query('am'),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100)
+    page_size: int = Query(20, ge=1, le=10000),
+    unit_group: Optional[str] = Query(None)
 ):
     """
+    每期分析API，支持分页，最大page_size=10000。
+    支持unit_group参数筛选期号个位分组：
+    - unit_group=0: 期号个位为0或5
+    - unit_group=1: 期号个位为1或6  
+    - unit_group=2: 期号个位为2或7
+    - unit_group=3: 期号个位为3或8
+    - unit_group=4: 期号个位为4或9
     取近100期，按期号升序，每一期独立累加miss_count，只有自己命中（后续某一期的第7个号码在本期7个号码中）才定格，否则一直累加到最后一期。
     增加 stop_reason 字段，标识是因为命中（hit）还是到最后一期（end）停止累加。
     支持分页，返回时按期号从大到小排序。
@@ -744,6 +757,26 @@ def each_issue_analysis_api(
         (lottery_type,)
     )
     all_rows = cursor.fetchall()[::-1]  # 逆序变为升序
+    
+    # 保存原始完整数据用于计算遗漏
+    original_all_rows = all_rows.copy()
+    
+    # 按期数个位分组筛选
+    if unit_group is not None:
+        unit_group = int(unit_group)
+        # 定义分组规则：0/5, 1/6, 2/7, 3/8, 4/9
+        group_digits = {
+            0: ['0', '5'],
+            1: ['1', '6'], 
+            2: ['2', '7'],
+            3: ['3', '8'],
+            4: ['4', '9']
+        }
+        if unit_group in group_digits:
+            allowed_digits = group_digits[unit_group]
+            # 只筛选期号个位数属于该分组的记录
+            all_rows = [row for row in all_rows if str(row['period'])[-1] in allowed_digits]
+    
     result = []
     n = len(all_rows)
     for idx in range(n):
@@ -753,16 +786,26 @@ def each_issue_analysis_api(
         numbers = row['numbers'].split(',')
         miss_count = 1
         stop_reason = 'end'
-        # 从当前期往后找，直到命中或到最后一期
-        for j in range(idx+1, n):
-            next_row = all_rows[j]
-            next_numbers = next_row['numbers'].split(',')
-            next_num7 = next_numbers[6] if len(next_numbers) >= 7 else ''
-            if next_num7 and next_num7 in numbers:
-                stop_reason = 'hit'
+        
+        # 在原始完整数据中找到当前期的位置
+        original_idx = None
+        for i, orig_row in enumerate(original_all_rows):
+            if orig_row['period'] == period:
+                original_idx = i
                 break
-            else:
-                miss_count += 1
+        
+        if original_idx is not None:
+            # 从当前期往后找，直到命中或到最后一期（基于原始完整数据）
+            for j in range(original_idx+1, len(original_all_rows)):
+                next_row = original_all_rows[j]
+                next_numbers = next_row['numbers'].split(',')
+                next_num7 = next_numbers[6] if len(next_numbers) >= 7 else ''
+                if next_num7 and next_num7 in numbers:
+                    stop_reason = 'hit'
+                    break
+                else:
+                    miss_count += 1
+        
         result.append({
             'period': period,
             'open_time': open_time,
@@ -800,7 +843,8 @@ def each_issue_analysis_api(
         'current_max_miss': current_max_miss,
         'current_max_miss_period': current_max_miss_period,
         'history_max_miss': history_max_miss,
-        'history_max_miss_period': history_max_miss_period
+        'history_max_miss_period': history_max_miss_period,
+        'unit_group': unit_group  # 返回当前选择的分组，便于前端显示
     }
 
 @app.get("/restart")
