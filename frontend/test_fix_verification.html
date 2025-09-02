@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐16码功能修复验证</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #2980d9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #1c5fa8;
+        }
+        .recommend-hit-type-group {
+            display: inline-block;
+            border: 1px solid #2980d9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .recommend-hit-type-btn {
+            background: #fff;
+            color: #2980d9;
+            border: none;
+            border-left: 1px solid #2980d9;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .recommend-hit-type-btn:first-child {
+            border-left: none;
+        }
+        .recommend-hit-type-btn:hover {
+            background: #e3f2fd;
+        }
+        .recommend-hit-type-btn.active {
+            background: #2980d9;
+            color: #fff;
+        }
+        .btn-primary {
+            background: #2980d9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary:hover {
+            background: #1c5fa8;
+        }
+        .position-select-btn {
+            background: #fff;
+            color: #2980d9;
+            border: 1px solid #2980d9;
+            padding: 5px 15px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .position-select-btn:hover {
+            background: #e3f2fd;
+        }
+        .position-select-btn.active {
+            background: #2980d9;
+            color: #fff;
+        }
+        .records-query-label {
+            font-weight: bold;
+            color: #2980d9;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>推荐16码功能修复验证</h1>
+        
+        <!-- 测试元素 -->
+        <div id="recommend16HitPage">
+            <h2>推荐16码的命中情况</h2>
+            <div style="margin-bottom:16px;">
+                <label class="records-query-label">选择彩种：</label>
+                <div class="recommend-hit-type-group">
+                    <button class="recommend-hit-type-btn active" data-type="am">澳门</button>
+                    <button class="recommend-hit-type-btn" data-type="hk">香港</button>
+                </div>
+                <button id="analyzeRecommend16HitBtn" class="btn-primary" style="margin-left: 20px;">分析命中情况</button>
+            </div>
+            
+            <!-- 位置选择区域 -->
+            <div style="margin-bottom: 16px;">
+                <label class="records-query-label">选择位置：</label>
+                <button class="position-select-btn active" data-position="1" onclick="selectPosition16(1)">第1位</button>
+                <button class="position-select-btn" data-position="2" onclick="selectPosition16(2)">第2位</button>
+                <button class="position-select-btn" data-position="3" onclick="selectPosition16(3)">第3位</button>
+                <button class="position-select-btn" data-position="4" onclick="selectPosition16(4)">第4位</button>
+                <button class="position-select-btn" data-position="5" onclick="selectPosition16(5)">第5位</button>
+                <button class="position-select-btn" data-position="6" onclick="selectPosition16(6)">第6位</button>
+                <button class="position-select-btn" data-position="7" onclick="selectPosition16(7)">第7位</button>
+                <em style="margin-left: 15px; color: #666;">当前选择：<span id="selectedPosition16Text">第1位</span></em>
+            </div>
+            
+            <div id="recommend16HitResult">结果将显示在这里</div>
+        </div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <!-- 测试按钮 -->
+        <button class="test-button" onclick="testPageElements()">测试页面元素</button>
+        <button class="test-button" onclick="testFunctions()">测试函数</button>
+        <button class="test-button" onclick="testInit()">测试初始化</button>
+        <button class="test-button" onclick="testPositionSelect()">测试位置选择</button>
+        <button class="test-button" onclick="testPageDisplay()">测试页面显示</button>
+        
+        <div id="testResult" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #2980d9;"></div>
+    </div>
+
+    <script>
+        // 模拟后端URL
+        window.BACKEND_URL = 'http://localhost:8000';
+        
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = isError ? '#f8d7da' : '#d4edda';
+            resultDiv.style.borderLeftColor = isError ? '#dc3545' : '#28a745';
+            resultDiv.style.color = isError ? '#721c24' : '#155724';
+            resultDiv.textContent = message;
+        }
+        
+        function testPageElements() {
+            let results = [];
+            
+            const page = document.getElementById('recommend16HitPage');
+            if (page) results.push('✅ recommend16HitPage 存在');
+            else results.push('❌ recommend16HitPage 不存在');
+            
+            const btn = document.getElementById('analyzeRecommend16HitBtn');
+            if (btn) results.push('✅ analyzeRecommend16HitBtn 存在');
+            else results.push('❌ analyzeRecommend16HitBtn 不存在');
+            
+            const resultDiv = document.getElementById('recommend16HitResult');
+            if (resultDiv) results.push('✅ recommend16HitResult 存在');
+            else results.push('❌ recommend16HitResult 不存在');
+            
+            const positionBtns = document.querySelectorAll('.position-select-btn');
+            if (positionBtns.length === 7) results.push('✅ 位置选择按钮存在 (7个)');
+            else results.push(`❌ 位置选择按钮数量不正确: ${positionBtns.length}`);
+            
+            showResult(results.join('\n'));
+        }
+        
+        function testFunctions() {
+            let results = [];
+            
+            if (typeof initRecommend16HitAnalysis === 'function') {
+                results.push('✅ initRecommend16HitAnalysis 函数存在');
+            } else {
+                results.push('❌ initRecommend16HitAnalysis 函数不存在');
+            }
+            
+            if (typeof selectPosition16 === 'function') {
+                results.push('✅ selectPosition16 函数存在');
+            } else {
+                results.push('❌ selectPosition16 函数不存在');
+            }
+            
+            showResult(results.join('\n'));
+        }
+        
+        function testInit() {
+            try {
+                if (typeof initRecommend16HitAnalysis === 'function') {
+                    initRecommend16HitAnalysis();
+                    showResult('✅ 初始化成功，页面应该显示初始提示信息');
+                } else {
+                    showResult('❌ initRecommend16HitAnalysis 函数不存在', true);
+                }
+            } catch (error) {
+                showResult(`❌ 初始化出错: ${error.message}`, true);
+            }
+        }
+        
+        function testPositionSelect() {
+            try {
+                if (typeof selectPosition16 === 'function') {
+                    // 测试选择第3位
+                    selectPosition16(3);
+                    showResult('✅ 位置选择测试成功，应该看到"第3位"被选中');
+                } else {
+                    showResult('❌ selectPosition16 函数不存在', true);
+                }
+            } catch (error) {
+                showResult(`❌ 位置选择测试出错: ${error.message}`, true);
+            }
+        }
+        
+        function testPageDisplay() {
+            const page = document.getElementById('recommend16HitPage');
+            if (page) {
+                const currentDisplay = page.style.display;
+                if (currentDisplay === 'none') {
+                    page.style.display = 'block';
+                    showResult('✅ 页面显示测试成功，页面现在应该可见');
+                } else {
+                    page.style.display = 'none';
+                    setTimeout(() => {
+                        page.style.display = 'block';
+                        showResult('✅ 页面显示/隐藏测试成功');
+                    }, 1000);
+                }
+            } else {
+                showResult('❌ 找不到 recommend16HitPage 元素', true);
+            }
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            console.log('测试页面加载完成');
+            setTimeout(() => {
+                testPageElements();
+                testFunctions();
+            }, 500);
+        });
+    </script>
+    
+    <!-- 引入推荐16码脚本 -->
+    <script src="recommend16.js"></script>
+</body>
+</html> 

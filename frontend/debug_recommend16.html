@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐16码调试页面</title>
+    
+    <!-- 引入推荐16码脚本 - 移到头部确保先加载 -->
+    <script src="recommend16.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #2980d9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #1c5fa8;
+        }
+        .debug-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #2980d9;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .recommend-hit-type-group {
+            display: inline-block;
+            border: 1px solid #2980d9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .recommend-hit-type-btn {
+            background: #fff;
+            color: #2980d9;
+            border: none;
+            border-left: 1px solid #2980d9;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .recommend-hit-type-btn:first-child {
+            border-left: none;
+        }
+        .recommend-hit-type-btn:hover {
+            background: #e3f2fd;
+        }
+        .recommend-hit-type-btn.active {
+            background: #2980d9;
+            color: #fff;
+        }
+        .btn-primary {
+            background: #2980d9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary:hover {
+            background: #1c5fa8;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>推荐16码功能调试页面</h1>
+        
+        <!-- 模拟推荐16码页面结构 -->
+        <div id="recommend16HitPage">
+            <h2>推荐16码的命中情况</h2>
+            <div style="margin-bottom:16px;">
+                <label style="font-weight: bold; color: #2980d9; margin-right: 8px;">选择彩种：</label>
+                <div class="recommend-hit-type-group">
+                    <button class="recommend-hit-type-btn active" data-type="am">澳门</button>
+                    <button class="recommend-hit-type-btn" data-type="hk">香港</button>
+                </div>
+                <button id="analyzeRecommend16HitBtn" class="btn-primary" style="margin-left: 20px;">分析命中情况</button>
+            </div>
+            <div id="recommend16HitResult" style="margin-top:16px;">
+                <div style="text-align:center;color:#888;padding:20px;">
+                    点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况<br>
+                    <small style="color:#666;margin-top:10px;display:block;">
+                        <strong>注意：</strong>每个位置的16个推荐号码只与对应位置的开奖号码比较<br>
+                        <strong>新功能：</strong>支持选择特定位置，并统计近100期按5期周期的开奖情况<br>
+                        <strong>推荐16码：</strong>基于100期数据计算，平均间隔4-6期
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button class="test-button" onclick="testFunctionExists()">测试函数是否存在</button>
+            <button class="test-button" onclick="testPageElements()">测试页面元素</button>
+            <button class="test-button" onclick="testInitFunction()">测试初始化函数</button>
+            <button class="test-button" onclick="testAnalyzeFunction()">测试分析函数</button>
+        </div>
+        
+        <div id="debugResult" class="debug-result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 模拟后端URL
+        window.BACKEND_URL = 'http://localhost:8000';
+        
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('debugResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = `debug-result ${isError ? 'error' : 'success'}`;
+            resultDiv.textContent = message;
+        }
+        
+        function testFunctionExists() {
+            let results = [];
+            
+            // 测试推荐16码相关函数是否存在
+            if (typeof initRecommend16HitAnalysis === 'function') {
+                results.push('✅ initRecommend16HitAnalysis 函数存在');
+            } else {
+                results.push('❌ initRecommend16HitAnalysis 函数不存在');
+            }
+            
+            if (typeof analyzeRecommend16Hit === 'function') {
+                results.push('✅ analyzeRecommend16Hit 函数存在');
+            } else {
+                results.push('❌ analyzeRecommend16Hit 函数不存在');
+            }
+            
+            if (typeof renderRecommend16PeriodSelection === 'function') {
+                results.push('✅ renderRecommend16PeriodSelection 函数存在');
+            } else {
+                results.push('❌ renderRecommend16PeriodSelection 函数不存在');
+            }
+            
+            if (typeof calculateGroupStats === 'function') {
+                results.push('✅ calculateGroupStats 函数存在');
+            } else {
+                results.push('❌ calculateGroupStats 函数不存在');
+            }
+            
+            showResult(results.join('\n'));
+        }
+        
+        function testPageElements() {
+            let results = [];
+            
+            // 测试页面元素是否存在
+            const pageElement = document.getElementById('recommend16HitPage');
+            if (pageElement) {
+                results.push('✅ recommend16HitPage 元素存在');
+            } else {
+                results.push('❌ recommend16HitPage 元素不存在');
+            }
+            
+            const buttonElement = document.getElementById('analyzeRecommend16HitBtn');
+            if (buttonElement) {
+                results.push('✅ analyzeRecommend16HitBtn 按钮存在');
+            } else {
+                results.push('❌ analyzeRecommend16HitBtn 按钮不存在');
+            }
+            
+            const resultElement = document.getElementById('recommend16HitResult');
+            if (resultElement) {
+                results.push('✅ recommend16HitResult 元素存在');
+            } else {
+                results.push('❌ recommend16HitResult 元素不存在');
+            }
+            
+            showResult(results.join('\n'));
+        }
+        
+        function testInitFunction() {
+            try {
+                if (typeof initRecommend16HitAnalysis === 'function') {
+                    // 调用初始化函数
+                    initRecommend16HitAnalysis();
+                    showResult('✅ 初始化函数执行成功');
+                } else {
+                    showResult('❌ initRecommend16HitAnalysis 函数不存在', true);
+                }
+            } catch (error) {
+                showResult(`❌ 初始化函数执行出错: ${error.message}`, true);
+            }
+        }
+        
+        function testAnalyzeFunction() {
+            try {
+                if (typeof analyzeRecommend16Hit === 'function') {
+                    // 调用分析函数
+                    analyzeRecommend16Hit('am');
+                    showResult('✅ 分析函数调用成功，请查看页面变化');
+                } else {
+                    showResult('❌ analyzeRecommend16Hit 函数不存在', true);
+                }
+            } catch (error) {
+                showResult(`❌ 分析函数执行出错: ${error.message}`, true);
+            }
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            console.log('调试页面加载完成');
+            // 等待脚本完全加载后再测试
+            setTimeout(() => {
+                testFunctionExists();
+                testPageElements();
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

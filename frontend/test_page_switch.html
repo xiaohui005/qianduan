@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面切换测试</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+        }
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 180px;
+            background: #fff;
+            box-shadow: 2px 0 6px rgba(0,21,41,.1);
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            background: #fff;
+            min-height: 100vh;
+        }
+        .menu-btn {
+            display: block;
+            width: 90%;
+            margin: 0 auto 18px auto;
+            background: #2980d9;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 0;
+            font-size: 17px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .menu-btn:hover, .menu-btn.active {
+            background: #1c5fa8;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        #pageTitle {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        h2 {
+            color: #1a237e;
+            border-left: 5px solid #2980d9;
+            padding-left: 12px;
+        }
+        .test-button {
+            background: #2980d9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #1c5fa8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #2980d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">测试系统</h2>
+            <button class="menu-btn" id="menuCollectBtn">数据采集</button>
+            <button class="menu-btn" id="menuRecommend16HitBtn">推荐16码的命中情况</button>
+            <button class="menu-btn" id="menuTestBtn">测试页面</button>
+            
+            <hr style="margin: 30px 0;">
+            <button class="test-button" onclick="testPageSwitch()">测试页面切换</button>
+            <button class="test-button" onclick="testElements()">测试页面元素</button>
+            <button class="test-button" onclick="showAllPages()">显示所有页面</button>
+        </aside>
+        
+        <main class="main-content">
+            <header class="page-header">
+                <h1 id="pageTitle">数据采集</h1>
+                <div>
+                    <span id="currentTime">测试时间</span>
+                </div>
+            </header>
+            
+            <!-- 数据采集页面 -->
+            <div id="collectPage">
+                <h2>数据采集</h2>
+                <p>这是数据采集页面的内容</p>
+                <button class="test-button">采集按钮</button>
+            </div>
+            
+            <!-- 推荐16码命中情况页面 -->
+            <div id="recommend16HitPage" style="display:none;">
+                <h2>推荐16码的命中情况</h2>
+                <div style="margin-bottom:16px;">
+                    <label style="font-weight: bold; color: #2980d9; margin-right: 8px;">选择彩种：</label>
+                    <div style="display: inline-block; border: 1px solid #2980d9; border-radius: 4px; overflow: hidden;">
+                        <button style="background: #2980d9; color: #fff; border: none; padding: 8px 16px; cursor: pointer;">澳门</button>
+                        <button style="background: #fff; color: #2980d9; border: none; border-left: 1px solid #2980d9; padding: 8px 16px; cursor: pointer;">香港</button>
+                    </div>
+                    <button class="test-button" style="margin-left: 20px;">分析命中情况</button>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: bold; color: #2980d9; margin-right: 8px;">选择位置：</label>
+                    <button class="test-button" style="margin: 2px;">第1位</button>
+                    <button class="test-button" style="margin: 2px;">第2位</button>
+                    <button class="test-button" style="margin: 2px;">第3位</button>
+                    <button class="test-button" style="margin: 2px;">第4位</button>
+                    <button class="test-button" style="margin: 2px;">第5位</button>
+                    <button class="test-button" style="margin: 2px;">第6位</button>
+                    <button class="test-button" style="margin: 2px;">第7位</button>
+                </div>
+                
+                <div style="margin-top:16px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
+                    <p style="text-align:center;color:#888;margin:0;">
+                        点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 测试页面 -->
+            <div id="testPage" style="display:none;">
+                <h2>测试页面</h2>
+                <p>这是一个测试页面，用于验证页面切换功能</p>
+                <div class="result">
+                    <h3>测试结果</h3>
+                    <p>页面切换功能测试结果将显示在这里</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 页面映射
+        const pageMap = {
+            menuCollectBtn: 'collectPage',
+            menuRecommend16HitBtn: 'recommend16HitPage',
+            menuTestBtn: 'testPage'
+        };
+        
+        const titleMap = {
+            collectPage: '数据采集',
+            recommend16HitPage: '推荐16码的命中情况',
+            testPage: '测试页面'
+        };
+        
+        // 页面切换函数
+        function showOnlyPage(pageId) {
+            console.log('切换到页面:', pageId);
+            
+            // 隐藏所有主内容区页面（id以Page结尾的div）
+            document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+                div.style.display = 'none';
+                console.log('隐藏页面:', div.id);
+            });
+            
+            // 只显示目标页面
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.style.display = '';
+                console.log('显示页面:', pageId);
+            } else {
+                console.error('找不到页面:', pageId);
+            }
+        }
+        
+        // 绑定菜单按钮事件
+        Object.keys(pageMap).forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    console.log('点击按钮:', id);
+                    
+                    // 菜单高亮
+                    document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // 页面切换
+                    const targetPage = pageMap[id];
+                    showOnlyPage(targetPage);
+                    
+                    // 标题切换
+                    const pageTitle = document.getElementById('pageTitle');
+                    if (pageTitle) {
+                        pageTitle.innerText = titleMap[targetPage] || '';
+                    }
+                });
+            }
+        });
+        
+        // 测试函数
+        function testPageSwitch() {
+            console.log('开始测试页面切换...');
+            showOnlyPage('recommend16HitPage');
+            
+            const resultDiv = document.querySelector('#testPage .result p');
+            if (resultDiv) {
+                resultDiv.textContent = '页面切换测试完成！推荐16码页面应该已经显示。';
+            }
+        }
+        
+        function testElements() {
+            console.log('开始测试页面元素...');
+            
+            const pages = ['collectPage', 'recommend16HitPage', 'testPage'];
+            pages.forEach(pageId => {
+                const page = document.getElementById(pageId);
+                if (page) {
+                    console.log(`✅ ${pageId} 存在, display: ${page.style.display}`);
+                } else {
+                    console.log(`❌ ${pageId} 不存在`);
+                }
+            });
+        }
+        
+        function showAllPages() {
+            console.log('显示所有页面...');
+            
+            document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+                div.style.display = '';
+                console.log('显示页面:', div.id);
+            });
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            console.log('测试页面加载完成');
+            console.log('当前显示的页面:', document.querySelector('.main-content > div[id$="Page"][style*="display: none"]') ? '无' : 'collectPage');
+        });
+    </script>
+</body>
+</html> 

@@ -14,11 +14,13 @@
       <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
       <div id="sidebarMenuBtns">
         <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
+        <button class="menu-btn" id="menuRecommendHitBtn">推荐8码的命中情况</button>
         <button class="menu-btn" id="menuTensBtn">第N位十位分析</button>
         <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
         <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
+        <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
       </div>
       <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
         登记点分析 <span id="registerCollapseIcon">▼</span>
@@ -28,6 +30,7 @@
         <button class="menu-btn" id="menuRegisterBetBtn">投注登记点</button>
         <button class="menu-btn" id="menuRegisterFocusResultBtn">关注点登记结果</button>
         <button class="menu-btn" id="menuRegisterFocusAnalysisBtn">关注点分析</button>
+        <button class="menu-btn" id="menuFavoriteNumbersBtn">关注号码管理</button>
         <button class="menu-btn" id="menuRegisterBetReportBtn">投注点报表</button>
       </div>
     </aside>
@@ -265,9 +268,436 @@
           </div>
         </div>
       </div>
-      <div id="registerFocusResultPage" style="display:none;"><h2>关注点登记结果</h2></div>
-      <div id="registerFocusAnalysisPage" style="display:none;"><h2>关注点分析</h2></div>
-      <div id="registerBetReportPage" style="display:none;"><h2>投注点报表</h2></div>
+      <div id="registerFocusResultPage" style="display:none;">
+        <h2>关注点登记结果</h2>
+        <form id="placeResultForm" class="focus-form" style="margin-bottom:16px;">
+          <input type="hidden" id="placeResultId">
+          <div class="form-group">
+            <label>关注点：</label>
+            <div id="placeResultPlaceButtons" class="place-selection-buttons">
+              <!-- 关注点按钮将在这里动态生成 -->
+            </div>
+            <input type="hidden" id="placeResultPlaceInput" required>
+          </div>
+          <div class="form-group">
+            <label for="placeResultQishu">期数：</label>
+            <input type="text" id="placeResultQishu" required style="width:100px;">
+          </div>
+          <div class="form-group">
+            <label>是否正确：</label>
+            <div class="is-correct-buttons">
+              <button type="button" class="is-correct-btn" data-value="">未判断</button>
+              <button type="button" class="is-correct-btn" data-value="1">正确</button>
+              <button type="button" class="is-correct-btn" data-value="0">错误</button>
+            </div>
+            <input type="hidden" id="placeResultIsCorrect" value="">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">保存</button>
+            <button type="button" id="cancelPlaceResultEditBtn" class="btn-secondary" style="display:none;">取消</button>
+          </div>
+        </form>
+        
+        <!-- 查询表单 -->
+        <div id="placeResultsQueryForm" class="query-form">
+          <h3 class="query-title">查询条件</h3>
+          <div class="query-grid">
+            <div class="query-item">
+              <label for="queryPlaceResultPlace">关注点：</label>
+              <div class="autocomplete-container">
+                <input type="text" id="queryPlaceResultPlace" placeholder="请输入关注点名称" autocomplete="off">
+                <div id="queryPlaceResultPlaceSuggest" class="autocomplete-suggestions"></div>
+              </div>
+            </div>
+            <div class="query-item">
+              <label for="queryPlaceResultQishu">期数：</label>
+              <input type="text" id="queryPlaceResultQishu" placeholder="请输入期数">
+            </div>
+            <div class="query-item">
+              <label>是否正确：</label>
+              <div class="is-correct-buttons">
+                <button type="button" class="is-correct-btn" data-value="">全部</button>
+                <button type="button" class="is-correct-btn" data-value="1">正确</button>
+                <button type="button" class="is-correct-btn" data-value="0">错误</button>
+                <button type="button" class="is-correct-btn" data-value="null">未判断</button>
+              </div>
+              <input type="hidden" id="queryPlaceResultIsCorrect" value="">
+            </div>
+            <div class="query-item">
+              <label for="queryPlaceResultStartDate">创建时间：</label>
+              <div class="date-inputs">
+                <input type="date" id="queryPlaceResultStartDate">
+                <span class="range-separator">-</span>
+                <input type="date" id="queryPlaceResultEndDate">
+              </div>
+            </div>
+          </div>
+          <div class="query-actions">
+            <button type="button" id="queryPlaceResultsBtn" class="btn-primary">查询</button>
+            <button type="button" id="resetPlaceResultQueryBtn" class="btn-secondary">重置</button>
+            <button type="button" id="clearPlaceResultQueryBtn" class="btn-secondary">清空</button>
+          </div>
+        </div>
+        
+        <table id="placeResultsTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+          <thead>
+            <tr>
+              <th>关注点</th>
+              <th>期数</th>
+              <th>是否正确</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        
+        <!-- 统计信息 -->
+        <div id="placeResultsStats" class="stats-container">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">记录总数：</span>
+                <span class="stats-value" id="totalPlaceResultRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">正确记录：</span>
+                <span class="stats-value" id="totalCorrectRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">错误记录：</span>
+                <span class="stats-value" id="totalWrongRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">未判断记录：</span>
+                <span class="stats-value" id="totalUnjudgedRecords">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stats-section">
+            <h3 class="stats-title">本页统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">本页记录数：</span>
+                <span class="stats-value" id="pagePlaceResultRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页正确：</span>
+                <span class="stats-value" id="pageCorrectRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页错误：</span>
+                <span class="stats-value" id="pageWrongRecords">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">本页未判断：</span>
+                <span class="stats-value" id="pageUnjudgedRecords">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 分页控件 -->
+        <div id="placeResultsPagination" class="pagination-container">
+          <div class="pagination-info">
+            <span id="placeResultsPaginationInfo">显示 0-0 条，共 0 条记录</span>
+          </div>
+          <div class="pagination-controls">
+            <button id="prevPlaceResultPageBtn" class="pagination-btn" disabled>上一页</button>
+            <span id="placeResultPageNumbers" class="page-numbers"></span>
+            <button id="nextPlaceResultPageBtn" class="pagination-btn" disabled>下一页</button>
+          </div>
+        </div>
+      </div>
+      <div id="registerFocusAnalysisPage" style="display:none;">
+        <h2>关注点分析</h2>
+        
+        <!-- 关注点选择区域 -->
+        <div id="placeSelectionArea" style="margin-bottom:20px;">
+          <h3 style="color:#2980d9;margin-bottom:10px;">选择关注点</h3>
+          <div id="placeButtonsContainer" class="place-buttons-container">
+            <!-- 关注点按钮将在这里动态生成 -->
+          </div>
+        </div>
+        
+        <!-- 选中关注点详情 -->
+        <div id="selectedPlaceDetails" style="display:none;margin-bottom:20px;">
+          <h3 style="color:#2980d9;margin-bottom:10px;">关注点详情</h3>
+          <div id="placeDetailsContent" class="place-details-content">
+            <!-- 关注点详情将在这里显示 -->
+          </div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+          <button id="refreshPlaceAnalysisBtn" class="btn-primary">刷新分析</button>
+          <button id="exportPlaceAnalysisBtn" class="btn-secondary">导出分析</button>
+        </div>
+        
+        <div id="placeAnalysisResult">
+          <div style="text-align:center;color:#888;padding:20px;">
+            点击"刷新分析"按钮开始分析关注点数据
+          </div>
+        </div>
+      </div>
+      <div id="favoriteNumbersPage" style="display:none;">
+        <h2>关注号码管理</h2>
+        
+        <!-- 彩种和位置选择 -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 10px; font-weight: bold;">彩种选择：</label>
+          <div class="lottery-buttons" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button type="button" class="lottery-btn active" data-lottery="am">澳门</button>
+            <button type="button" class="lottery-btn" data-lottery="hk">香港</button>
+          </div>
+          
+          <label style="display: block; margin-bottom: 10px; font-weight: bold;">检查位置：</label>
+          <div class="position-buttons" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button type="button" class="position-btn" data-position="1">第1位</button>
+            <button type="button" class="position-btn" data-position="2">第2位</button>
+            <button type="button" class="position-btn" data-position="3">第3位</button>
+            <button type="button" class="position-btn" data-position="4">第4位</button>
+            <button type="button" class="position-btn" data-position="5">第5位</button>
+            <button type="button" class="position-btn" data-position="6">第6位</button>
+            <button type="button" class="position-btn active" data-position="7">第7位</button>
+          </div>
+          <button type="button" id="refreshBtn" class="btn-primary">刷新数据</button>
+        </div>
+        
+        <!-- 添加关注号码组表单 -->
+        <form id="favoriteNumbersForm" class="focus-form">
+          <input type="hidden" id="favoriteNumberId">
+          <div class="form-group">
+            <label for="favoriteNumberName">号码组名称：</label>
+            <input type="text" id="favoriteNumberName" placeholder="请输入号码组名称" required>
+          </div>
+          <div class="form-group">
+            <label for="favoriteNumbers">关注号码：</label>
+            <input type="text" id="favoriteNumbers" placeholder="请输入关注号码，用逗号分隔，如：1,2,3,4,5" required>
+            <div class="form-tip">请输入要关注的号码，多个号码用逗号分隔</div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">保存</button>
+            <button type="button" id="cancelFavoriteNumberBtn" class="btn-secondary" style="display:none;">取消</button>
+          </div>
+        </form>
+        
+        <!-- 关注号码组列表 -->
+        <div class="table-container">
+          <div id="tableInfo" style="margin-bottom: 10px; font-weight: bold; color: #2980d9;"></div>
+          <table id="favoriteNumbersTable" class="data-table">
+            <thead>
+              <tr>
+                <th>号码组名称</th>
+                <th>关注号码</th>
+                <th>当前遗漏</th>
+                <th>最大遗漏</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        
+        <!-- 分析结果区域 -->
+        <div id="favoriteNumberAnalysisResult" style="display:none;margin-top:20px;"></div>
+      </div>
+      
+      <div id="registerBetReportPage" style="display:none;">
+        <h2>投注点报表</h2>
+        
+        <!-- 查询条件 -->
+        <div id="betReportQueryForm" class="query-form">
+          <h3 class="query-title">查询条件</h3>
+          <div class="query-grid">
+            <div class="query-item">
+              <label for="betReportStartDate">开始日期：</label>
+              <input type="date" id="betReportStartDate">
+            </div>
+            <div class="query-item">
+              <label for="betReportEndDate">结束日期：</label>
+              <input type="date" id="betReportEndDate">
+            </div>
+            <div class="query-item">
+              <label for="betReportPlace">关注点：</label>
+              <div class="autocomplete-container">
+                <input type="text" id="betReportPlace" placeholder="请输入关注点名称" autocomplete="off">
+                <div id="betReportPlaceSuggest" class="autocomplete-suggestions"></div>
+              </div>
+            </div>
+          </div>
+          <div class="query-actions">
+            <button type="button" id="queryBetReportBtn" class="btn-primary">生成报表</button>
+            <button type="button" id="resetBetReportBtn" class="btn-secondary">重置</button>
+            <button type="button" id="exportBetReportBtn" class="btn-secondary">导出报表</button>
+            <button type="button" id="debugBetsBtn" class="btn-secondary" style="background:#ff6b6b;">调试数据</button>
+          </div>
+        </div>
+        
+        <!-- 总体统计 -->
+        <div id="betReportOverallStats" class="stats-container" style="display:none;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总投注次数：</span>
+                <span class="stats-value" id="totalBetCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">总投注金额：</span>
+                <span class="stats-value" id="totalBetAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">总赢取金额：</span>
+                <span class="stats-value" id="totalWinAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">总输赢金额：</span>
+                <span class="stats-value" id="totalProfitLoss">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">平均投注金额：</span>
+                <span class="stats-value" id="avgBetAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">平均赢取金额：</span>
+                <span class="stats-value" id="avgWinAmount">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">平均输赢金额：</span>
+                <span class="stats-value" id="avgProfitLoss">¥0.00</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">正确次数：</span>
+                <span class="stats-value" id="correctCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">错误次数：</span>
+                <span class="stats-value" id="wrongCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">未判断次数：</span>
+                <span class="stats-value" id="unjudgedCount">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 关注点统计 -->
+        <div id="betReportPlaceStats" class="stats-container" style="display:none;">
+          <div class="stats-section">
+            <h3 class="stats-title">关注点统计</h3>
+            
+            <!-- 关注点查询筛选 -->
+            <div class="place-filter-container" style="margin-bottom: 15px;">
+              <div class="filter-row">
+                <div class="filter-item">
+                  <label for="placeFilterInput">关注点筛选：</label>
+                  <input type="text" id="placeFilterInput" placeholder="输入关注点名称进行筛选" style="width: 200px;">
+                </div>
+                <div class="filter-item">
+                  <label for="placeSortSelect">排序方式：</label>
+                  <select id="placeSortSelect" style="width: 120px;">
+                    <option value="total_bet_amount">投注总额</option>
+                    <option value="total_win_amount">赢取总额</option>
+                    <option value="total_profit_loss">输赢总额</option>
+                    <option value="bet_count">投注次数</option>
+                    <option value="correct_count">正确次数</option>
+                    <option value="place_name">关注点名称</option>
+                  </select>
+                </div>
+                <div class="filter-item">
+                  <button id="placeFilterBtn" class="btn-primary" style="margin-right: 8px;">筛选</button>
+                  <button id="placeResetFilterBtn" class="btn-secondary">重置</button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="table-container">
+              <table id="betReportPlaceTable" class="data-table">
+                <thead>
+                  <tr>
+                    <th>关注点名称</th>
+                    <th>投注次数</th>
+                    <th>投注总额</th>
+                    <th>赢取总额</th>
+                    <th>输赢总额</th>
+                    <th>平均投注</th>
+                    <th>平均赢取</th>
+                    <th>平均输赢</th>
+                    <th>正确次数</th>
+                    <th>错误次数</th>
+                    <th>未判断次数</th>
+                    <th>首次投注</th>
+                    <th>最后投注</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 时间统计 -->
+        <div id="betReportTimeStats" class="stats-container" style="display:none;">
+          <div class="stats-section">
+            <h3 class="stats-title">月度统计</h3>
+            <div class="table-container">
+              <table id="betReportTimeTable" class="data-table">
+                <thead>
+                  <tr>
+                    <th>月份</th>
+                    <th>投注次数</th>
+                    <th>投注总额</th>
+                    <th>赢取总额</th>
+                    <th>输赢总额</th>
+                    <th>平均投注</th>
+                    <th>平均赢取</th>
+                    <th>平均输赢</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 输赢分布 -->
+        <div id="betReportDistribution" class="stats-container" style="display:none;">
+          <div class="stats-section">
+            <h3 class="stats-title">输赢分布</h3>
+            <div class="table-container">
+              <table id="betReportDistributionTable" class="data-table">
+                <thead>
+                  <tr>
+                    <th>输赢范围</th>
+                    <th>次数</th>
+                    <th>投注总额</th>
+                    <th>赢取总额</th>
+                    <th>输赢总额</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 图表区域 -->
+        <div id="betReportCharts" class="charts-container" style="display:none;">
+          <div class="chart-section">
+            <h3 class="chart-title">投注趋势图</h3>
+            <div id="betTrendChart" class="chart-area"></div>
+          </div>
+          <div class="chart-section">
+            <h3 class="chart-title">输赢分布图</h3>
+            <div id="profitLossChart" class="chart-area"></div>
+          </div>
+        </div>
+      </div>
       <div id="recommendPage" style="display:none;">
         <h2>推荐8码</h2>
         <div style="margin-bottom:16px;">
@@ -278,6 +708,22 @@
           </div>
         </div>
         <div id="recommendResult" style="margin-top:16px;"></div>
+      </div>
+      <div id="recommendHitPage" style="display:none;">
+        <h2>推荐8码的命中情况</h2>
+        <div style="margin-bottom:16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="recommend-hit-type-group">
+            <button class="recommend-hit-type-btn active" data-type="am">澳门</button>
+            <button class="recommend-hit-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="analyzeRecommendHitBtn" class="btn-primary" style="margin-left: 20px;">分析命中情况</button>
+        </div>
+        <div id="recommendHitResult" style="margin-top:16px;">
+          <div style="text-align:center;color:#888;padding:20px;">
+            点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况
+          </div>
+        </div>
       </div>
       <div id="tensPage" style="display:none;">
         <h2>第N位十位分析</h2>
@@ -338,9 +784,84 @@
         </div>
         <div id="eachIssueResult" style="margin-top:16px;"></div>
       </div>
+      <div id="colorAnalysisPage" style="display:none;">
+        <h2>波色分析</h2>
+        
+        <!-- 波色定义说明 -->
+        <div class="color-definition" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
+          <h3 style="color: #2980d9; margin-bottom: 10px;">波色定义</h3>
+          <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="color-group">
+              <span style="color: #e74c3c; font-weight: bold;">红组：</span>
+              <span>01,02,07,08,12,13,18,19,23,24,29,30,34,35,40,45,46</span>
+            </div>
+            <div class="color-group">
+              <span style="color: #3498db; font-weight: bold;">蓝组：</span>
+              <span>03,04,09,10,14,15,20,25,26,31,36,37,41,42,47,48</span>
+            </div>
+            <div class="color-group">
+              <span style="color: #27ae60; font-weight: bold;">绿组：</span>
+              <span>05,06,11,16,17,21,22,27,28,32,33,38,39,43,44,49</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="color-analysis-type-group">
+            <button class="color-analysis-type-btn active" data-type="am">澳门</button>
+            <button class="color-analysis-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startColorAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="colorAnalysisResult" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始分析"按钮开始波色分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;">
+                        <div class="stats-section">
+                <h3 class="stats-title">总体统计</h3>
+                <div class="stats-grid">
+                  <div class="stats-item">
+                    <span class="stats-label">总期数：</span>
+                    <span class="stats-value" id="totalColorPeriods">0</span>
+                  </div>
+                  <div class="stats-item">
+                    <span class="stats-label">命中次数：</span>
+                    <span class="stats-value" id="colorHitCount">0</span>
+                  </div>
+                  <div class="stats-item">
+                    <span class="stats-label">遗漏次数：</span>
+                    <span class="stats-value" id="colorMissCount">0</span>
+                  </div>
+                  <div class="stats-item">
+                    <span class="stats-label">命中率：</span>
+                    <span class="stats-value" id="colorHitRate">0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      
     </main>
   </div>
-  <script src="config.js"></script>
-  <script src="upload.js"></script>
-</body>
+      <script src="config.js"></script>
+    <script src="upload.js"></script>
+    <script src="recommend16.js"></script>
+    <script>
+      // 调试信息
+      console.log('页面加载完成');
+      console.log('recommend16.js 加载状态:', typeof initRecommend16HitAnalysis);
+      console.log('recommend16HitPage 元素:', document.getElementById('recommend16HitPage'));
+    </script>
+  </body>
 </html> 

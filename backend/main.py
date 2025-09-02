@@ -16,7 +16,15 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8080",
+        "http://localhost:3000", 
+        "http://localhost:8000",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "*"  # 开发环境允许所有来源
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,7 +56,35 @@ def collect_api(type: str = None):
         data = collect.fetch_lottery(urls[t], t)
         print(f"采集到{len(data)}条数据: {data[:1]}")
         collect.save_results(data)
-        result[t] = f"采集{len(data)}条"
+        
+        # 检查是否有0或5结尾的期数，如果有则自动生成推荐号码
+        if data:
+            new_periods = [item['period'] for item in data]
+            target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
+            
+            if target_periods:
+                print(f"发现0或5结尾的期数: {target_periods}，自动生成推荐号码")
+                # 自动生成推荐8码
+                try:
+                    recommend_result = recommend_api(t)
+                    if recommend_result.get('recommend'):
+                        print(f"推荐8码生成成功，基于期号: {recommend_result.get('latest_period')}")
+                except Exception as e:
+                    print(f"生成推荐8码时出错: {e}")
+                
+                # 自动生成推荐16码
+                try:
+                    recommend16_result = recommend16_api(t)
+                    if recommend16_result.get('recommend16'):
+                        print(f"推荐16码生成成功，基于期号: {recommend16_result.get('latest_period')}")
+                except Exception as e:
+                    print(f"生成推荐16码时出错: {e}")
+                
+                result[t] = f"采集{len(data)}条，自动生成推荐号码"
+            else:
+                result[t] = f"采集{len(data)}条"
+        else:
+            result[t] = "无新数据"
     print(f"采集结果: {result}")
     return result
 
@@ -171,6 +207,124 @@ def recommend_api(lottery_type: str = Query('am')):
         "latest_period": base_period,
         "used_period": base_period
     }
+
+@app.get("/recommend16")
+def recommend16_api(lottery_type: str = Query('am')):
+    try:
+        print(f"收到推荐16码请求，彩种: {lottery_type}")
+        
+        # 检查数据库连接
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 检查recommend16_result表是否存在
+        try:
+            cursor.execute("SHOW TABLES LIKE 'recommend16_result'")
+            if not cursor.fetchone():
+                print("recommend16_result表不存在，尝试创建...")
+                # 这里可以调用创建表的逻辑
+                return {"error": "recommend16_result表不存在，请先创建表", "recommend16": [], "latest_period": None}
+        except Exception as e:
+            print(f"检查表存在性时出错: {e}")
+            return {"error": f"数据库错误: {str(e)}", "recommend16": [], "latest_period": None}
+        
+        # 查找最新的0或5结尾期号
+        sql_base = "SELECT period FROM lottery_result WHERE RIGHT(period,1) IN ('0','5') AND lottery_type=%s ORDER BY period DESC LIMIT 1"
+        cursor.execute(sql_base, (lottery_type,))
+        row = cursor.fetchone()
+        
+        if not row:
+            print("没有找到0或5结尾的期号")
+            return {"recommend16": [], "latest_period": None, "message": "没有找到0或5结尾的期号"}
+        
+        base_period = row['period']
+        print(f"找到基础期号: {base_period}")
+        
+        # 查询历史数据
+        sql = "SELECT period, numbers FROM lottery_result WHERE period <= %s AND lottery_type=%s ORDER BY period DESC LIMIT 100"
+        print(f"查询历史数据SQL: {sql} with params ({base_period}, {lottery_type})")
+        cursor.execute(sql, (base_period, lottery_type))
+        rows = cursor.fetchall()
+        
+        if not rows:
+            print("没有找到历史数据")
+            return {"recommend16": [], "latest_period": base_period, "message": "没有找到历史数据"}
+        
+        print(f"找到 {len(rows)} 条历史数据")
+        
+        # 计算位置频率和最后出现索引
+        pos_freq = [Counter() for _ in range(7)]
+        pos_last_idx = [{} for _ in range(7)]
+        
+        for idx, row in enumerate(rows):
+            try:
+                nums = row['numbers'].split(',')
+                for i in range(min(7, len(nums))):
+                    n = nums[i]
+                    pos_freq[i][n] += 1
+                    if n not in pos_last_idx[i]:
+                        pos_last_idx[i][n] = idx
+            except Exception as e:
+                print(f"处理行数据时出错: {e}, row: {row}")
+                continue
+        
+        # 计算平均间隔
+        pos_avg_gap = [{} for _ in range(7)]
+        for i in range(7):
+            for n in pos_freq[i]:
+                count = pos_freq[i][n]
+                last_idx = pos_last_idx[i][n]
+                avg_gap = (100 - last_idx) / count if count else 999
+                pos_avg_gap[i][n] = avg_gap
+        
+        # 生成推荐16码
+        recommend16 = []
+        for i in range(7):
+            candidates = [n for n in pos_avg_gap[i] if 4 <= pos_avg_gap[i][n] <= 6]
+            candidates.sort(key=lambda n: pos_last_idx[i][n])
+            
+            if len(candidates) < 16:
+                freq_sorted = [n for n, _ in pos_freq[i].most_common() if n not in candidates]
+                candidates += freq_sorted[:16-len(candidates)]
+            
+            sorted_candidates = sorted(candidates[:16], key=int)
+            recommend16.append(sorted_candidates)
+        
+        print(f"生成推荐16码完成，位置数量: {len(recommend16)}")
+        
+        # 保存推荐结果到 recommend16_result 表
+        try:
+            for i, nums in enumerate(recommend16):
+                cursor.execute(
+                    """
+                    INSERT INTO recommend16_result (lottery_type, period, position, numbers, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                    ON DUPLICATE KEY UPDATE numbers=VALUES(numbers), created_at=NOW()
+                    """,
+                    (lottery_type, base_period, i+1, ','.join(nums))
+                )
+            conn.commit()
+            print("推荐结果已保存到数据库")
+        except Exception as e:
+            print(f"保存推荐结果时出错: {e}")
+            conn.rollback()
+            # 即使保存失败，也返回推荐结果
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "recommend16": recommend16,
+            "latest_period": base_period,
+            "used_period": base_period,
+            "message": "推荐16码生成成功"
+        }
+        
+    except Exception as e:
+        print(f"推荐16码API出错: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": f"服务器内部错误: {str(e)}", "recommend16": [], "latest_period": None}
 
 @app.get("/tens_analysis")
 def tens_analysis_api(lottery_type: str = Query('am'), year: str = Query(None)):
@@ -990,6 +1144,1274 @@ def delete_bet(bet_id: int):
     cursor.close()
     conn.close()
     return {"success": True}
+# --- END ---
+
+# --- 关注点登记结果 place_results 表的增删改查 API ---
+
+@app.get("/api/place_results")
+def get_place_results(
+    place_id: Optional[str] = Query(None),
+    qishu: Optional[str] = Query(None),
+    is_correct: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=1000)
+):
+    """获取关注点登记结果列表"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        sql = """
+        SELECT pr.*, p.name as place_name 
+        FROM place_results pr 
+        LEFT JOIN places p ON pr.place_id = p.id 
+        WHERE 1=1
+        """
+        params = []
+        
+        if place_id and place_id.strip():
+            try:
+                place_id_int = int(place_id)
+                sql += " AND pr.place_id = %s"
+                params.append(place_id_int)
+            except ValueError:
+                pass
+        if qishu and qishu.strip():
+            sql += " AND pr.qishu LIKE %s"
+            params.append(f"%{qishu.strip()}%")
+        if is_correct and is_correct.strip():
+            if is_correct == 'null':
+                # 查询未判断的记录
+                sql += " AND pr.is_correct IS NULL"
+            else:
+                try:
+                    is_correct_int = int(is_correct)
+                    sql += " AND pr.is_correct = %s"
+                    params.append(is_correct_int)
+                except ValueError:
+                    pass
+        if start_date and start_date.strip():
+            sql += " AND DATE(pr.created_at) >= %s"
+            params.append(start_date.strip())
+        if end_date and end_date.strip():
+            sql += " AND DATE(pr.created_at) <= %s"
+            params.append(end_date.strip())
+            
+        sql += " ORDER BY pr.created_at DESC"
+        
+        # 获取总数
+        count_sql = f"SELECT COUNT(*) as total FROM ({sql}) t"
+        cursor.execute(count_sql, params)
+        total = cursor.fetchone()['total']
+        
+        # 分页
+        offset = (page - 1) * page_size
+        sql += " LIMIT %s OFFSET %s"
+        params.extend([page_size, offset])
+        
+        cursor.execute(sql, params)
+        results = cursor.fetchall()
+        
+        return {
+            "success": True,
+            "data": results,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+    except Exception as e:
+        return {"success": False, "message": f"查询失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.post("/api/place_results")
+def add_place_result(req: Request):
+    """添加关注点登记结果"""
+    import asyncio
+    async def inner():
+        try:
+            data = await req.json()
+            place_id = data.get('place_id')
+            qishu = data.get('qishu')
+            is_correct = data.get('is_correct')
+            
+            if not place_id or not qishu:
+                return {"success": False, "message": "关注点ID和期数不能为空"}
+            
+            conn = collect.get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO place_results (place_id, qishu, is_correct) VALUES (%s, %s, %s)",
+                    (place_id, qishu, is_correct)
+                )
+                conn.commit()
+                return {"success": True, "message": "添加成功"}
+            except Exception as e:
+                conn.rollback()
+                return {"success": False, "message": f"添加失败: {str(e)}"}
+            finally:
+                cursor.close()
+                conn.close()
+        except Exception as e:
+            return {"success": False, "message": f"请求解析失败: {str(e)}"}
+    
+    return asyncio.run(inner())
+
+@app.put("/api/place_results/{result_id}")
+def update_place_result(result_id: int, req: Request):
+    """更新关注点登记结果"""
+    import asyncio
+    async def inner():
+        try:
+            data = await req.json()
+            place_id = data.get('place_id')
+            qishu = data.get('qishu')
+            is_correct = data.get('is_correct')
+            
+            if not place_id or not qishu:
+                return {"success": False, "message": "关注点ID和期数不能为空"}
+            
+            conn = collect.get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "UPDATE place_results SET place_id = %s, qishu = %s, is_correct = %s WHERE id = %s",
+                    (place_id, qishu, is_correct, result_id)
+                )
+                conn.commit()
+                return {"success": True, "message": "更新成功"}
+            except Exception as e:
+                conn.rollback()
+                return {"success": False, "message": f"更新失败: {str(e)}"}
+            finally:
+                cursor.close()
+                conn.close()
+        except Exception as e:
+            return {"success": False, "message": f"请求解析失败: {str(e)}"}
+    
+    return asyncio.run(inner())
+
+@app.delete("/api/place_results/{result_id}")
+def delete_place_result(result_id: int):
+    """删除关注点登记结果"""
+    conn = collect.get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM place_results WHERE id = %s", (result_id,))
+        conn.commit()
+        return {"success": True, "message": "删除成功"}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "message": f"删除失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/place_analysis")
+def get_place_analysis():
+    """获取关注点分析数据"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 获取所有关注点及其统计信息
+        sql = """
+        SELECT 
+            p.id as place_id,
+            p.name as place_name,
+            p.description as place_description,
+            COUNT(pr.id) as total_records,
+            SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+            SUM(CASE WHEN pr.is_correct = 0 THEN 1 ELSE 0 END) as wrong_count,
+            SUM(CASE WHEN pr.is_correct IS NULL THEN 1 ELSE 0 END) as unjudged_count,
+            MIN(pr.created_at) as first_record,
+            MAX(pr.created_at) as last_record
+        FROM places p
+        LEFT JOIN place_results pr ON p.id = pr.place_id
+        GROUP BY p.id, p.name, p.description
+        ORDER BY p.id
+        """
+        cursor.execute(sql)
+        places = cursor.fetchall()
+        
+        # 为每个关注点计算遗漏和连中统计
+        for place in places:
+            place_id = place['place_id']
+            
+            # 获取该关注点的所有记录，按时间排序
+            cursor.execute("""
+                SELECT id, qishu, is_correct, created_at
+                FROM place_results 
+                WHERE place_id = %s 
+                ORDER BY created_at ASC
+            """, (place_id,))
+            records = cursor.fetchall()
+            
+            # 计算遗漏统计
+            current_miss = 0
+            max_miss = 0
+            max_miss_start = None
+            max_miss_end = None
+            current_miss_start = None
+            
+            # 计算连中统计
+            current_streak = 0
+            max_streak = 0
+            max_streak_start = None
+            max_streak_end = None
+            current_streak_start = None
+            
+            for i, record in enumerate(records):
+                if record['is_correct'] == 1:  # 正确
+                    # 结束当前遗漏
+                    if current_miss > 0:
+                        if current_miss > max_miss:
+                            max_miss = current_miss
+                            max_miss_start = current_miss_start
+                            max_miss_end = record['created_at']
+                        current_miss = 0
+                        current_miss_start = None
+                    
+                    # 更新连中统计
+                    if current_streak == 0:
+                        current_streak_start = record['created_at']
+                    current_streak += 1
+                    
+                elif record['is_correct'] == 0:  # 错误
+                    # 结束当前连中
+                    if current_streak > 0:
+                        if current_streak > max_streak:
+                            max_streak = current_streak
+                            max_streak_start = current_streak_start
+                            max_streak_end = record['created_at']
+                        current_streak = 0
+                        current_streak_start = None
+                    
+                    # 更新遗漏统计
+                    if current_miss == 0:
+                        current_miss_start = record['created_at']
+                    current_miss += 1
+                
+                else:  # 未判断
+                    # 结束当前遗漏和连中
+                    if current_miss > 0:
+                        if current_miss > max_miss:
+                            max_miss = current_miss
+                            max_miss_start = current_miss_start
+                            max_miss_end = record['created_at']
+                        current_miss = 0
+                        current_miss_start = None
+                    
+                    if current_streak > 0:
+                        if current_streak > max_streak:
+                            max_streak = current_streak
+                            max_streak_start = current_streak_start
+                            max_streak_end = record['created_at']
+                        current_streak = 0
+                        current_streak_start = None
+            
+            # 处理最后一段
+            if current_miss > max_miss:
+                max_miss = current_miss
+                max_miss_start = current_miss_start
+                max_miss_end = None
+            
+            if current_streak > max_streak:
+                max_streak = current_streak
+                max_streak_start = current_streak_start
+                max_streak_end = None
+            
+            # 添加到结果中
+            place['current_miss'] = current_miss
+            place['max_miss'] = max_miss
+            place['max_miss_start'] = max_miss_start
+            place['max_miss_end'] = max_miss_end
+            place['current_streak'] = current_streak
+            place['max_streak'] = max_streak
+            place['max_streak_start'] = max_streak_start
+            place['max_streak_end'] = max_streak_end
+            place['records'] = records
+        
+        return {
+            "success": True,
+            "data": places
+        }
+    except Exception as e:
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+# --- END ---
+
+@app.get("/api/bet_report")
+def get_bet_report(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    place_id: Optional[int] = Query(None)
+):
+    """获取投注点报表统计数据"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 构建基础查询条件
+        where_conditions = []
+        params = []
+        
+        if start_date:
+            where_conditions.append("DATE(b.created_at) >= %s")
+            params.append(start_date)
+        
+        if end_date:
+            where_conditions.append("DATE(b.created_at) <= %s")
+            params.append(end_date)
+        
+        if place_id:
+            where_conditions.append("b.place_id = %s")
+            params.append(place_id)
+        
+        where_clause = " WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+        
+        # 1. 总体统计
+        overall_sql = f"""
+        SELECT 
+            COUNT(*) as total_bets,
+            SUM(b.bet_amount) as total_bet_amount,
+            SUM(b.win_amount) as total_win_amount,
+            SUM(b.win_amount - b.bet_amount) as total_profit_loss,
+            AVG(b.bet_amount) as avg_bet_amount,
+            AVG(b.win_amount) as avg_win_amount,
+            AVG(b.win_amount - b.bet_amount) as avg_profit_loss,
+            SUM(CASE WHEN b.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+            SUM(CASE WHEN b.is_correct = 0 THEN 1 ELSE 0 END) as wrong_count,
+            SUM(CASE WHEN b.is_correct IS NULL THEN 1 ELSE 0 END) as unjudged_count
+        FROM bets b
+        {where_clause}
+        """
+        cursor.execute(overall_sql, params)
+        overall_stats = cursor.fetchone()
+        
+        # 调试信息
+        print(f"Debug - SQL: {overall_sql}")
+        print(f"Debug - Params: {params}")
+        print(f"Debug - Overall stats: {overall_stats}")
+        
+        # 2. 按关注点统计
+        place_stats_sql = f"""
+        SELECT 
+            p.id as place_id,
+            p.name as place_name,
+            p.description as place_description,
+            COUNT(b.id) as bet_count,
+            SUM(b.bet_amount) as total_bet_amount,
+            SUM(b.win_amount) as total_win_amount,
+            SUM(b.win_amount - b.bet_amount) as total_profit_loss,
+            AVG(b.bet_amount) as avg_bet_amount,
+            AVG(b.win_amount) as avg_win_amount,
+            AVG(b.win_amount - b.bet_amount) as avg_profit_loss,
+            SUM(CASE WHEN b.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
+            SUM(CASE WHEN b.is_correct = 0 THEN 1 ELSE 0 END) as wrong_count,
+            SUM(CASE WHEN b.is_correct IS NULL THEN 1 ELSE 0 END) as unjudged_count,
+            MIN(b.created_at) as first_bet,
+            MAX(b.created_at) as last_bet
+        FROM places p
+        LEFT JOIN bets b ON p.id = b.place_id
+        {where_clause}
+        GROUP BY p.id, p.name, p.description
+        ORDER BY total_bet_amount DESC
+        """
+        cursor.execute(place_stats_sql, params)
+        place_stats = cursor.fetchall()
+        
+        # 3. 按时间统计（按月）
+        time_stats_sql = f"""
+        SELECT 
+            DATE_FORMAT(b.created_at, '%Y-%m') as month,
+            COUNT(b.id) as bet_count,
+            SUM(b.bet_amount) as total_bet_amount,
+            SUM(b.win_amount) as total_win_amount,
+            SUM(b.win_amount - b.bet_amount) as total_profit_loss,
+            AVG(b.bet_amount) as avg_bet_amount,
+            AVG(b.win_amount) as avg_win_amount,
+            AVG(b.win_amount - b.bet_amount) as avg_profit_loss
+        FROM bets b
+        {where_clause}
+        GROUP BY DATE_FORMAT(b.created_at, '%Y-%m')
+        ORDER BY month DESC
+        """
+        cursor.execute(time_stats_sql, params)
+        time_stats = cursor.fetchall()
+        
+        # 4. 按时间统计（按日）
+        daily_stats_sql = f"""
+        SELECT 
+            DATE(b.created_at) as date,
+            COUNT(b.id) as bet_count,
+            SUM(b.bet_amount) as total_bet_amount,
+            SUM(b.win_amount) as total_win_amount,
+            SUM(b.win_amount - b.bet_amount) as total_profit_loss
+        FROM bets b
+        {where_clause}
+        GROUP BY DATE(b.created_at)
+        ORDER BY date DESC
+        LIMIT 30
+        """
+        cursor.execute(daily_stats_sql, params)
+        daily_stats = cursor.fetchall()
+        
+        # 5. 输赢分布统计
+        profit_loss_distribution_sql = f"""
+        SELECT 
+            CASE 
+                WHEN (b.win_amount - b.bet_amount) < -1000 THEN '亏损1000+'
+                WHEN (b.win_amount - b.bet_amount) < -500 THEN '亏损500-1000'
+                WHEN (b.win_amount - b.bet_amount) < 0 THEN '亏损0-500'
+                WHEN (b.win_amount - b.bet_amount) = 0 THEN '持平'
+                WHEN (b.win_amount - b.bet_amount) <= 500 THEN '盈利0-500'
+                WHEN (b.win_amount - b.bet_amount) <= 1000 THEN '盈利500-1000'
+                ELSE '盈利1000+'
+            END as profit_loss_range,
+            COUNT(*) as count,
+            SUM(b.bet_amount) as total_bet_amount,
+            SUM(b.win_amount) as total_win_amount,
+            SUM(b.win_amount - b.bet_amount) as total_profit_loss
+        FROM bets b
+        {where_clause}
+        GROUP BY profit_loss_range
+        ORDER BY 
+            CASE profit_loss_range
+                WHEN '亏损1000+' THEN 1
+                WHEN '亏损500-1000' THEN 2
+                WHEN '亏损0-500' THEN 3
+                WHEN '持平' THEN 4
+                WHEN '盈利0-500' THEN 5
+                WHEN '盈利500-1000' THEN 6
+                WHEN '盈利1000+' THEN 7
+            END
+        """
+        cursor.execute(profit_loss_distribution_sql, params)
+        profit_loss_distribution = cursor.fetchall()
+        
+        return {
+            "success": True,
+            "data": {
+                "overall_stats": overall_stats,
+                "place_stats": place_stats,
+                "time_stats": time_stats,
+                "daily_stats": daily_stats,
+                "profit_loss_distribution": profit_loss_distribution
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": f"报表生成失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/debug/bets")
+def debug_bets():
+    """调试API：查看bets表数据"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 查看bets表总数
+        cursor.execute("SELECT COUNT(*) as total FROM bets")
+        total_count = cursor.fetchone()['total']
+        
+        # 查看前5条记录
+        cursor.execute("SELECT * FROM bets ORDER BY id DESC LIMIT 5")
+        recent_bets = cursor.fetchall()
+        
+        # 查看bets表结构
+        cursor.execute("DESCRIBE bets")
+        table_structure = cursor.fetchall()
+        
+        return {
+            "success": True,
+            "total_count": total_count,
+            "recent_bets": recent_bets,
+            "table_structure": table_structure
+        }
+    except Exception as e:
+        return {"success": False, "message": f"调试失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+# --- 关注号码管理 favorite_numbers 表的增删改查 API ---
+
+@app.get("/api/favorite_numbers")
+def get_favorite_numbers(position: int = 7, lottery_type: str = 'am'):
+    """获取所有关注号码组"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM favorite_numbers ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        
+        # 获取最新开奖记录用于计算遗漏
+        cursor.execute("SELECT numbers FROM lottery_result WHERE lottery_type=%s ORDER BY open_time DESC LIMIT 1", (lottery_type,))
+        latest_record = cursor.fetchone()
+        
+        # 为每个关注号码组计算遗漏
+        for row in rows:
+            current_miss = 0
+            max_miss = 0
+            
+            if latest_record:
+                numbers = [int(n.strip()) for n in row['numbers'].split(',') if n.strip().isdigit()]
+                
+                # 获取所有历史开奖记录用于计算遗漏（按期数正序排列）
+                cursor.execute("SELECT numbers, open_time, period FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC", (lottery_type,))
+                all_records = cursor.fetchall()
+                
+                if all_records:
+                    # 计算当前遗漏和最大遗漏
+                    current_miss = 0
+                    max_miss = 0
+                    temp_miss = 0
+                    
+                    # 按期数从旧到新遍历
+                    for record in all_records:
+                        latest_numbers = [int(n) for n in record['numbers'].split(',')]
+                        # 检查指定位置的号码（position-1是因为索引从0开始）
+                        target_number = latest_numbers[position-1] if len(latest_numbers) > position-1 else None
+                        
+                        # 检查关注号码中是否包含指定位置的号码
+                        hit = target_number in numbers if target_number is not None else False
+                        
+                        if not hit:
+                            temp_miss += 1
+                            max_miss = max(max_miss, temp_miss)
+                        else:
+                            temp_miss = 0
+                    
+                    current_miss = temp_miss
+            
+            row['current_miss'] = current_miss
+            row['max_miss'] = max_miss
+        
+        return {"success": True, "data": rows}
+    except Exception as e:
+        return {"success": False, "message": f"获取关注号码失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.post("/api/favorite_numbers")
+def add_favorite_numbers(req: Request):
+    """添加关注号码组"""
+    import asyncio
+    async def inner():
+        data = await req.json()
+        numbers = data.get("numbers")
+        name = data.get("name", "")
+        
+        if not numbers:
+            return {"success": False, "message": "关注号码不能为空"}
+        
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO favorite_numbers (numbers, name) VALUES (%s, %s)",
+                (numbers, name)
+            )
+            conn.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": f"添加失败: {str(e)}"}
+        finally:
+            cursor.close()
+            conn.close()
+    return asyncio.run(inner())
+
+@app.put("/api/favorite_numbers/{number_id}")
+def update_favorite_numbers(number_id: int, req: Request):
+    """更新关注号码组"""
+    import asyncio
+    async def inner():
+        data = await req.json()
+        numbers = data.get("numbers")
+        name = data.get("name", "")
+        
+        if not numbers:
+            return {"success": False, "message": "关注号码不能为空"}
+        
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE favorite_numbers SET numbers=%s, name=%s WHERE id=%s",
+                (numbers, name, number_id)
+            )
+            conn.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": f"更新失败: {str(e)}"}
+        finally:
+            cursor.close()
+            conn.close()
+    return asyncio.run(inner())
+
+@app.delete("/api/favorite_numbers/{number_id}")
+def delete_favorite_numbers(number_id: int):
+    """删除关注号码组"""
+    conn = collect.get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM favorite_numbers WHERE id=%s", (number_id,))
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": f"删除失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/favorite_numbers/{number_id}/analysis")
+def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', position: int = 7):
+    """获取关注号码组的中奖分析"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 获取关注号码组信息
+        cursor.execute("SELECT * FROM favorite_numbers WHERE id=%s", (number_id,))
+        favorite_group = cursor.fetchone()
+        if not favorite_group:
+            return {"success": False, "message": "关注号码组不存在"}
+        
+        numbers = favorite_group['numbers'].split(',')
+        numbers = [int(n.strip()) for n in numbers if n.strip().isdigit()]
+        
+        if not numbers:
+            return {"success": False, "message": "关注号码格式错误"}
+        
+        # 获取指定彩种的所有开奖记录，按时间排序
+        cursor.execute("""
+            SELECT lottery_type, period, open_time, numbers 
+            FROM lottery_result 
+            WHERE lottery_type = %s
+            ORDER BY open_time DESC
+        """, (lottery_type,))
+        all_records = cursor.fetchall()
+        
+        analysis_results = []
+        miss_streaks = []  # 遗漏统计
+        hit_streaks = []   # 连中统计
+        current_miss = 0
+        max_miss = 0
+        current_streak = 0
+        max_streak = 0
+        total_hits = 0
+        total_checks = 0
+        
+        # 按位置统计遗漏和连中
+        position_stats = {i: {'miss': 0, 'hits': 0, 'max_miss': 0, 'max_streak': 0, 'current_miss': 0, 'current_streak': 0} for i in range(1, 8)}
+        
+        # 先获取最新一期的开奖结果
+        latest_record = all_records[0] if all_records else None
+        latest_open_numbers = []
+        latest_hit = False
+        
+        if latest_record:
+            latest_open_numbers = [int(n.strip()) for n in latest_record['numbers'].split(',') if n.strip().isdigit()]
+            if len(latest_open_numbers) >= 7:
+                target_pos = position - 1  # 转换为0基索引
+                latest_hit = target_pos < len(latest_open_numbers) and latest_open_numbers[target_pos] in numbers
+        
+        # 遍历所有记录计算遗漏和连中
+        for i, record in enumerate(all_records):
+            # 解析开奖号码
+            open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
+            if len(open_numbers) < 7:
+                continue
+            
+            # 检查关注号码在指定位置的中奖情况
+            hits = []
+            hit_positions = []
+            target_pos = position - 1  # 转换为0基索引
+            
+            if target_pos < len(open_numbers) and open_numbers[target_pos] in numbers:
+                hits.append(open_numbers[target_pos])
+                hit_positions.append(position)
+                # 更新位置统计
+                position_stats[position]['hits'] += 1
+                if position_stats[position]['current_miss'] > 0:
+                    if position_stats[position]['current_miss'] > position_stats[position]['max_miss']:
+                        position_stats[position]['max_miss'] = position_stats[position]['current_miss']
+                    position_stats[position]['current_miss'] = 0
+                position_stats[position]['current_streak'] += 1
+            else:
+                # 更新位置统计
+                position_stats[position]['miss'] += 1
+                if position_stats[position]['current_streak'] > 0:
+                    if position_stats[position]['current_streak'] > position_stats[position]['max_streak']:
+                        position_stats[position]['max_streak'] = position_stats[position]['current_streak']
+                    position_stats[position]['current_streak'] = 0
+                position_stats[position]['current_miss'] += 1
+            
+            # 计算整体遗漏和连中
+            if hits:
+                # 有中奖
+                if current_miss > 0:
+                    miss_streaks.append(current_miss)
+                    if current_miss > max_miss:
+                        max_miss = current_miss
+                    current_miss = 0
+                
+                current_streak += 1
+                total_hits += 1
+            else:
+                # 没有中奖
+                if current_streak > 0:
+                    hit_streaks.append(current_streak)
+                    if current_streak > max_streak:
+                        max_streak = current_streak
+                    current_streak = 0
+                
+                current_miss += 1
+            
+            total_checks += 1
+            
+            # 计算该期的遗漏和连中（从最新一期开始往前计算到该期）
+            current_miss_for_record = 0
+            current_streak_for_record = 0
+            
+            # 从最新一期开始往前计算到该期
+            for j in range(i + 1):
+                calc_record = all_records[j]
+                calc_numbers = [int(n.strip()) for n in calc_record['numbers'].split(',') if n.strip().isdigit()]
+                if len(calc_numbers) >= 7:
+                    calc_target_pos = position - 1
+                    if calc_target_pos < len(calc_numbers) and calc_numbers[calc_target_pos] in numbers:
+                        # 中奖了，重置遗漏，连中+1
+                        if current_streak_for_record == 0:
+                            current_streak_for_record = 1
+                        else:
+                            current_streak_for_record += 1
+                        current_miss_for_record = 0
+                    else:
+                        # 未中奖，遗漏+1，重置连中
+                        current_miss_for_record += 1
+                        current_streak_for_record = 0
+            
+            analysis_results.append({
+                'period': record['period'],
+                'lottery_type': record['lottery_type'],
+                'open_time': record['open_time'],
+                'open_numbers': open_numbers[:7],
+                'hits': hits,
+                'hit_positions': hit_positions,
+                'is_hit': len(hits) > 0,
+                'current_miss': current_miss_for_record,
+                'current_streak': current_streak_for_record
+            })
+        
+        # 计算历史遗漏和连中（从最新一期开始往前累加）
+        current_miss = 0
+        current_streak = 0
+        
+        # 从最新一期开始往前累加
+        for i in range(len(all_records)):
+            record = all_records[i]
+            open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
+            if len(open_numbers) >= 7:
+                target_pos = position - 1
+                if target_pos < len(open_numbers) and open_numbers[target_pos] in numbers:
+                    # 中奖了，重置遗漏，连中+1
+                    if current_streak == 0:
+                        current_streak = 1
+                    else:
+                        current_streak += 1
+                    current_miss = 0
+                else:
+                    # 未中奖，遗漏+1，重置连中
+                    current_miss += 1
+                    current_streak = 0
+        
+        # 处理位置统计的最后一段
+        for pos in range(1, 8):
+            if pos == position:  # 只更新指定位置
+                position_stats[pos]['current_miss'] = current_miss
+                position_stats[pos]['current_streak'] = current_streak
+        
+        # 统计遗漏和连中分布
+        miss_distribution = {}
+        for miss in miss_streaks:
+            miss_distribution[miss] = miss_distribution.get(miss, 0) + 1
+        
+        hit_distribution = {}
+        for hit in hit_streaks:
+            hit_distribution[hit] = hit_distribution.get(hit, 0) + 1
+        
+        return {
+            "success": True,
+            "data": {
+                "favorite_group": favorite_group,
+                "numbers": numbers,
+                "analysis": analysis_results,
+                "position_stats": position_stats,
+                "stats": {
+                    "total_checks": total_checks,
+                    "total_hits": total_hits,
+                    "hit_rate": (total_hits / total_checks * 100) if total_checks > 0 else 0,
+                    "current_miss": current_miss,
+                    "max_miss": max_miss,
+                    "current_streak": current_streak,
+                    "max_streak": max_streak,
+                    "miss_streaks": miss_streaks,
+                    "hit_streaks": hit_streaks,
+                    "miss_distribution": miss_distribution,
+                    "hit_distribution": hit_distribution
+                }
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/color_analysis")
+def color_analysis_api(lottery_type: str = Query('am')):
+    """
+    波色分析API
+    根据当前期前6个号码的第2位波色，预测下一期第7位号码的波色
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 波色定义
+        color_groups = {
+            'red': [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+            'blue': [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+            'green': [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+        }
+        
+        def get_number_color_group(number):
+            """获取号码所属的波色组"""
+            if number in color_groups['red']:
+                return 'red'
+            elif number in color_groups['blue']:
+                return 'blue'
+            elif number in color_groups['green']:
+                return 'green'
+            return None
+        
+        def is_consecutive_periods(current_period, next_period):
+            """检查期数是否连续"""
+            if not current_period or not next_period:
+                return False
+            
+            current = str(current_period)
+            next_period_str = str(next_period)
+            
+            if len(current) != len(next_period_str):
+                return False
+            
+            try:
+                current_num = int(current)
+                next_num = int(next_period_str)
+                return next_num == current_num + 1
+            except ValueError:
+                return False
+        
+        # 获取指定彩种的开奖记录，按时间倒序排列
+        sql = """
+        SELECT period, open_time, numbers, lottery_type 
+        FROM lottery_result 
+        WHERE lottery_type = %s 
+        ORDER BY open_time DESC
+        """
+        cursor.execute(sql, (lottery_type,))
+        records = cursor.fetchall()
+        
+        if not records:
+            return {"success": False, "message": f"没有找到{lottery_type}彩种的开奖记录"}
+        
+        # 按时间正序排列（从旧到新）
+        records.reverse()
+        
+        analysis_results = []
+        current_miss = 0
+        max_miss = 0
+        
+        # 进行波色分析
+        for i in range(len(records) - 1):
+            current_record = records[i]
+            next_record = records[i + 1]
+            
+            # 检查期数连续性
+            if not is_consecutive_periods(current_record['period'], next_record['period']):
+                continue
+            
+            # 解析开奖号码
+            try:
+                current_numbers = [int(n.strip()) for n in current_record['numbers'].split(',') if n.strip().isdigit()]
+                next_numbers = [int(n.strip()) for n in next_record['numbers'].split(',') if n.strip().isdigit()]
+                
+                if len(current_numbers) < 7 or len(next_numbers) < 7:
+                    continue
+                
+                # 获取当前期前6个号码并排序
+                first6_numbers = sorted(current_numbers[:6])
+                second_number = first6_numbers[1]  # 第2位号码
+                second_color = get_number_color_group(second_number)
+                
+                # 获取下一期第7位号码
+                next_seventh_number = next_numbers[6]  # 第7位号码
+                next_seventh_color = get_number_color_group(next_seventh_number)
+                
+                # 判断是否命中
+                is_hit = second_color == next_seventh_color
+                
+                # 更新遗漏统计
+                if is_hit:
+                    current_miss = 0
+                else:
+                    current_miss += 1
+                    if current_miss > max_miss:
+                        max_miss = current_miss
+                
+                analysis_results.append({
+                    'current_period': current_record['period'],
+                    'current_open_time': current_record['open_time'],
+                    'current_numbers': current_numbers,
+                    'first6_sorted': first6_numbers,
+                    'second_number': second_number,
+                    'second_color': second_color,
+                    'next_period': next_record['period'],
+                    'next_seventh_number': next_seventh_number,
+                    'next_seventh_color': next_seventh_color,
+                    'is_hit': is_hit,
+                    'current_miss': current_miss,
+                    'max_miss': max_miss
+                })
+                
+            except (ValueError, IndexError) as e:
+                continue
+        
+        # 获取最新一期的预测
+        latest_prediction = None
+        if records:
+            latest_record = records[-1]  # 最新一期
+            try:
+                latest_numbers = [int(n.strip()) for n in latest_record['numbers'].split(',') if n.strip().isdigit()]
+                if len(latest_numbers) >= 6:
+                    first6_sorted = sorted(latest_numbers[:6])
+                    second_number = first6_sorted[1]
+                    second_color = get_number_color_group(second_number)
+                    
+                    # 计算下一期期数
+                    next_period = int(latest_record['period']) + 1
+                    
+                    latest_prediction = {
+                        'current_period': latest_record['period'],
+                        'next_period': str(next_period),
+                        'second_number': second_number,
+                        'second_color': second_color,
+                        'predicted_color': second_color,
+                        'prediction_basis': f"基于{latest_record['period']}期第2位号码{second_number}的波色({second_color})"
+                    }
+            except (ValueError, IndexError):
+                pass
+        
+        # 统计信息
+        total_periods = len(analysis_results)
+        hit_count = sum(1 for r in analysis_results if r['is_hit'])
+        hit_rate = (hit_count / total_periods * 100) if total_periods > 0 else 0
+        
+        return {
+            "success": True,
+            "data": {
+                "lottery_type": lottery_type,
+                "analysis_results": analysis_results,
+                "latest_prediction": latest_prediction,
+                "stats": {
+                    "total_periods": total_periods,
+                    "hit_count": hit_count,
+                    "miss_count": total_periods - hit_count,
+                    "hit_rate": round(hit_rate, 2),
+                    "current_miss": current_miss,
+                    "max_miss": max_miss
+                },
+                "color_groups": color_groups
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"波色分析失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+# --- 推荐8码命中情况分析相关API ---
+
+@app.get("/api/recommend_history")
+def get_recommend_history(lottery_type: str = Query('am')):
+    """
+    获取推荐8码历史记录，按期数分组
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查询所有推荐期数
+        sql = """
+        SELECT DISTINCT period, created_at 
+        FROM recommend_result 
+        WHERE lottery_type = %s 
+        ORDER BY period DESC
+        """
+        cursor.execute(sql, (lottery_type,))
+        periods = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": periods
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐历史失败: {str(e)}"}
+
+@app.get("/api/recommend_by_period")
+def get_recommend_by_period(lottery_type: str = Query('am'), period: str = Query(...)):
+    """
+    获取指定期数的推荐8码数据
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查询指定期数的推荐数据
+        sql = """
+        SELECT position, numbers 
+        FROM recommend_result 
+        WHERE lottery_type = %s AND period = %s 
+        ORDER BY position
+        """
+        cursor.execute(sql, (lottery_type, period))
+        positions = cursor.fetchall()
+        
+        if not positions:
+            return {"success": False, "message": f"未找到期数{period}的推荐数据"}
+        
+        # 构造推荐号码数组
+        recommend_numbers = [""] * 7  # 7个位置
+        for pos in positions:
+            position = pos['position'] - 1  # 转换为0-6索引
+            if 0 <= position < 7:
+                recommend_numbers[position] = pos['numbers'].split(',')
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "period": period,
+                "lottery_type": lottery_type,
+                "recommend_numbers": recommend_numbers,
+                "positions": positions
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐数据失败: {str(e)}"}
+
+@app.get("/api/recommend_stats")
+def get_recommend_stats(lottery_type: str = Query('am')):
+    """
+    获取推荐8码统计信息
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 统计推荐期数数量
+        sql_count = "SELECT COUNT(DISTINCT period) as total_periods FROM recommend_result WHERE lottery_type = %s"
+        cursor.execute(sql_count, (lottery_type,))
+        count_result = cursor.fetchone()
+        total_periods = count_result['total_periods'] if count_result else 0
+        
+        # 获取最新推荐期数
+        sql_latest = "SELECT MAX(period) as latest_period FROM recommend_result WHERE lottery_type = %s"
+        cursor.execute(sql_latest, (lottery_type,))
+        latest_result = cursor.fetchone()
+        latest_period = latest_result['latest_period'] if latest_result else None
+        
+        # 获取最早推荐期数
+        sql_earliest = "SELECT MIN(period) as earliest_period FROM recommend_result WHERE lottery_type = %s"
+        cursor.execute(sql_earliest, (lottery_type,))
+        earliest_result = cursor.fetchone()
+        earliest_period = earliest_result['earliest_period'] if earliest_result else None
+        
+        # 获取最近5期的推荐期数
+        sql_recent = """
+        SELECT DISTINCT period, created_at 
+        FROM recommend_result 
+        WHERE lottery_type = %s 
+        ORDER BY period DESC 
+        LIMIT 5
+        """
+        cursor.execute(sql_recent, (lottery_type,))
+        recent_periods = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "total_periods": total_periods,
+                "latest_period": latest_period,
+                "earliest_period": earliest_period,
+                "recent_periods": recent_periods,
+                "lottery_type": lottery_type
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐统计失败: {str(e)}"}
+
+@app.get("/api/recommend16_history")
+def get_recommend16_history(lottery_type: str = Query('am')):
+    """
+    获取推荐16码历史记录，按期数分组
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查询所有推荐期数
+        sql = """
+        SELECT DISTINCT period, created_at 
+        FROM recommend16_result 
+        WHERE lottery_type = %s 
+        ORDER BY period DESC
+        """
+        cursor.execute(sql, (lottery_type,))
+        periods = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": periods
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐16码历史失败: {str(e)}"}
+
+@app.get("/api/recommend16_by_period")
+def get_recommend16_by_period(lottery_type: str = Query('am'), period: str = Query(...)):
+    """
+    获取指定期数的推荐16码数据
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查询指定期数的推荐数据
+        sql = """
+        SELECT position, numbers 
+        FROM recommend16_result 
+        WHERE lottery_type = %s AND period = %s 
+        ORDER BY position
+        """
+        cursor.execute(sql, (lottery_type, period))
+        positions = cursor.fetchall()
+        
+        if not positions:
+            return {"success": False, "message": f"未找到期数{period}的推荐16码数据"}
+        
+        # 构造推荐号码数组
+        recommend_numbers = [""] * 7  # 7个位置
+        for pos in positions:
+            position = pos['position'] - 1  # 转换为0-6索引
+            if 0 <= position < 7:
+                recommend_numbers[position] = pos['numbers'].split(',')
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "period": period,
+                "lottery_type": lottery_type,
+                "recommend_numbers": recommend_numbers,
+                "positions": positions
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐16码数据失败: {str(e)}"}
+
+@app.get("/api/recommend16_stats")
+def get_recommend16_stats(lottery_type: str = Query('am')):
+    """
+    获取推荐16码统计信息
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 统计推荐期数数量
+        sql_count = "SELECT COUNT(DISTINCT period) as total_periods FROM recommend16_result WHERE lottery_type = %s"
+        cursor.execute(sql_count, (lottery_type,))
+        count_result = cursor.fetchone()
+        total_periods = count_result['total_periods'] if count_result else 0
+        
+        # 获取最新推荐期数
+        sql_latest = "SELECT MAX(period) as latest_period FROM recommend16_result WHERE lottery_type = %s"
+        cursor.execute(sql_latest, (lottery_type,))
+        latest_result = cursor.fetchone()
+        latest_period = latest_result['latest_period'] if latest_result else None
+        
+        # 获取最早推荐期数
+        sql_earliest = "SELECT MIN(period) as earliest_period FROM recommend16_result WHERE lottery_type = %s"
+        cursor.execute(sql_earliest, (lottery_type,))
+        earliest_result = cursor.fetchone()
+        earliest_period = earliest_result['earliest_period'] if earliest_result else None
+        
+        # 获取最近5期的推荐期数
+        sql_recent = """
+        SELECT DISTINCT period, created_at 
+        FROM recommend16_result 
+        WHERE lottery_type = %s 
+        ORDER BY period DESC 
+        LIMIT 5
+        """
+        cursor.execute(sql_recent, (lottery_type,))
+        recent_periods = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "total_periods": total_periods,
+                "latest_period": latest_period,
+                "earliest_period": earliest_period,
+                "recent_periods": recent_periods,
+                "lottery_type": lottery_type
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"获取推荐16码统计失败: {str(e)}"}
+
 # --- END ---
 
 if __name__ == "__main__":

@@ -54,11 +54,17 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         if not dt:
             continue
         dt_text = dt.get_text(strip=True)
-        m = re.match(r'(\d+)期\(开奖时间:(\d{4}-\d{2}-\d{2})\)', dt_text)
+        # 修复正则表达式，支持<b>标签和不同的日期格式
+        m = re.match(r'(\d+)期\(开奖时间:(\d{4}-\d{1,2}-\d{1,2})\)', dt_text)
         if not m:
             continue
         period_raw = m.group(1)
         open_time = m.group(2)
+        # 处理日期格式，确保月日都是两位数
+        open_time_parts = open_time.split('-')
+        if len(open_time_parts) == 3:
+            year, month, day = open_time_parts
+            open_time = f"{year}-{int(month):02d}-{int(day):02d}"
         open_time_dt = datetime.strptime(open_time, '%Y-%m-%d')
         period = f"{open_time_dt.year}{int(period_raw):03d}"
         if max_html_period is None or period > max_html_period:

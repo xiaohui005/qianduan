@@ -496,6 +496,14 @@ if (typeof pageMap === 'undefined') {
     menuRangeBtn: 'rangePage',
     menuMinusRangeBtn: 'minusRangePage',
     menuPlusMinus6Btn: 'plusMinus6Page',
+    // 新增每期分析页面
+    menuEachIssueBtn: 'eachIssuePage',
+    // 新增波色分析页面
+    menuColorAnalysisBtn: 'colorAnalysisPage',
+    // 新增推荐8码命中情况页面
+    menuRecommendHitBtn: 'recommendHitPage',
+    // 新增推荐16码命中情况页面
+    menuRecommend16HitBtn: 'recommend16HitPage',
   };
 }
 Object.keys(pageMap).forEach(id => {
@@ -517,6 +525,10 @@ Object.keys(pageMap).forEach(id => {
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
         plusMinus6Page: '加减前6码分析',
+        eachIssuePage: '每期分析',
+        colorAnalysisPage: '波色分析',
+        recommendHitPage: '推荐8码的命中情况',
+        recommend16HitPage: '推荐16码的命中情况',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据（如有需要）
@@ -549,6 +561,47 @@ Object.keys(pageMap).forEach(id => {
         case 'menuPlusMinus6Btn':
           loadPlusMinus6Analysis();
           break;
+        case 'menuEachIssueBtn':
+          loadEachIssueAnalysis(currentType, currentPage);
+          break;
+        case 'menuColorAnalysisBtn':
+          loadColorAnalysis(currentColorType);
+          break;
+        case 'menuRecommendHitBtn':
+          initRecommendHitAnalysis();
+          break;
+        case 'menuRecommend16HitBtn':
+          // 确保函数存在后再调用
+          if (typeof initRecommend16HitAnalysis === 'function') {
+            initRecommend16HitAnalysis();
+          } else {
+            console.error('initRecommend16HitAnalysis 函数未找到');
+            console.log('尝试从recommend16.js加载函数...');
+            
+            // 尝试动态加载函数
+            try {
+              // 检查recommend16.js是否加载
+              if (typeof window.recommend16Loaded === 'undefined') {
+                console.log('recommend16.js 未加载，尝试重新加载...');
+                // 这里可以尝试重新加载脚本
+              }
+              
+              // 显示错误信息
+              const resultDiv = document.getElementById('recommend16HitResult');
+              if (resultDiv) {
+                resultDiv.innerHTML = `
+                  <div style="text-align:center;color:red;padding:20px;">
+                    推荐16码功能加载失败<br>
+                    <small>错误：initRecommend16HitAnalysis 函数未找到</small><br>
+                    <button onclick="location.reload()" style="margin-top:10px;padding:5px 15px;">刷新页面重试</button>
+                  </div>
+                `;
+              }
+            } catch (error) {
+              console.error('处理推荐16码功能失败:', error);
+            }
+          }
+          break;
       }
     });
   }
@@ -573,96 +626,66 @@ setTimeout(() => {
           if (b) b.classList.remove('active');
         });
         btn.classList.add('active');
-        // 页面切换
-        showOnlyPage(item.page);
+        // 页面切换，先隐藏所有主内容区页面
+        document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+          div.style.display = 'none';
+        });
+        // 只显示当前页面
+        const showPage = document.getElementById(item.page);
+        if (showPage) showPage.style.display = '';
         // 标题切换
         const pageTitle = document.getElementById('pageTitle');
         if (pageTitle) pageTitle.innerText = item.title;
+        // 特殊处理关注点登记结果页面
+        if (item.page === 'registerFocusResultPage') {
+          setTimeout(() => { initPlaceResults(); }, 100);
+        }
+        // 特殊处理关注点分析页面
+        if (item.page === 'registerFocusAnalysisPage') {
+          setTimeout(() => { initPlaceAnalysis(); }, 100);
+        }
       };
     }
   });
 }, 0);
 
-// 4. 菜单按钮事件
-// 修复左侧菜单按钮切换事件，保证每个按钮都能切换页面和高亮
-const menuBtnMap = [
-  {id: 'menuCollectBtn', page: 'collect'},
-  {id: 'menuRecordsBtn', page: 'records'},
-  {id: 'menuRecommendBtn', page: 'recommend'},
-  {id: 'menuTensBtn', page: 'tens'},
-  {id: 'menuUnitsBtn', page: 'units'},
-  {id: 'menuRangeBtn', page: 'range'},
-  {id: 'menuMinusRangeBtn', page: 'minusRange'},
-  {id: 'menuPlusMinus6Btn', page: 'plusMinus6'},
-];
-menuBtnMap.forEach(item => {
-  const btn = document.getElementById(item.id);
-  if (btn) {
-    btn.onclick = function() {
-      // 统一页面切换和高亮逻辑，避免showPage未定义
-      document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const pageMap = {
-        menuCollectBtn: 'collectPage',
-        menuRecordsBtn: 'recordsPage',
-        menuRecommendBtn: 'recommendPage',
-        menuTensBtn: 'tensPage',
-        menuUnitsBtn: 'unitsPage',
-        menuRangeBtn: 'rangePage',
-        menuMinusRangeBtn: 'minusRangePage',
-        menuPlusMinus6Btn: 'plusMinus6Page',
-      };
-      Object.values(pageMap).forEach(pid => {
-        const page = document.getElementById(pid);
-        if (page) page.style.display = 'none';
-      });
-      document.getElementById(pageMap[item.id]).style.display = '';
-      // 标题切换
-      const titleMap = {
-        collectPage: '数据采集',
-        recordsPage: '开奖记录',
-        recommendPage: '推荐8码',
-        tensPage: '第N位十位分析',
-        unitsPage: '第N个码个位分析',
-        rangePage: '+1~+20区间分析',
-        minusRangePage: '-1~-20区间分析',
-        plusMinus6Page: '加减前6码分析',
-      };
-      document.getElementById('pageTitle').innerText = titleMap[pageMap[item.id]] || '';
-      // 自动加载数据
-      switch (item.id) {
-        case 'menuCollectBtn':
-          const collectResult = document.getElementById('collectResult');
-          if (collectResult) collectResult.innerHTML = '';
-          break;
-        case 'menuRecordsBtn':
-          queryRecords('recordsTableAreaAm', 1);
-          queryRecords('recordsTableAreaHk', 1);
-          break;
-        case 'menuRecommendBtn':
-          let activeBtn = document.querySelector('.recommend-type-btn.active');
-          let type = activeBtn ? activeBtn.dataset.type : 'am';
-          generateRecommend(type);
-          break;
-        case 'menuTensBtn':
-          loadTensAnalysis(currentTensType, currentTensPos);
-          break;
-        case 'menuUnitsBtn':
-          loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
-          break;
-        case 'menuRangeBtn':
-          if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, currentRangeYear);
-          break;
-        case 'menuMinusRangeBtn':
-          loadMinusRangeAnalysis(1);
-          break;
-        case 'menuPlusMinus6Btn':
-          loadPlusMinus6Analysis();
-          break;
-      }
-    };
-  }
-});
+// 移除重复的菜单按钮事件绑定逻辑，统一使用上面的pageMap逻辑
+
+// 推荐16码功能备用实现（如果recommend16.js加载失败）
+if (typeof initRecommend16HitAnalysis === 'undefined') {
+  console.log('recommend16.js 未加载，使用备用实现');
+  
+  window.initRecommend16HitAnalysis = function() {
+    console.log('使用备用的推荐16码初始化函数');
+    
+    const resultDiv = document.getElementById('recommend16HitResult');
+    if (resultDiv) {
+      resultDiv.innerHTML = `
+        <div style="text-align:center;color:red;padding:20px;">
+          <h3>推荐16码功能</h3>
+          <p>推荐16码功能正在加载中...</p>
+          <p><small>如果长时间未显示，请刷新页面重试</small></p>
+          <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#2980d9;color:white;border:none;border-radius:4px;cursor:pointer;">刷新页面</button>
+        </div>
+      `;
+    }
+  };
+  
+  window.analyzeRecommend16Hit = function(lotteryType) {
+    console.log('使用备用的推荐16码分析函数');
+    const resultDiv = document.getElementById('recommend16HitResult');
+    if (resultDiv) {
+      resultDiv.innerHTML = `
+        <div style="text-align:center;color:red;padding:20px;">
+          <h3>推荐16码分析功能</h3>
+          <p>推荐16码分析功能正在加载中...</p>
+          <p><small>如果长时间未显示，请刷新页面重试</small></p>
+          <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#2980d9;color:white;border:none;border-radius:4px;cursor:pointer;">刷新页面</button>
+        </div>
+      `;
+    }
+  };
+}
 
 // 5. 个位分析交互与渲染
 let currentUnitsType = 'am';
@@ -1094,6 +1117,7 @@ Object.keys(pageMap).forEach(id => {
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
         plusMinus6Page: '加减前6码分析',
+        eachIssuePage: '每期分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       switch (id) {
@@ -1124,6 +1148,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuPlusMinus6Btn':
           loadPlusMinus6Analysis();
+          break;
+        case 'menuEachIssueBtn':
+          loadEachIssueAnalysis(currentType, currentPage);
           break;
       }
     });
@@ -1511,6 +1538,8 @@ if (typeof pageMap === 'undefined') {
     menuRangeBtn: 'rangePage',
     menuMinusRangeBtn: 'minusRangePage',
     menuPlusMinus6Btn: 'plusMinus6Page',
+    // 新增每期分析页面
+    menuEachIssueBtn: 'eachIssuePage',
   };
 } else {
   pageMap.menuPlusMinus6Btn = 'plusMinus6Page';
@@ -1535,6 +1564,7 @@ Object.keys(pageMap).forEach(id => {
         rangePage: '+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
         plusMinus6Page: '加减前6码分析',
+        eachIssuePage: '每期分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       switch (id) {
@@ -1750,15 +1780,9 @@ setTimeout(() => {
           if (b) b.classList.remove('active');
         });
         btn.classList.add('active');
-        // 页面切换
-        // 隐藏所有主内容区页面
-        const allPages = [
-          'collectPage', 'recordsPage', 'recommendPage', 'tensPage', 'unitsPage', 'rangePage', 'minusRangePage', 'plusMinus6Page',
-          'registerFocusPage', 'registerBetPage', 'registerFocusResultPage', 'registerFocusAnalysisPage', 'registerBetReportPage'
-        ];
-        allPages.forEach(pid => {
-          const page = document.getElementById(pid);
-          if (page) page.style.display = 'none';
+        // 页面切换，先隐藏所有主内容区页面
+        document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+          div.style.display = 'none';
         });
         // 只显示当前页面
         const showPage = document.getElementById(item.page);
@@ -1766,6 +1790,14 @@ setTimeout(() => {
         // 标题切换
         const pageTitle = document.getElementById('pageTitle');
         if (pageTitle) pageTitle.innerText = item.title;
+        // 特殊处理关注点登记结果页面
+        if (item.page === 'registerFocusResultPage') {
+          setTimeout(() => { initPlaceResults(); }, 100);
+        }
+        // 特殊处理关注点分析页面
+        if (item.page === 'registerFocusAnalysisPage') {
+          setTimeout(() => { initPlaceAnalysis(); }, 100);
+        }
       };
     }
   });
@@ -2621,7 +2653,10 @@ setTimeout(() => {
 
   if (menuEachIssueBtn) {
     menuEachIssueBtn.addEventListener('click', function() {
-      document.querySelectorAll('main > div').forEach(div => div.style.display = 'none');
+      // 使用统一的页面切换逻辑
+      document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+        div.style.display = 'none';
+      });
       eachIssuePage.style.display = '';
       currentPage = 1;
       loadEachIssueAnalysis(currentType, currentPage);
@@ -2789,3 +2824,3644 @@ function downloadCSV(rows, filename) {
   link.click();
   document.body.removeChild(link);
 }
+
+// ... existing code ...
+
+// 关注点登记结果相关功能
+{
+  let currentPlaceResultPage = 1;
+  let currentPlaceResultPageSize = 20;
+  let currentPlaceResultTotal = 0;
+  let currentPlaceResultTotalPages = 0;
+  let editingPlaceResultId = null;
+
+  // 渲染关注点登记结果表格
+  function renderPlaceResultsTable(results, page = 1) {
+    const tbody = document.querySelector('#placeResultsTable tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (!results || results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">暂无数据</td></tr>';
+      return;
+    }
+    
+    results.forEach(result => {
+      const row = document.createElement('tr');
+      row.setAttribute('data-id', result.id); // 添加data-id属性
+      const isCorrectText = result.is_correct === 1 ? '正确' : (result.is_correct === 0 ? '错误' : '未判断');
+      const isCorrectClass = result.is_correct === 1 ? 'correct' : (result.is_correct === 0 ? 'wrong' : 'unjudged');
+      
+      row.innerHTML = `
+        <td>${result.place_name || '-'}</td>
+        <td>${result.qishu}</td>
+        <td class="${isCorrectClass}">${isCorrectText}</td>
+        <td>${result.created_at}</td>
+        <td>
+          <button class="btn-edit" data-id="${result.id}">编辑</button>
+          <button class="btn-delete" data-id="${result.id}">删除</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+    
+    // 添加事件委托来处理编辑和删除按钮
+    tbody.addEventListener('click', function(e) {
+      console.log('表格点击事件:', e.target); // 调试信息
+      if (e.target.classList.contains('btn-edit')) {
+        const id = parseInt(e.target.dataset.id);
+        console.log('点击编辑按钮，ID:', id); // 调试信息
+        editPlaceResult(id);
+      } else if (e.target.classList.contains('btn-delete')) {
+        const id = parseInt(e.target.dataset.id);
+        console.log('点击删除按钮，ID:', id); // 调试信息
+        deletePlaceResult(id);
+      }
+    });
+  }
+
+  // 更新关注点登记结果统计
+  function updatePlaceResultsStats(results, pageResults = []) {
+    const totalRecords = results?.total || 0;
+    const pageRecords = pageResults.length;
+    
+    // 总体统计
+    let totalCorrect = 0, totalWrong = 0, totalUnjudged = 0;
+    if (results?.data) {
+      results.data.forEach(result => {
+        if (result.is_correct === 1) totalCorrect++;
+        else if (result.is_correct === 0) totalWrong++;
+        else totalUnjudged++;
+      });
+    }
+    
+    // 本页统计
+    let pageCorrect = 0, pageWrong = 0, pageUnjudged = 0;
+    pageResults.forEach(result => {
+      if (result.is_correct === 1) pageCorrect++;
+      else if (result.is_correct === 0) pageWrong++;
+      else pageUnjudged++;
+    });
+    
+    document.getElementById('totalPlaceResultRecords').textContent = totalRecords;
+    document.getElementById('totalCorrectRecords').textContent = totalCorrect;
+    document.getElementById('totalWrongRecords').textContent = totalWrong;
+    document.getElementById('totalUnjudgedRecords').textContent = totalUnjudged;
+    
+    document.getElementById('pagePlaceResultRecords').textContent = pageRecords;
+    document.getElementById('pageCorrectRecords').textContent = pageCorrect;
+    document.getElementById('pageWrongRecords').textContent = pageWrong;
+    document.getElementById('pageUnjudgedRecords').textContent = pageUnjudged;
+  }
+
+  // 更新关注点登记结果分页
+  function updatePlaceResultsPagination(results, currentPage) {
+    const total = results?.total || 0;
+    const pageSize = results?.page_size || 20;
+    const totalPages = results?.total_pages || 0;
+    
+    currentPlaceResultTotal = total;
+    currentPlaceResultTotalPages = totalPages;
+    
+    // 更新分页信息
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, total);
+    document.getElementById('placeResultsPaginationInfo').textContent = 
+      `显示 ${start}-${end} 条，共 ${total} 条记录`;
+    
+    // 更新分页按钮
+    const prevBtn = document.getElementById('prevPlaceResultPageBtn');
+    const nextBtn = document.getElementById('nextPlaceResultPageBtn');
+    const pageNumbers = document.getElementById('placeResultPageNumbers');
+    
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    
+    // 生成页码
+    let pageHtml = '';
+    const maxPages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      if (i === currentPage) {
+        pageHtml += `<span class="page-number current">${i}</span>`;
+      } else {
+        pageHtml += `<span class="page-number" onclick="goToPlaceResultPage(${i})">${i}</span>`;
+      }
+    }
+    pageNumbers.innerHTML = pageHtml;
+  }
+
+  // 跳转到指定页
+  window.goToPlaceResultPage = function(page) {
+    currentPlaceResultPage = page;
+    loadPlaceResults();
+  };
+
+  // 加载关注点登记结果
+  async function loadPlaceResults() {
+    try {
+      // 首先测试API连接
+      console.log('测试API连接...'); // 调试信息
+      const testResponse = await fetch(`${window.BACKEND_URL}/`);
+      console.log('API连接状态:', testResponse.status); // 调试信息
+      
+      const params = new URLSearchParams({
+        page: currentPlaceResultPage,
+        page_size: currentPlaceResultPageSize
+      });
+      
+      // 添加查询条件
+      const queryPlace = document.getElementById('queryPlaceResultPlace')?.value;
+      const queryQishu = document.getElementById('queryPlaceResultQishu')?.value;
+      const queryIsCorrect = document.getElementById('queryPlaceResultIsCorrect')?.value;
+      const queryStartDate = document.getElementById('queryPlaceResultStartDate')?.value;
+      const queryEndDate = document.getElementById('queryPlaceResultEndDate')?.value;
+      
+      console.log('查询条件:', { queryPlace, queryQishu, queryIsCorrect, queryStartDate, queryEndDate }); // 调试信息
+      
+      if (queryPlace && queryPlace.trim()) {
+        // 需要根据关注点名称查找ID
+        const places = await fetchPlaceResultsPlaces();
+        const place = places.find(p => p.name === queryPlace.trim());
+        if (place) {
+          params.append('place_id', place.id);
+          console.log('找到关注点ID:', place.id); // 调试信息
+        } else {
+          console.log('未找到关注点:', queryPlace); // 调试信息
+        }
+      }
+      if (queryQishu && queryQishu.trim()) {
+        params.append('qishu', queryQishu.trim());
+      }
+      if (queryIsCorrect && queryIsCorrect !== '') {
+        if (queryIsCorrect === 'null') {
+          // 查询未判断的记录
+          params.append('is_correct', 'null');
+        } else {
+          params.append('is_correct', queryIsCorrect);
+        }
+      }
+      if (queryStartDate && queryStartDate.trim()) {
+        params.append('start_date', queryStartDate.trim());
+      }
+      if (queryEndDate && queryEndDate.trim()) {
+        params.append('end_date', queryEndDate.trim());
+      }
+      
+      console.log('请求URL:', `${window.BACKEND_URL}/api/place_results?${params}`); // 调试信息
+      
+      const response = await fetch(`${window.BACKEND_URL}/api/place_results?${params}`);
+      const result = await response.json();
+      
+      console.log('API响应:', result); // 调试信息
+      
+      if (result.success) {
+        renderPlaceResultsTable(result.data, result.data);
+        updatePlaceResultsStats(result, result.data);
+        updatePlaceResultsPagination(result, currentPlaceResultPage);
+      } else {
+        console.error('加载关注点登记结果失败:', result.message);
+        alert('查询失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('加载关注点登记结果失败:', error);
+      alert('查询失败: 网络错误');
+    }
+  }
+
+  // 绑定关注点登记结果分页事件
+  function bindPlaceResultsPaginationEvents() {
+    const prevBtn = document.getElementById('prevPlaceResultPageBtn');
+    const nextBtn = document.getElementById('nextPlaceResultPageBtn');
+    
+    if (prevBtn) {
+      prevBtn.onclick = () => {
+        if (currentPlaceResultPage > 1) {
+          currentPlaceResultPage--;
+          loadPlaceResults();
+        }
+      };
+    }
+    
+    if (nextBtn) {
+      nextBtn.onclick = () => {
+        if (currentPlaceResultPage < currentPlaceResultTotalPages) {
+          currentPlaceResultPage++;
+          loadPlaceResults();
+        }
+      };
+    }
+  }
+
+  // 绑定关注点登记结果查询事件
+  function bindPlaceResultsQueryEvents() {
+    const queryBtn = document.getElementById('queryPlaceResultsBtn');
+    const resetBtn = document.getElementById('resetPlaceResultQueryBtn');
+    const clearBtn = document.getElementById('clearPlaceResultQueryBtn');
+    
+    if (queryBtn) {
+      queryBtn.onclick = () => {
+        console.log('查询按钮被点击'); // 调试信息
+        
+        // 测试获取所有查询条件
+        const queryPlace = document.getElementById('queryPlaceResultPlace')?.value;
+        const queryQishu = document.getElementById('queryPlaceResultQishu')?.value;
+        const queryIsCorrect = document.getElementById('queryPlaceResultIsCorrect')?.value;
+        const queryStartDate = document.getElementById('queryPlaceResultStartDate')?.value;
+        const queryEndDate = document.getElementById('queryPlaceResultEndDate')?.value;
+        
+        console.log('查询按钮点击时的条件:', {
+          queryPlace,
+          queryQishu,
+          queryIsCorrect,
+          queryStartDate,
+          queryEndDate
+        }); // 调试信息
+        
+        currentPlaceResultPage = 1;
+        loadPlaceResults();
+      };
+    }
+    
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        document.getElementById('queryPlaceResultPlace').value = '';
+        document.getElementById('queryPlaceResultQishu').value = '';
+        document.getElementById('queryPlaceResultIsCorrect').value = '';
+        document.getElementById('queryPlaceResultStartDate').value = '';
+        document.getElementById('queryPlaceResultEndDate').value = '';
+        // 重置按钮状态
+        resetIsCorrectButtons('placeResultsQueryForm');
+        currentPlaceResultPage = 1;
+        loadPlaceResults();
+      };
+    }
+    
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        document.getElementById('queryPlaceResultPlace').value = '';
+        document.getElementById('queryPlaceResultQishu').value = '';
+        document.getElementById('queryPlaceResultIsCorrect').value = '';
+        document.getElementById('queryPlaceResultStartDate').value = '';
+        document.getElementById('queryPlaceResultEndDate').value = '';
+        // 重置按钮状态
+        resetIsCorrectButtons('placeResultsQueryForm');
+      };
+    }
+  }
+
+  // 获取关注点列表的函数
+  async function fetchPlaceResultsPlaces() {
+    try {
+      const res = await fetch(window.BACKEND_URL + '/api/places');
+      const places = await res.json();
+      return places;
+    } catch (error) {
+      console.error('获取关注点列表失败:', error);
+      return [];
+    }
+  }
+
+  // 设置关注点登记结果关注点按钮选择
+  function setupPlaceResultPlaceButtons() {
+    console.log('设置关注点登记结果按钮选择功能'); // 调试信息
+    const buttonsContainer = document.getElementById('placeResultPlaceButtons');
+    const hiddenInput = document.getElementById('placeResultPlaceInput');
+    
+    if (!buttonsContainer || !hiddenInput) {
+      console.log('未找到按钮容器或隐藏输入框元素'); // 调试信息
+        return;
+      }
+      
+    // 清空容器
+    buttonsContainer.innerHTML = '';
+    
+    // 获取关注点数据并渲染按钮
+    fetchPlaceResultsPlaces().then(places => {
+      console.log('获取到关注点数据，数量:', places.length); // 调试信息
+      
+      if (places.length > 0) {
+          let html = '';
+        places.forEach((place, index) => {
+          html += `<button type="button" class="place-selection-btn" data-id="${place.id}" data-name="${place.name}">${place.name}</button>`;
+        });
+        buttonsContainer.innerHTML = html;
+        
+        // 绑定按钮点击事件
+        const buttons = buttonsContainer.querySelectorAll('.place-selection-btn');
+        buttons.forEach(btn => {
+          btn.addEventListener('click', function() {
+            // 移除其他按钮的选中状态
+            buttons.forEach(b => b.classList.remove('selected'));
+            // 添加当前按钮的选中状态
+            this.classList.add('selected');
+            // 设置隐藏输入框的值
+            hiddenInput.value = this.dataset.name;
+            hiddenInput.dataset.placeId = this.dataset.id;
+            console.log('选中关注点:', this.dataset.name, 'ID:', this.dataset.id); // 调试信息
+          });
+        });
+        
+        console.log('关注点按钮渲染完成，共', buttons.length, '个按钮'); // 调试信息
+      } else {
+        buttonsContainer.innerHTML = '<p style="color: #999; font-size: 14px;">暂无关注点数据</p>';
+      }
+    }).catch(error => {
+      console.error('获取关注点列表失败:', error);
+      buttonsContainer.innerHTML = '<p style="color: #e74c3c; font-size: 14px;">加载关注点失败</p>';
+    });
+  }
+
+  // 设置查询关注点登记结果关注点输入自动完成
+  function setupQueryPlaceResultPlaceAutocomplete() {
+    const input = document.getElementById('queryPlaceResultPlace');
+    const suggest = document.getElementById('queryPlaceResultPlaceSuggest');
+    
+    if (!input || !suggest) return;
+    
+    // 移除之前的事件监听器，避免重复绑定
+    const newInput = input.cloneNode(true);
+    newInput.id = 'queryPlaceResultPlace'; // 确保ID正确
+    input.parentNode.replaceChild(newInput, input);
+    
+    const newSuggest = suggest.cloneNode(true);
+    newSuggest.id = 'queryPlaceResultPlaceSuggest'; // 确保ID正确
+    suggest.parentNode.replaceChild(newSuggest, suggest);
+    
+    let selectedIndex = -1;
+    let suggestions = [];
+    
+    newInput.addEventListener('input', async function() {
+      const value = this.value.trim();
+      if (value.length === 0) {
+        newSuggest.innerHTML = '';
+        return;
+      }
+      
+      try {
+        const places = await fetchPlaceResultsPlaces();
+        suggestions = places.filter(place => 
+          place.name.toLowerCase().includes(value.toLowerCase())
+        ).slice(0, 10);
+        
+        if (suggestions.length > 0) {
+          let html = '';
+          suggestions.forEach((place, index) => {
+            html += `<div class="suggestion-item" data-index="${index}" data-id="${place.id}" data-name="${place.name}">${place.name}</div>`;
+          });
+          newSuggest.innerHTML = html;
+          newSuggest.style.display = 'block';
+        } else {
+          newSuggest.innerHTML = '';
+        }
+      } catch (error) {
+        console.error('获取关注点列表失败:', error);
+      }
+    });
+    
+    newInput.addEventListener('blur', function() {
+      setTimeout(() => {
+        newSuggest.style.display = 'none';
+      }, 200);
+    });
+    
+    newSuggest.addEventListener('click', function(e) {
+      if (e.target.classList.contains('suggestion-item')) {
+        const index = parseInt(e.target.dataset.index);
+        const place = suggestions[index];
+        newInput.value = place.name;
+        newSuggest.style.display = 'none';
+      }
+    });
+    
+    newInput.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+        updateSelection(suggestions, selectedIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection(suggestions, selectedIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+          const place = suggestions[selectedIndex];
+          newInput.value = place.name;
+          newSuggest.style.display = 'none';
+        }
+      }
+    });
+    
+    function updateSelection(items, index) {
+      const items_elements = newSuggest.querySelectorAll('.suggestion-item');
+      items_elements.forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+      });
+    }
+  }
+
+  // 添加关注点登记结果
+  async function addPlaceResult(placeResult) {
+    try {
+      const response = await fetch(`${window.BACKEND_URL}/api/place_results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(placeResult)
+      });
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('添加关注点登记结果失败:', error);
+      return { success: false, message: '网络错误' };
+    }
+  }
+
+  // 更新关注点登记结果
+  async function updatePlaceResult(id, placeResult) {
+    try {
+      const response = await fetch(`${window.BACKEND_URL}/api/place_results/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(placeResult)
+      });
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('更新关注点登记结果失败:', error);
+      return { success: false, message: '网络错误' };
+    }
+  }
+
+  // 删除关注点登记结果
+  window.deletePlaceResult = async function(id) {
+    if (!confirm('确定要删除这条记录吗？')) return;
+    
+    try {
+      const response = await fetch(`${window.BACKEND_URL}/api/place_results/${id}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('删除成功');
+        loadPlaceResults();
+      } else {
+        alert('删除失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('删除关注点登记结果失败:', error);
+      alert('删除失败: 网络错误');
+    }
+  };
+
+  // 编辑关注点登记结果
+  window.editPlaceResult = function(id) {
+    console.log('编辑关注点登记结果，ID:', id); // 调试信息
+    editingPlaceResultId = id;
+    
+    // 查找对应的记录
+    const table = document.getElementById('placeResultsTable');
+    const row = table.querySelector(`tr[data-id="${id}"]`);
+    if (!row) {
+      console.log('未找到对应的行'); // 调试信息
+      return;
+    }
+    
+    const cells = row.cells;
+    const placeName = cells[0].textContent;
+    const qishu = cells[1].textContent;
+    const isCorrect = cells[2].textContent;
+    
+    console.log('编辑数据:', { placeName, qishu, isCorrect }); // 调试信息
+    
+    // 填充表单
+    document.getElementById('placeResultId').value = id;
+    document.getElementById('placeResultQishu').value = qishu;
+    
+    // 设置关注点按钮选中状态
+    fetchPlaceResultsPlaces().then(places => {
+      const place = places.find(p => p.name === placeName);
+      if (place) {
+        // 设置隐藏输入框的值
+        const hiddenInput = document.getElementById('placeResultPlaceInput');
+        hiddenInput.value = placeName;
+        hiddenInput.dataset.placeId = place.id;
+        
+        // 设置按钮选中状态
+        const buttons = document.querySelectorAll('#placeResultPlaceButtons .place-selection-btn');
+        buttons.forEach(btn => {
+          if (btn.dataset.id === place.id.toString()) {
+            btn.classList.add('selected');
+            console.log('设置关注点按钮选中:', placeName, 'ID:', place.id); // 调试信息
+          } else {
+            btn.classList.remove('selected');
+          }
+        });
+      }
+    });
+    
+    // 设置是否正确按钮状态
+    const isCorrectValue = isCorrect === '正确' ? '1' : (isCorrect === '错误' ? '0' : '');
+    setIsCorrectButtonValue('placeResultForm', isCorrectValue);
+    
+    // 显示取消按钮
+    document.getElementById('cancelPlaceResultEditBtn').style.display = 'inline-block';
+    
+    console.log('编辑表单已填充'); // 调试信息
+  };
+
+  // 绑定关注点登记结果表单事件
+  function bindPlaceResultFormEvents() {
+    const form = document.getElementById('placeResultForm');
+    const cancelBtn = document.getElementById('cancelPlaceResultEditBtn');
+    
+    if (form) {
+      // 移除之前的事件监听器，避免重复绑定
+      const newForm = form.cloneNode(true);
+      form.parentNode.replaceChild(newForm, form);
+      
+      newForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const placeInput = document.getElementById('placeResultPlaceInput');
+        const placeId = placeInput.dataset.placeId || placeInput.value;
+        const qishu = document.getElementById('placeResultQishu').value;
+        const isCorrect = document.getElementById('placeResultIsCorrect').value;
+        
+        if (!placeId || !qishu) {
+          alert('请填写完整信息');
+          return;
+        }
+        
+        const placeResult = {
+          place_id: parseInt(placeId),
+          qishu: qishu,
+          is_correct: isCorrect === '' ? null : parseInt(isCorrect)
+        };
+        
+        let result;
+        if (editingPlaceResultId) {
+          result = await updatePlaceResult(editingPlaceResultId, placeResult);
+        } else {
+          result = await addPlaceResult(placeResult);
+        }
+        
+        if (result.success) {
+          alert(editingPlaceResultId ? '更新成功' : '添加成功');
+          newForm.reset();
+          editingPlaceResultId = null;
+          document.getElementById('cancelPlaceResultEditBtn').style.display = 'none';
+          // 重置按钮状态
+          resetIsCorrectButtons('placeResultForm');
+          // 清除关注点按钮选中状态
+          const buttons = document.querySelectorAll('#placeResultPlaceButtons .place-selection-btn');
+          buttons.forEach(btn => btn.classList.remove('selected'));
+          // 清空隐藏输入框
+          const hiddenInput = document.getElementById('placeResultPlaceInput');
+          hiddenInput.value = '';
+          hiddenInput.dataset.placeId = '';
+          loadPlaceResults();
+        } else {
+          alert((editingPlaceResultId ? '更新' : '添加') + '失败: ' + result.message);
+        }
+      });
+    }
+    
+    if (cancelBtn) {
+      // 移除之前的事件监听器
+      const newCancelBtn = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      
+      newCancelBtn.addEventListener('click', function() {
+        document.getElementById('placeResultForm').reset();
+        editingPlaceResultId = null;
+        this.style.display = 'none';
+        // 重置按钮状态
+        resetIsCorrectButtons('placeResultForm');
+        // 清除关注点按钮选中状态
+        const buttons = document.querySelectorAll('#placeResultPlaceButtons .place-selection-btn');
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        // 清空隐藏输入框
+        const hiddenInput = document.getElementById('placeResultPlaceInput');
+        hiddenInput.value = '';
+        hiddenInput.dataset.placeId = '';
+      });
+    }
+  }
+
+  // 绑定是否正确按钮事件
+  function bindIsCorrectButtons() {
+    console.log('开始绑定是否正确按钮事件'); // 调试信息
+    
+    // 表单中的是否正确按钮
+    const formButtons = document.querySelectorAll('#placeResultForm .is-correct-btn');
+    console.log('找到表单按钮数量:', formButtons.length); // 调试信息
+    formButtons.forEach(btn => {
+      // 移除之前的事件监听器
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.addEventListener('click', function() {
+        const value = this.dataset.value;
+        const hiddenInput = document.getElementById('placeResultIsCorrect');
+        hiddenInput.value = value;
+        console.log('表单按钮点击，设置值:', value); // 调试信息
+        
+        // 更新按钮状态
+        document.querySelectorAll('#placeResultForm .is-correct-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    
+    // 查询表单中的是否正确按钮
+    const queryButtons = document.querySelectorAll('#placeResultsQueryForm .is-correct-btn');
+    console.log('找到查询按钮数量:', queryButtons.length); // 调试信息
+    queryButtons.forEach(btn => {
+      // 移除之前的事件监听器
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.addEventListener('click', function() {
+        const value = this.dataset.value;
+        const hiddenInput = document.getElementById('queryPlaceResultIsCorrect');
+        hiddenInput.value = value;
+        console.log('查询按钮点击，设置值:', value); // 调试信息
+        console.log('按钮元素:', this); // 调试信息
+        console.log('按钮dataset:', this.dataset); // 调试信息
+        
+        // 更新按钮状态
+        document.querySelectorAll('#placeResultsQueryForm .is-correct-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    
+    // 测试按钮点击
+    console.log('测试按钮点击事件...'); // 调试信息
+    queryButtons.forEach((btn, index) => {
+      console.log(`按钮${index + 1}:`, btn.textContent, 'data-value:', btn.dataset.value); // 调试信息
+    });
+  }
+
+  // 重置是否正确按钮状态
+  function resetIsCorrectButtons(formId) {
+    const buttons = document.querySelectorAll(`#${formId} .is-correct-btn`);
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    // 默认选中第一个按钮（未判断/全部）
+    if (buttons.length > 0) {
+      buttons[0].classList.add('active');
+    }
+  }
+
+  // 设置是否正确按钮的初始值
+  function setIsCorrectButtonValue(formId, value) {
+    const buttons = document.querySelectorAll(`#${formId} .is-correct-btn`);
+    const hiddenInput = document.getElementById(formId === 'placeResultForm' ? 'placeResultIsCorrect' : 'queryPlaceResultIsCorrect');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    hiddenInput.value = value;
+    
+    // 找到对应的按钮并激活
+    const targetBtn = Array.from(buttons).find(btn => btn.dataset.value === value);
+    if (targetBtn) {
+      targetBtn.classList.add('active');
+    } else if (buttons.length > 0) {
+      // 如果没找到，默认选中第一个
+      buttons[0].classList.add('active');
+    }
+  }
+
+  // 初始化关注点登记结果功能
+  function initPlaceResults() {
+    console.log('初始化关注点登记结果功能'); // 调试信息
+    
+    setupPlaceResultPlaceButtons();
+    setupQueryPlaceResultPlaceAutocomplete();
+    bindPlaceResultFormEvents();
+    bindPlaceResultsPaginationEvents();
+    bindPlaceResultsQueryEvents();
+    bindIsCorrectButtons();
+    
+    // 设置按钮初始状态
+    resetIsCorrectButtons('placeResultForm');
+    resetIsCorrectButtons('placeResultsQueryForm');
+    
+    loadPlaceResults();
+  }
+
+
+
+  // 页面加载完成后初始化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPlaceResults);
+  } else {
+    // 延迟初始化，确保所有DOM元素都已加载
+    setTimeout(initPlaceResults, 100);
+  }
+}
+
+// ... existing code ...
+
+// 关注点分析相关功能
+{
+  let placeAnalysisData = [];
+
+  // 加载关注点分析数据
+  async function loadPlaceAnalysis() {
+    try {
+      console.log('开始加载关注点分析数据...'); // 调试信息
+      
+      const response = await fetch(`${window.BACKEND_URL}/api/place_analysis`);
+      const result = await response.json();
+      
+      console.log('关注点分析API响应:', result); // 调试信息
+      
+      if (result.success) {
+        placeAnalysisData = result.data;
+        renderPlaceAnalysis(placeAnalysisData);
+      } else {
+        console.error('加载关注点分析失败:', result.message);
+        alert('加载关注点分析失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('加载关注点分析失败:', error);
+      alert('加载关注点分析失败: 网络错误');
+    }
+  }
+
+  // 渲染关注点分析表格
+  function renderPlaceAnalysis(places) {
+    const container = document.getElementById('placeAnalysisResult');
+    if (!container) return;
+    
+    if (!places || places.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">暂无关注点数据</div>';
+      return;
+    }
+    
+    let html = '<div class="place-analysis-container">';
+    
+    places.forEach(place => {
+      const totalRecords = place.total_records || 0;
+      const correctCount = place.correct_count || 0;
+      const wrongCount = place.wrong_count || 0;
+      const unjudgedCount = place.unjudged_count || 0;
+      const correctRate = totalRecords > 0 ? ((correctCount / totalRecords) * 100).toFixed(1) : '0.0';
+      
+      const currentMiss = place.current_miss || 0;
+      const maxMiss = place.max_miss || 0;
+      const currentStreak = place.current_streak || 0;
+      const maxStreak = place.max_streak || 0;
+      
+      html += `
+        <div class="place-analysis-card">
+          <div class="place-analysis-header">
+            <h3 class="place-name">${place.place_name}</h3>
+            <span class="place-description">${place.place_description || ''}</span>
+          </div>
+          
+          <div class="place-analysis-stats">
+            <div class="stats-row">
+              <div class="stat-item">
+                <span class="stat-label">总记录数：</span>
+                <span class="stat-value">${totalRecords}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">正确记录：</span>
+                <span class="stat-value correct">${correctCount}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">错误记录：</span>
+                <span class="stat-value wrong">${wrongCount}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">未判断：</span>
+                <span class="stat-value unjudged">${unjudgedCount}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">正确率：</span>
+                <span class="stat-value">${correctRate}%</span>
+              </div>
+            </div>
+            
+            <div class="stats-row">
+              <div class="stat-item">
+                <span class="stat-label">当前遗漏：</span>
+                <span class="stat-value ${currentMiss > 0 ? 'miss' : ''}">${currentMiss}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">历史最大遗漏：</span>
+                <span class="stat-value">${maxMiss}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">当前连中：</span>
+                <span class="stat-value ${currentStreak > 0 ? 'streak' : ''}">${currentStreak}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">历史最大连中：</span>
+                <span class="stat-value">${maxStreak}</span>
+              </div>
+            </div>
+            
+            <div class="stats-row">
+              <div class="stat-item">
+                <span class="stat-label">首次记录：</span>
+                <span class="stat-value">${place.first_record ? place.first_record.replace('T', ' ').slice(0, 19) : '-'}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">最后记录：</span>
+                <span class="stat-value">${place.last_record ? place.last_record.replace('T', ' ').slice(0, 19) : '-'}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="place-analysis-details">
+            <h4>详细记录</h4>
+            <div class="records-table-container">
+              ${renderPlaceRecordsTable(place.records || [])}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // 渲染关注点记录表格
+  function renderPlaceRecordsTable(records) {
+    if (!records || records.length === 0) {
+      return '<div style="text-align:center;color:#888;padding:10px;">暂无记录</div>';
+    }
+    
+    let html = '<table class="place-records-table">';
+    html += '<thead><tr><th>期数</th><th>是否正确</th><th>创建时间</th></tr></thead><tbody>';
+    
+    records.forEach(record => {
+      const isCorrectText = record.is_correct === 1 ? '正确' : (record.is_correct === 0 ? '错误' : '未判断');
+      const isCorrectClass = record.is_correct === 1 ? 'correct' : (record.is_correct === 0 ? 'wrong' : 'unjudged');
+      
+      html += `
+        <tr>
+          <td>${record.qishu}</td>
+          <td class="${isCorrectClass}">${isCorrectText}</td>
+          <td>${record.created_at ? record.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // 导出关注点分析数据
+  function exportPlaceAnalysis() {
+    if (!placeAnalysisData || placeAnalysisData.length === 0) {
+      alert('暂无数据可导出');
+      return;
+    }
+    
+    const csvRows = [
+      ['关注点名称', '描述', '总记录数', '正确记录', '错误记录', '未判断', '正确率', '当前遗漏', '历史最大遗漏', '当前连中', '历史最大连中', '首次记录', '最后记录']
+    ];
+    
+    placeAnalysisData.forEach(place => {
+      const totalRecords = place.total_records || 0;
+      const correctCount = place.correct_count || 0;
+      const correctRate = totalRecords > 0 ? ((correctCount / totalRecords) * 100).toFixed(1) : '0.0';
+      
+      csvRows.push([
+        place.place_name,
+        place.place_description || '',
+        totalRecords,
+        correctCount,
+        place.wrong_count || 0,
+        place.unjudged_count || 0,
+        correctRate + '%',
+        place.current_miss || 0,
+        place.max_miss || 0,
+        place.current_streak || 0,
+        place.max_streak || 0,
+        place.first_record ? place.first_record.replace('T', ' ').slice(0, 19) : '',
+        place.last_record ? place.last_record.replace('T', ' ').slice(0, 19) : ''
+      ]);
+    });
+    
+    downloadCSV(csvRows, '关注点分析报告.csv');
+  }
+
+  // 绑定关注点分析事件
+  function bindPlaceAnalysisEvents() {
+    const refreshBtn = document.getElementById('refreshPlaceAnalysisBtn');
+    const exportBtn = document.getElementById('exportPlaceAnalysisBtn');
+    
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', loadPlaceAnalysis);
+    }
+    
+    if (exportBtn) {
+      exportBtn.addEventListener('click', exportPlaceAnalysis);
+    }
+  }
+
+  // 加载关注点选择按钮
+  async function loadPlaceSelectionButtons() {
+    try {
+      console.log('加载关注点选择按钮...'); // 调试信息
+      
+      const response = await fetch(`${window.BACKEND_URL}/api/place_analysis`);
+      const result = await response.json();
+      
+      if (result.success) {
+        renderPlaceSelectionButtons(result.data);
+      } else {
+        console.error('加载关注点选择按钮失败:', result.message);
+      }
+    } catch (error) {
+      console.error('加载关注点选择按钮失败:', error);
+    }
+  }
+
+  // 渲染关注点选择按钮
+  function renderPlaceSelectionButtons(places) {
+    const container = document.getElementById('placeButtonsContainer');
+    if (!container) return;
+    
+    if (!places || places.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">暂无关注点数据</div>';
+      return;
+    }
+    
+    let html = '';
+    places.forEach(place => {
+      const currentMiss = place.current_miss || 0;
+      const currentStreak = place.current_streak || 0;
+      
+      // 确定状态显示
+      let statusText = '';
+      let statusClass = 'normal';
+      
+      if (currentMiss > 0) {
+        statusText = `当前遗漏${currentMiss}期`;
+        statusClass = 'miss';
+      } else if (currentStreak > 0) {
+        statusText = `当前连中${currentStreak}期`;
+        statusClass = 'streak';
+      } else {
+        statusText = '正常';
+        statusClass = 'normal';
+      }
+      
+      html += `
+        <div class="place-button" data-place-id="${place.place_id}" data-place-name="${place.place_name}">
+          <div class="place-button-name">${place.place_name}</div>
+          <div class="place-button-status ${statusClass}">${statusText}</div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+    
+    // 绑定按钮点击事件
+    bindPlaceButtonEvents();
+  }
+
+  // 绑定关注点按钮事件
+  function bindPlaceButtonEvents() {
+    const buttons = document.querySelectorAll('.place-button');
+    buttons.forEach(button => {
+      button.addEventListener('click', function() {
+        const placeId = this.dataset.placeId;
+        const placeName = this.dataset.placeName;
+        
+        console.log('点击关注点按钮:', placeId, placeName); // 调试信息
+        
+        // 移除其他按钮的选中状态
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        
+        // 添加当前按钮的选中状态
+        this.classList.add('selected');
+        
+        // 显示关注点详情
+        showPlaceDetails(placeId, placeName);
+      });
+    });
+  }
+
+  // 显示关注点详情
+  async function showPlaceDetails(placeId, placeName) {
+    try {
+      console.log('显示关注点详情:', placeId, placeName); // 调试信息
+      
+      const response = await fetch(`${window.BACKEND_URL}/api/place_analysis`);
+      const result = await response.json();
+      
+      if (result.success) {
+        const place = result.data.find(p => p.place_id == placeId);
+        if (place) {
+          renderPlaceDetails(place);
+        }
+      }
+    } catch (error) {
+      console.error('显示关注点详情失败:', error);
+    }
+  }
+
+  // 渲染关注点详情
+  function renderPlaceDetails(place) {
+    const container = document.getElementById('placeDetailsContent');
+    const detailsDiv = document.getElementById('selectedPlaceDetails');
+    
+    if (!container || !detailsDiv) return;
+    
+    const totalRecords = place.total_records || 0;
+    const correctCount = place.correct_count || 0;
+    const wrongCount = place.wrong_count || 0;
+    const unjudgedCount = place.unjudged_count || 0;
+    const correctRate = totalRecords > 0 ? ((correctCount / totalRecords) * 100).toFixed(1) : '0.0';
+    
+    const currentMiss = place.current_miss || 0;
+    const maxMiss = place.max_miss || 0;
+    const currentStreak = place.current_streak || 0;
+    const maxStreak = place.max_streak || 0;
+    
+    let html = `
+      <div class="place-details-header">
+        <div class="place-details-name">${place.place_name}</div>
+        <div class="place-details-description">${place.place_description || ''}</div>
+      </div>
+      
+      <div class="place-details-stats">
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">总记录数</div>
+          <div class="place-detail-stat-value">${totalRecords}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">正确记录</div>
+          <div class="place-detail-stat-value correct">${correctCount}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">错误记录</div>
+          <div class="place-detail-stat-value wrong">${wrongCount}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">正确率</div>
+          <div class="place-detail-stat-value">${correctRate}%</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">当前遗漏</div>
+          <div class="place-detail-stat-value ${currentMiss > 0 ? 'miss' : ''}">${currentMiss}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">历史最大遗漏</div>
+          <div class="place-detail-stat-value">${maxMiss}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">当前连中</div>
+          <div class="place-detail-stat-value ${currentStreak > 0 ? 'streak' : ''}">${currentStreak}</div>
+        </div>
+        <div class="place-detail-stat">
+          <div class="place-detail-stat-label">历史最大连中</div>
+          <div class="place-detail-stat-value">${maxStreak}</div>
+        </div>
+      </div>
+      
+      <div class="place-details-records">
+        <h4 style="color:#2980d9;margin-bottom:10px;">详细记录</h4>
+        ${renderPlaceDetailsRecordsTable(place.records || [])}
+      </div>
+    `;
+    
+    container.innerHTML = html;
+    detailsDiv.style.display = 'block';
+  }
+
+  // 渲染关注点详情记录表格
+  function renderPlaceDetailsRecordsTable(records) {
+    if (!records || records.length === 0) {
+      return '<div style="text-align:center;color:#888;padding:10px;">暂无记录</div>';
+    }
+    
+    let html = '<table class="place-details-table">';
+    html += '<thead><tr><th>期数</th><th>是否正确</th><th>创建时间</th></tr></thead><tbody>';
+    
+    records.forEach(record => {
+      const isCorrectText = record.is_correct === 1 ? '正确' : (record.is_correct === 0 ? '错误' : '未判断');
+      const isCorrectClass = record.is_correct === 1 ? 'correct' : (record.is_correct === 0 ? 'wrong' : 'unjudged');
+      
+      html += `
+        <tr>
+          <td>${record.qishu}</td>
+          <td class="${isCorrectClass}">${isCorrectText}</td>
+          <td>${record.created_at ? record.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // 初始化关注点分析功能
+  function initPlaceAnalysis() {
+    console.log('初始化关注点分析功能'); // 调试信息
+    bindPlaceAnalysisEvents();
+    
+    // 加载关注点选择按钮
+    loadPlaceSelectionButtons();
+  }
+
+  // 页面加载完成后初始化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPlaceAnalysis);
+  } else {
+    setTimeout(initPlaceAnalysis, 100);
+  }
+}
+
+// 投注点报表功能
+(function() {
+  let allPlaces = [];
+  let selectedPlaceId = null;
+  let currentReportData = null;
+
+  // 初始化投注点报表
+  function initBetReport() {
+    loadAllPlaces();
+    bindBetReportEvents();
+    setupBetReportPlaceAutocomplete();
+  }
+
+  // 加载所有关注点
+  async function loadAllPlaces() {
+    try {
+      const res = await fetch(window.BACKEND_URL + '/api/places');
+      allPlaces = await res.json();
+    } catch (error) {
+      console.error('加载关注点失败:', error);
+    }
+  }
+
+  // 绑定投注点报表事件
+  function bindBetReportEvents() {
+    // 生成报表按钮
+    const queryBetReportBtn = document.getElementById('queryBetReportBtn');
+    if (queryBetReportBtn) {
+      queryBetReportBtn.onclick = generateBetReport;
+    }
+
+    // 重置按钮
+    const resetBetReportBtn = document.getElementById('resetBetReportBtn');
+    if (resetBetReportBtn) {
+      resetBetReportBtn.onclick = resetBetReport;
+    }
+
+    // 导出报表按钮
+    const exportBetReportBtn = document.getElementById('exportBetReportBtn');
+    if (exportBetReportBtn) {
+      exportBetReportBtn.onclick = exportBetReport;
+    }
+
+    // 调试数据按钮
+    const debugBetsBtn = document.getElementById('debugBetsBtn');
+    if (debugBetsBtn) {
+      debugBetsBtn.onclick = debugBets;
+    }
+
+    // 关注点筛选按钮
+    const placeFilterBtn = document.getElementById('placeFilterBtn');
+    if (placeFilterBtn) {
+      placeFilterBtn.onclick = filterPlaceStats;
+    }
+
+    // 关注点重置筛选按钮
+    const placeResetFilterBtn = document.getElementById('placeResetFilterBtn');
+    if (placeResetFilterBtn) {
+      placeResetFilterBtn.onclick = resetPlaceFilter;
+    }
+
+    // 关注点排序选择
+    const placeSortSelect = document.getElementById('placeSortSelect');
+    if (placeSortSelect) {
+      placeSortSelect.onchange = filterPlaceStats;
+    }
+  }
+
+  // 设置关注点自动完成
+  function setupBetReportPlaceAutocomplete() {
+    const placeInput = document.getElementById('betReportPlace');
+    const suggestDiv = document.getElementById('betReportPlaceSuggest');
+    
+    if (!placeInput || !suggestDiv) return;
+
+    let selectedIndex = -1;
+    let filteredPlaces = [];
+
+    placeInput.addEventListener('input', function() {
+      const value = this.value.trim();
+      if (value === '') {
+        suggestDiv.innerHTML = '';
+        suggestDiv.style.display = 'none';
+        selectedPlaceId = null;
+        return;
+      }
+
+      filteredPlaces = allPlaces.filter(place => 
+        place.name.toLowerCase().includes(value.toLowerCase())
+      );
+
+      if (filteredPlaces.length === 0) {
+        suggestDiv.innerHTML = '';
+        suggestDiv.style.display = 'none';
+        return;
+      }
+
+      suggestDiv.innerHTML = filteredPlaces.map((place, index) => 
+        `<div class="autocomplete-suggestion-item" data-index="${index}" data-id="${place.id}">${place.name}</div>`
+      ).join('');
+      suggestDiv.style.display = 'block';
+      selectedIndex = -1;
+    });
+
+    placeInput.addEventListener('keydown', function(e) {
+      const items = suggestDiv.querySelectorAll('.autocomplete-suggestion-item');
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items, selectedIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection(items, selectedIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && items[selectedIndex]) {
+          selectPlace(items[selectedIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        suggestDiv.style.display = 'none';
+        selectedIndex = -1;
+      }
+    });
+
+    suggestDiv.addEventListener('click', function(e) {
+      if (e.target.classList.contains('autocomplete-suggestion-item')) {
+        selectPlace(e.target);
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!placeInput.contains(e.target) && !suggestDiv.contains(e.target)) {
+        suggestDiv.style.display = 'none';
+        selectedIndex = -1;
+      }
+    });
+
+    function updateSelection(items, index) {
+      items.forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+      });
+    }
+
+    function selectPlace(item) {
+      const placeId = parseInt(item.dataset.id);
+      const placeName = item.textContent;
+      
+      placeInput.value = placeName;
+      selectedPlaceId = placeId;
+      suggestDiv.style.display = 'none';
+      selectedIndex = -1;
+    }
+  }
+
+  // 生成投注点报表
+  async function generateBetReport() {
+    const startDate = document.getElementById('betReportStartDate').value;
+    const endDate = document.getElementById('betReportEndDate').value;
+    const placeName = document.getElementById('betReportPlace').value.trim();
+
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (selectedPlaceId) params.append('place_id', selectedPlaceId);
+
+    try {
+      const res = await fetch(`${window.BACKEND_URL}/api/bet_report?${params.toString()}`);
+      const result = await res.json();
+      
+      console.log('投注点报表API响应:', result); // 调试信息
+      
+      if (result.success) {
+        currentReportData = result.data;
+        console.log('投注点报表数据:', result.data); // 调试信息
+        console.log('总体统计:', result.data.overall_stats); // 调试信息
+        renderBetReport(result.data);
+      } else {
+        alert('生成报表失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('生成报表失败:', error);
+      alert('生成报表失败，请检查网络连接');
+    }
+  }
+
+  // 渲染投注点报表
+  function renderBetReport(data) {
+    // 渲染总体统计
+    renderOverallStats(data.overall_stats);
+    
+    // 渲染关注点统计
+    renderPlaceStats(data.place_stats);
+    
+    // 渲染时间统计
+    renderTimeStats(data.time_stats);
+    
+    // 渲染输赢分布
+    renderDistributionStats(data.profit_loss_distribution);
+    
+    // 显示所有统计区域
+    document.getElementById('betReportOverallStats').style.display = 'block';
+    document.getElementById('betReportPlaceStats').style.display = 'block';
+    document.getElementById('betReportTimeStats').style.display = 'block';
+    document.getElementById('betReportDistribution').style.display = 'block';
+    document.getElementById('betReportCharts').style.display = 'block';
+  }
+
+  // 渲染总体统计
+  function renderOverallStats(stats) {
+    console.log('渲染总体统计，数据:', stats); // 调试信息
+    
+    if (!stats) {
+      console.log('stats为空，返回'); // 调试信息
+      return;
+    }
+
+    console.log('total_bets:', stats.total_bets); // 调试信息
+    console.log('total_bet_amount:', stats.total_bet_amount); // 调试信息
+    console.log('total_win_amount:', stats.total_win_amount); // 调试信息
+    console.log('total_profit_loss:', stats.total_profit_loss); // 调试信息
+
+    document.getElementById('totalBetCount').textContent = stats.total_bets || 0;
+    document.getElementById('totalBetAmount').textContent = formatCurrency(stats.total_bet_amount || 0);
+    document.getElementById('totalWinAmount').textContent = formatCurrency(stats.total_win_amount || 0);
+    document.getElementById('totalProfitLoss').textContent = formatCurrency(stats.total_profit_loss || 0);
+    document.getElementById('avgBetAmount').textContent = formatCurrency(stats.avg_bet_amount || 0);
+    document.getElementById('avgWinAmount').textContent = formatCurrency(stats.avg_win_amount || 0);
+    document.getElementById('avgProfitLoss').textContent = formatCurrency(stats.avg_profit_loss || 0);
+    document.getElementById('correctCount').textContent = stats.correct_count || 0;
+    document.getElementById('wrongCount').textContent = stats.wrong_count || 0;
+    document.getElementById('unjudgedCount').textContent = stats.unjudged_count || 0;
+
+    // 设置输赢金额的颜色
+    const totalProfitLossEl = document.getElementById('totalProfitLoss');
+    const avgProfitLossEl = document.getElementById('avgProfitLoss');
+    
+    totalProfitLossEl.className = 'stats-value ' + getProfitLossClass(stats.total_profit_loss);
+    avgProfitLossEl.className = 'stats-value ' + getProfitLossClass(stats.avg_profit_loss);
+  }
+
+  // 渲染关注点统计
+  function renderPlaceStats(placeStats) {
+    const tbody = document.querySelector('#betReportPlaceTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    
+    if (!placeStats || placeStats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#888;">暂无数据</td></tr>';
+      return;
+    }
+
+    placeStats.forEach(place => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${place.place_name || '未知'}</td>
+        <td>${place.bet_count || 0}</td>
+        <td>${formatCurrency(place.total_bet_amount || 0)}</td>
+        <td>${formatCurrency(place.total_win_amount || 0)}</td>
+        <td class="${getProfitLossClass(place.total_profit_loss)}">${formatCurrency(place.total_profit_loss || 0)}</td>
+        <td>${formatCurrency(place.avg_bet_amount || 0)}</td>
+        <td>${formatCurrency(place.avg_win_amount || 0)}</td>
+        <td class="${getProfitLossClass(place.avg_profit_loss)}">${formatCurrency(place.avg_profit_loss || 0)}</td>
+        <td>${place.correct_count || 0}</td>
+        <td>${place.wrong_count || 0}</td>
+        <td>${place.unjudged_count || 0}</td>
+        <td>${formatDateTime(place.first_bet)}</td>
+        <td>${formatDateTime(place.last_bet)}</td>
+        <td>
+          <button class="place-action-btn view" onclick="viewPlaceDetail(${place.place_id}, '${place.place_name}')">查看</button>
+          <button class="place-action-btn detail" onclick="queryPlaceBets(${place.place_id}, '${place.place_name}')">详情</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 渲染时间统计
+  function renderTimeStats(timeStats) {
+    const tbody = document.querySelector('#betReportTimeTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    
+    if (!timeStats || timeStats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;">暂无数据</td></tr>';
+      return;
+    }
+
+    timeStats.forEach(month => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${month.month}</td>
+        <td>${month.bet_count || 0}</td>
+        <td>${formatCurrency(month.total_bet_amount || 0)}</td>
+        <td>${formatCurrency(month.total_win_amount || 0)}</td>
+        <td class="${getProfitLossClass(month.total_profit_loss)}">${formatCurrency(month.total_profit_loss || 0)}</td>
+        <td>${formatCurrency(month.avg_bet_amount || 0)}</td>
+        <td>${formatCurrency(month.avg_win_amount || 0)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 渲染输赢分布统计
+  function renderDistributionStats(distribution) {
+    const tbody = document.querySelector('#betReportDistributionTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    
+    if (!distribution || distribution.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">暂无数据</td></tr>';
+      return;
+    }
+
+    distribution.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.profit_loss_range}</td>
+        <td>${item.count || 0}</td>
+        <td>${formatCurrency(item.total_bet_amount || 0)}</td>
+        <td>${formatCurrency(item.total_win_amount || 0)}</td>
+        <td class="${getProfitLossClass(item.total_profit_loss)}">${formatCurrency(item.total_profit_loss || 0)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 重置投注点报表
+  function resetBetReport() {
+    document.getElementById('betReportStartDate').value = '';
+    document.getElementById('betReportEndDate').value = '';
+    document.getElementById('betReportPlace').value = '';
+    selectedPlaceId = null;
+    
+    // 隐藏所有统计区域
+    document.getElementById('betReportOverallStats').style.display = 'none';
+    document.getElementById('betReportPlaceStats').style.display = 'none';
+    document.getElementById('betReportTimeStats').style.display = 'none';
+    document.getElementById('betReportDistribution').style.display = 'none';
+    document.getElementById('betReportCharts').style.display = 'none';
+    
+    currentReportData = null;
+  }
+
+  // 关注点筛选功能
+  function filterPlaceStats() {
+    if (!currentReportData || !currentReportData.place_stats) return;
+    
+    const filterInput = document.getElementById('placeFilterInput').value.toLowerCase();
+    const sortSelect = document.getElementById('placeSortSelect').value;
+    
+    let filteredData = [...currentReportData.place_stats];
+    
+    // 按名称筛选
+    if (filterInput) {
+      filteredData = filteredData.filter(place => 
+        place.place_name && place.place_name.toLowerCase().includes(filterInput)
+      );
+    }
+    
+    // 排序
+    filteredData.sort((a, b) => {
+      let aValue = a[sortSelect] || 0;
+      let bValue = b[sortSelect] || 0;
+      
+      // 如果是字符串，按字母顺序排序
+      if (typeof aValue === 'string') {
+        return aValue.localeCompare(bValue);
+      }
+      
+      // 如果是数字，按数值排序（降序）
+      return bValue - aValue;
+    });
+    
+    renderPlaceStats(filteredData);
+  }
+
+  // 重置关注点筛选
+  function resetPlaceFilter() {
+    document.getElementById('placeFilterInput').value = '';
+    document.getElementById('placeSortSelect').value = 'total_bet_amount';
+    
+    if (currentReportData && currentReportData.place_stats) {
+      renderPlaceStats(currentReportData.place_stats);
+    }
+  }
+
+  // 查看关注点详情
+  window.viewPlaceDetail = function(placeId, placeName) {
+    // 跳转到关注点分析页面
+    const analysisBtn = document.getElementById('menuRegisterFocusAnalysisBtn');
+    if (analysisBtn) {
+      analysisBtn.click();
+      
+      // 延迟一下，确保页面切换完成
+      setTimeout(() => {
+        // 查找并点击对应的关注点按钮
+        const placeButton = document.querySelector(`.place-button[data-place-id="${placeId}"]`);
+        if (placeButton) {
+          placeButton.click();
+        }
+      }, 100);
+    }
+  };
+
+  // 查询关注点投注详情
+  window.queryPlaceBets = function(placeId, placeName) {
+    // 跳转到投注登记点页面
+    const betBtn = document.getElementById('menuRegisterBetBtn');
+    if (betBtn) {
+      betBtn.click();
+      
+      // 延迟一下，确保页面切换完成
+      setTimeout(() => {
+        // 设置查询条件
+        const queryPlaceInput = document.getElementById('queryPlace');
+        if (queryPlaceInput) {
+          queryPlaceInput.value = placeName;
+          
+          // 触发查询
+          const queryBtn = document.getElementById('queryBetsBtn');
+          if (queryBtn) {
+            queryBtn.click();
+          }
+        }
+      }, 100);
+    }
+  };
+
+  // 导出投注点报表
+  function exportBetReport() {
+    if (!currentReportData) {
+      alert('请先生成报表');
+      return;
+    }
+
+    const data = currentReportData;
+    let csvContent = '投注点报表\n\n';
+
+    // 总体统计
+    csvContent += '总体统计\n';
+    csvContent += '总投注次数,总投注金额,总赢取金额,总输赢金额,平均投注金额,平均赢取金额,平均输赢金额,正确次数,错误次数,未判断次数\n';
+    csvContent += `${data.overall_stats.total_bets || 0},${data.overall_stats.total_bet_amount || 0},${data.overall_stats.total_win_amount || 0},${data.overall_stats.total_profit_loss || 0},${data.overall_stats.avg_bet_amount || 0},${data.overall_stats.avg_win_amount || 0},${data.overall_stats.avg_profit_loss || 0},${data.overall_stats.correct_count || 0},${data.overall_stats.wrong_count || 0},${data.overall_stats.unjudged_count || 0}\n\n`;
+
+    // 关注点统计
+    csvContent += '关注点统计\n';
+    csvContent += '关注点名称,投注次数,投注总额,赢取总额,输赢总额,平均投注,平均赢取,平均输赢,正确次数,错误次数,未判断次数,首次投注,最后投注\n';
+    if (data.place_stats && data.place_stats.length > 0) {
+      data.place_stats.forEach(place => {
+        csvContent += `${place.place_name || '未知'},${place.bet_count || 0},${place.total_bet_amount || 0},${place.total_win_amount || 0},${place.total_profit_loss || 0},${place.avg_bet_amount || 0},${place.avg_win_amount || 0},${place.avg_profit_loss || 0},${place.correct_count || 0},${place.wrong_count || 0},${place.unjudged_count || 0},${place.first_bet || ''},${place.last_bet || ''}\n`;
+      });
+    }
+    csvContent += '\n';
+
+    // 时间统计
+    csvContent += '月度统计\n';
+    csvContent += '月份,投注次数,投注总额,赢取总额,输赢总额,平均投注,平均赢取,平均输赢\n';
+    if (data.time_stats && data.time_stats.length > 0) {
+      data.time_stats.forEach(month => {
+        csvContent += `${month.month},${month.bet_count || 0},${month.total_bet_amount || 0},${month.total_win_amount || 0},${month.total_profit_loss || 0},${month.avg_bet_amount || 0},${month.avg_win_amount || 0},${month.avg_profit_loss || 0}\n`;
+      });
+    }
+    csvContent += '\n';
+
+    // 输赢分布
+    csvContent += '输赢分布\n';
+    csvContent += '输赢范围,次数,投注总额,赢取总额,输赢总额\n';
+    if (data.profit_loss_distribution && data.profit_loss_distribution.length > 0) {
+      data.profit_loss_distribution.forEach(item => {
+        csvContent += `${item.profit_loss_range},${item.count || 0},${item.total_bet_amount || 0},${item.total_win_amount || 0},${item.total_profit_loss || 0}\n`;
+      });
+    }
+
+    // 下载CSV文件
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `投注点报表_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // 工具函数
+  function formatCurrency(amount) {
+    console.log('formatCurrency输入:', amount, '类型:', typeof amount); // 调试信息
+    if (amount === null || amount === undefined) return '¥0.00';
+    const result = '¥' + parseFloat(amount).toFixed(2);
+    console.log('formatCurrency输出:', result); // 调试信息
+    return result;
+  }
+
+  function formatDateTime(dateTime) {
+    if (!dateTime) return '';
+    return dateTime.replace('T', ' ').slice(0, 19);
+  }
+
+  function getProfitLossClass(amount) {
+    if (amount === null || amount === undefined) return '';
+    if (amount > 0) return 'profit-positive';
+    if (amount < 0) return 'profit-negative';
+    return 'profit-zero';
+  }
+
+  // 当页面切换到投注点报表时初始化
+  const originalBtnMap = [
+    { btn: 'menuRegisterFocusBtn', page: 'registerFocusPage', title: '登记关注点' },
+    { btn: 'menuRegisterBetBtn', page: 'registerBetPage', title: '投注登记点' },
+    { btn: 'menuRegisterFocusResultBtn', page: 'registerFocusResultPage', title: '关注点登记结果' },
+    { btn: 'menuRegisterFocusAnalysisBtn', page: 'registerFocusAnalysisPage', title: '关注点分析' },
+    { btn: 'menuRegisterBetReportBtn', page: 'registerBetReportPage', title: '投注点报表' },
+  ];
+
+  // 重写投注点报表按钮的点击事件
+  setTimeout(() => {
+    const betReportBtn = document.getElementById('menuRegisterBetReportBtn');
+    if (betReportBtn) {
+      betReportBtn.onclick = function() {
+        // 高亮
+        originalBtnMap.forEach(i => {
+          const b = document.getElementById(i.btn);
+          if (b) b.classList.remove('active');
+        });
+        betReportBtn.classList.add('active');
+        
+        // 页面切换
+        const allPages = [
+          'collectPage', 'recordsPage', 'recommendPage', 'tensPage', 'unitsPage', 'rangePage', 'minusRangePage', 'plusMinus6Page',
+          'registerFocusPage', 'registerBetPage', 'registerFocusResultPage', 'registerFocusAnalysisPage', 'registerBetReportPage',
+          'eachIssuePage'
+        ];
+        allPages.forEach(pid => {
+          const page = document.getElementById(pid);
+          if (page) page.style.display = 'none';
+        });
+        
+        const showPage = document.getElementById('registerBetReportPage');
+        if (showPage) showPage.style.display = '';
+        
+        // 标题切换
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) pageTitle.innerText = '投注点报表';
+        
+        // 初始化投注点报表
+        initBetReport();
+      };
+    }
+
+    // 绑定调试按钮事件
+    const debugBetsBtn = document.getElementById('debugBetsBtn');
+    if (debugBetsBtn) {
+      debugBetsBtn.onclick = debugBets;
+    }
+  }, 0);
+
+  // 调试bets表数据
+  async function debugBets() {
+    try {
+      const res = await fetch(`${window.BACKEND_URL}/api/debug/bets`);
+      const result = await res.json();
+      
+      if (result.success) {
+        let debugInfo = `调试信息：\n\n`;
+        debugInfo += `bets表总记录数: ${result.total_count}\n\n`;
+        debugInfo += `表结构:\n`;
+        result.table_structure.forEach(field => {
+          debugInfo += `${field.Field} - ${field.Type} - ${field.Null} - ${field.Key} - ${field.Default} - ${field.Extra}\n`;
+        });
+        debugInfo += `\n最近5条记录:\n`;
+        result.recent_bets.forEach((bet, index) => {
+          debugInfo += `${index + 1}. ID:${bet.id}, 关注点ID:${bet.place_id}, 期数:${bet.qishu}, 投注金额:${bet.bet_amount}, 赢取金额:${bet.win_amount}, 是否正确:${bet.is_correct}, 创建时间:${bet.created_at}\n`;
+        });
+        
+        alert(debugInfo);
+      } else {
+        alert('调试失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('调试失败:', error);
+      alert('调试失败，请检查网络连接');
+    }
+  }
+
+  // ==================== 关注号码管理功能 ====================
+  
+  // 初始化关注号码管理
+  function initFavoriteNumbers() {
+    loadFavoriteNumbers();
+    bindFavoriteNumbersEvents();
+  }
+
+  // 加载关注号码列表
+  async function loadFavoriteNumbers() {
+    try {
+      console.log('开始加载关注号码...');
+      const activeBtn = document.querySelector('.position-btn.active');
+      const activeLotteryBtn = document.querySelector('.lottery-btn.active');
+      const position = activeBtn ? activeBtn.getAttribute('data-position') : 7;
+      const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
+      
+      console.log(`选择的彩种: ${lotteryType}, 位置: ${position}`);
+      
+      const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers?position=${position}&lottery_type=${lotteryType}`);
+      const result = await res.json();
+      
+      console.log('API响应:', result);
+      
+      if (result.success) {
+        console.log('关注号码数据:', result.data);
+        renderFavoriteNumbersTable(result.data, lotteryType, position);
+      } else {
+        console.error('加载关注号码失败:', result.message);
+      }
+    } catch (error) {
+      console.error('加载关注号码失败:', error);
+    }
+  }
+
+  // 渲染关注号码表格
+  function renderFavoriteNumbersTable(favoriteNumbers, lotteryType, position) {
+    console.log('开始渲染关注号码表格，数据:', favoriteNumbers);
+    
+    // 更新表格信息
+    const tableInfo = document.getElementById('tableInfo');
+    if (tableInfo) {
+      const lotteryName = lotteryType === 'am' ? '澳门' : '香港';
+      tableInfo.textContent = `当前分析：${lotteryName}彩种 - 第${position}位号码遗漏统计`;
+    }
+    
+    const tbody = document.querySelector('#favoriteNumbersTable tbody');
+    if (!tbody) {
+      console.error('找不到表格tbody元素');
+      return;
+    }
+
+    console.log('找到tbody元素，开始清空并渲染');
+    tbody.innerHTML = '';
+    
+    if (!favoriteNumbers || favoriteNumbers.length === 0) {
+      console.log('没有数据，显示空状态');
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>';
+      return;
+    }
+    
+    favoriteNumbers.forEach((item, index) => {
+      console.log(`渲染第${index + 1}条数据:`, item);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.name || ''}</td>
+        <td>${item.numbers || ''}</td>
+        <td>${item.current_miss || 0}</td>
+        <td>${item.max_miss || 0}</td>
+        <td>${formatDateTime(item.created_at) || ''}</td>
+        <td>
+          <button class="btn-edit" data-id="${item.id}">编辑</button>
+          <button class="btn-delete" data-id="${item.id}">删除</button>
+          <button class="btn-analyze" data-id="${item.id}">分析</button>
+        </td>
+      `;
+      
+      // 绑定按钮事件
+      const editBtn = row.querySelector('.btn-edit');
+      const deleteBtn = row.querySelector('.btn-delete');
+      const analyzeBtn = row.querySelector('.btn-analyze');
+      
+      editBtn.addEventListener('click', () => editFavoriteNumber(item.id));
+      deleteBtn.addEventListener('click', () => deleteFavoriteNumber(item.id));
+      analyzeBtn.addEventListener('click', () => {
+        const activeBtn = document.querySelector('.position-btn.active');
+        const position = activeBtn ? activeBtn.getAttribute('data-position') : 7;
+        analyzeFavoriteNumber(item.id, position);
+      });
+      
+      tbody.appendChild(row);
+    });
+    
+    console.log('渲染完成，共渲染', favoriteNumbers.length, '条数据');
+  }
+
+  // 绑定关注号码事件
+  function bindFavoriteNumbersEvents() {
+    const form = document.getElementById('favoriteNumbersForm');
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('favoriteNumberId').value;
+        const name = document.getElementById('favoriteNumberName').value.trim();
+        const numbers = document.getElementById('favoriteNumbers').value.trim();
+        
+        if (!name || !numbers) {
+          alert('请填写完整信息');
+          return;
+        }
+        
+        try {
+          const data = { name, numbers };
+          let res;
+          
+          if (id) {
+            // 更新
+            res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+          } else {
+            // 新增
+            res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+          }
+          
+          const result = await res.json();
+          if (result.success) {
+            alert(id ? '更新成功' : '添加成功');
+            resetFavoriteNumberForm();
+            loadFavoriteNumbers();
+          } else {
+            alert('操作失败: ' + result.message);
+          }
+        } catch (error) {
+          console.error('操作失败:', error);
+          alert('操作失败，请检查网络连接');
+        }
+      });
+    }
+
+    // 取消编辑按钮
+    const cancelBtn = document.getElementById('cancelFavoriteNumberBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', resetFavoriteNumberForm);
+    }
+
+    // 刷新按钮
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', loadFavoriteNumbers);
+    }
+
+    // 彩种按钮点击事件
+    const lotteryBtns = document.querySelectorAll('.lottery-btn');
+    lotteryBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        // 移除所有按钮的active类
+        lotteryBtns.forEach(b => b.classList.remove('active'));
+        // 给当前按钮添加active类
+        this.classList.add('active');
+        // 重新加载数据
+        loadFavoriteNumbers();
+      });
+    });
+
+    // 位置按钮点击事件
+    const positionBtns = document.querySelectorAll('.position-btn');
+    positionBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        // 移除所有按钮的active类
+        positionBtns.forEach(b => b.classList.remove('active'));
+        // 给当前按钮添加active类
+        this.classList.add('active');
+        // 重新加载数据
+        loadFavoriteNumbers();
+      });
+    });
+  }
+
+  // 重置关注号码表单
+  function resetFavoriteNumberForm() {
+    document.getElementById('favoriteNumberId').value = '';
+    document.getElementById('favoriteNumberName').value = '';
+    document.getElementById('favoriteNumbers').value = '';
+    document.getElementById('cancelFavoriteNumberBtn').style.display = 'none';
+  }
+
+  // 编辑关注号码
+  window.editFavoriteNumber = async function(id) {
+    try {
+      const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers`);
+      const result = await res.json();
+      
+      if (result.success) {
+        const item = result.data.find(item => item.id == id);
+        if (item) {
+          document.getElementById('favoriteNumberId').value = item.id;
+          document.getElementById('favoriteNumberName').value = item.name;
+          document.getElementById('favoriteNumbers').value = item.numbers;
+          document.getElementById('cancelFavoriteNumberBtn').style.display = 'inline-block';
+        }
+      }
+    } catch (error) {
+      console.error('获取关注号码失败:', error);
+    }
+  };
+
+  // 删除关注号码
+  window.deleteFavoriteNumber = async function(id) {
+    if (!confirm('确定要删除这个关注号码组吗？')) return;
+    
+    try {
+      const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers/${id}`, {
+        method: 'DELETE'
+      });
+      const result = await res.json();
+      
+      if (result.success) {
+        alert('删除成功');
+        loadFavoriteNumbers();
+      } else {
+        alert('删除失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败，请检查网络连接');
+    }
+  };
+
+  // 分析关注号码
+  window.analyzeFavoriteNumber = async function(id, position = 7) {
+    try {
+      const activeLotteryBtn = document.querySelector('.lottery-btn.active');
+      const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
+      
+      const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers/${id}/analysis?lottery_type=${lotteryType}&position=${position}`);
+      const result = await res.json();
+      
+      if (result.success) {
+        showFavoriteNumberAnalysis(result.data);
+      } else {
+        alert('分析失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('分析失败:', error);
+      alert('分析失败，请检查网络连接');
+    }
+  };
+
+  // 显示关注号码分析结果
+  function showFavoriteNumberAnalysis(data) {
+    const analysisResult = document.getElementById('favoriteNumberAnalysisResult');
+    if (!analysisResult) return;
+
+    const { favorite_group, numbers, analysis, position_stats, stats } = data;
+    
+    const activeLotteryBtn = document.querySelector('.lottery-btn.active');
+    const activePositionBtn = document.querySelector('.position-btn.active');
+    const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
+    const position = activePositionBtn ? activePositionBtn.getAttribute('data-position') : 7;
+    const lotteryName = lotteryType === 'am' ? '澳门' : '香港';
+    
+    let html = `
+      <div class="analysis-header">
+        <h3>关注号码组分析结果</h3>
+        <div class="analysis-info">
+          <p><strong>号码组名称：</strong>${favorite_group.name}</p>
+          <p><strong>关注号码：</strong>${favorite_group.numbers}</p>
+          <p><strong>分析彩种：</strong>${lotteryName}</p>
+          <p><strong>分析位置：</strong>第${position}位</p>
+          <p><strong>创建时间：</strong>${formatDateTime(favorite_group.created_at)}</p>
+        </div>
+      </div>
+    `;
+
+
+
+    // 详细记录分页
+    const pageSize = 20;
+    const currentPage = 1;
+    const totalRecords = analysis.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    
+    html += `
+      <div class="stats-section">
+        <h4>详细记录（共${totalRecords}期）</h4>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>期数</th>
+                <th>开奖时间</th>
+                <th>开奖号码</th>
+                <th>中奖号码</th>
+                <th>中奖位置</th>
+                <th>是否中奖</th>
+                <th>当前遗漏</th>
+                <th>当前连中</th>
+              </tr>
+            </thead>
+            <tbody id="analysisTableBody">
+    `;
+    
+    // 取当前页的数据并按开奖时间从大到小排序（最新的开奖时间在前面）
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+    
+    currentPageData.forEach(record => {
+      const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
+      const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
+      const isHitClass = record.is_hit ? 'hit-yes' : 'hit-no';
+      
+      html += `
+        <tr>
+          <td>${record.period}</td>
+          <td>${formatDateTime(record.open_time)}</td>
+          <td>${record.open_numbers.join(',')}</td>
+          <td>${hitNumbers}</td>
+          <td>${hitPositions}</td>
+          <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
+          <td>${record.current_miss}</td>
+          <td>${record.current_streak}</td>
+            </tr>
+          `;
+        });
+      
+      html += `
+              </tbody>
+            </table>
+          </div>
+        
+        <!-- 分页控件 -->
+        <div class="pagination-container" style="margin-top: 20px;">
+          <div class="pagination-info">
+            第 ${currentPage} 页，共 ${totalPages} 页，共 ${totalRecords} 条记录
+        </div>
+          <div class="pagination-controls">
+            <button class="pagination-btn" onclick="changeAnalysisPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>
+            <button class="pagination-btn" onclick="changeAnalysisPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+            <div class="page-numbers">
+    `;
+    
+    // 显示页码
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      html += `<button class="page-number ${i === currentPage ? 'active' : ''}" onclick="changeAnalysisPage(${i})">${i}</button>`;
+    }
+      
+      html += `
+            </div>
+            <button class="pagination-btn" onclick="changeAnalysisPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+            <button class="pagination-btn" onclick="changeAnalysisPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>
+          </div>
+          </div>
+        </div>
+      `;
+
+    analysisResult.innerHTML = html;
+    analysisResult.style.display = 'block';
+    
+    // 保存分析数据到全局变量，供分页使用
+    window.currentAnalysisData = analysis;
+  }
+
+  // 分页切换函数
+  window.changeAnalysisPage = function(page) {
+    const analysis = window.currentAnalysisData;
+    if (!analysis) return;
+    
+    const pageSize = 20;
+    const totalRecords = analysis.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    
+    if (page < 1 || page > totalPages) return;
+    
+    const tbody = document.getElementById('analysisTableBody');
+    if (!tbody) return;
+    
+    // 清空表格内容
+    tbody.innerHTML = '';
+    
+    // 计算当前页的数据并按开奖时间从大到小排序（最新的开奖时间在前面）
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+    
+    // 渲染当前页数据
+    currentPageData.forEach(record => {
+      const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
+      const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
+      const isHitClass = record.is_hit ? 'hit-yes' : 'hit-no';
+      
+      const row = document.createElement('tr');
+      row.innerHTML = `
+          <td>${record.period}</td>
+          <td>${formatDateTime(record.open_time)}</td>
+          <td>${record.open_numbers.join(',')}</td>
+          <td>${hitNumbers}</td>
+          <td>${hitPositions}</td>
+          <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
+          <td>${record.current_miss}</td>
+          <td>${record.current_streak}</td>
+      `;
+      tbody.appendChild(row);
+    });
+    
+    // 更新分页信息
+    const paginationInfo = document.querySelector('.pagination-info');
+    if (paginationInfo) {
+      paginationInfo.textContent = `第 ${page} 页，共 ${totalPages} 页，共 ${totalRecords} 条记录`;
+    }
+    
+    // 更新分页按钮状态
+    const prevBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page - 1})"]');
+    const nextBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page + 1})"]');
+    const firstBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(1)"]');
+    const lastBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${totalPages})"]');
+    
+    if (prevBtn) prevBtn.disabled = page === 1;
+    if (nextBtn) nextBtn.disabled = page === totalPages;
+    if (firstBtn) firstBtn.disabled = page === 1;
+    if (lastBtn) lastBtn.disabled = page === totalPages;
+    
+    // 更新页码按钮
+    const pageNumbers = document.querySelectorAll('.page-number');
+    pageNumbers.forEach((btn, index) => {
+      const pageNum = parseInt(btn.textContent);
+      btn.classList.toggle('active', pageNum === page);
+    });
+  }
+
+  // 当页面切换到关注号码管理时初始化
+  setTimeout(() => {
+    const favoriteNumbersBtn = document.getElementById('menuFavoriteNumbersBtn');
+    if (favoriteNumbersBtn) {
+      favoriteNumbersBtn.onclick = function() {
+        // 高亮
+        originalBtnMap.forEach(i => {
+          const b = document.getElementById(i.btn);
+          if (b) b.classList.remove('active');
+        });
+        favoriteNumbersBtn.classList.add('active');
+        
+        // 页面切换，使用统一的页面切换逻辑
+        document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
+          div.style.display = 'none';
+        });
+        
+        const showPage = document.getElementById('favoriteNumbersPage');
+        if (showPage) showPage.style.display = '';
+        
+        // 标题切换
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) pageTitle.innerText = '关注号码管理';
+        
+        // 初始化关注号码管理
+        initFavoriteNumbers();
+      };
+    }
+  }, 0);
+
+})();
+
+// 波色分析相关代码
+let currentColorType = 'am'; // 当前选中的彩种类型
+let currentColorAnalysisResults = []; // 存储当前的分析结果
+let currentColorAnalysisPage = 1; // 当前页码
+
+// 简单的日期格式化函数
+function formatColorAnalysisDateTime(dateTime) {
+  if (!dateTime) return '';
+  if (typeof dateTime === 'string') {
+    return dateTime.replace('T', ' ').slice(0, 19);
+  }
+  return dateTime.toString();
+}
+
+// 波色定义
+const colorGroups = {
+  red: [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+  blue: [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+  green: [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+};
+
+// 获取号码所属的波色组
+function getNumberColorGroup(number) {
+  if (colorGroups.red.includes(number)) return 'red';
+  if (colorGroups.blue.includes(number)) return 'blue';
+  if (colorGroups.green.includes(number)) return 'green';
+  return null;
+}
+
+// 获取波色组的中文名称
+function getColorGroupName(color) {
+  const colorNames = {
+    red: '红组',
+    blue: '蓝组',
+    green: '绿组'
+  };
+  return colorNames[color] || '';
+}
+
+// 获取波色组的颜色样式
+function getColorGroupStyle(color) {
+  const colorStyles = {
+    red: 'color: #e74c3c; font-weight: bold;',
+    blue: 'color: #3498db; font-weight: bold;',
+    green: 'color: #27ae60; font-weight: bold;'
+  };
+  return colorStyles[color] || '';
+}
+
+// 加载波色分析
+async function loadColorAnalysis(type = 'am') {
+  console.log('开始加载波色分析，类型:', type);
+  currentColorType = type;
+  const resultDiv = document.getElementById('colorAnalysisResult');
+  const statsDiv = document.getElementById('colorAnalysisStats');
+  
+  if (!resultDiv) {
+    console.error('找不到 colorAnalysisResult 元素');
+    return;
+  }
+  
+  if (!statsDiv) {
+    console.error('找不到 colorAnalysisStats 元素');
+    return;
+  }
+  
+  resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">正在加载波色分析数据...</div>';
+  statsDiv.style.display = 'none';
+  
+  try {
+    // 获取波色分析数据
+    console.log(`正在获取${type}彩种的波色分析数据...`);
+    const response = await fetch(`${window.BACKEND_URL}/color_analysis?lottery_type=${type}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('波色分析API响应数据:', data);
+    
+    if (!data.success) {
+      console.error('波色分析API返回错误:', data.message);
+      resultDiv.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 20px;">分析失败：${data.message}</div>`;
+      return;
+    }
+    
+    const analysisData = data.data;
+    const apiAnalysisResults = analysisData.analysis_results || [];
+    const latestPrediction = analysisData.latest_prediction;
+    const stats = analysisData.stats;
+    
+    if (apiAnalysisResults.length > 0) {
+      // 使用API返回的分析结果
+      console.log('波色分析成功，结果数量:', apiAnalysisResults.length);
+      console.log('最新预测:', latestPrediction);
+      
+      // 转换数据格式以适配前端显示
+      const convertedResults = apiAnalysisResults.map(result => ({
+        currentPeriod: result.current_period,
+        currentOpenTime: result.current_open_time,
+        currentNumbers: result.current_numbers,
+        first6Sorted: result.first6_sorted,
+        secondNumber: result.second_number,
+        secondNumberColor: result.second_color,
+        nextPeriod: result.next_period,
+        nextSeventhNumber: result.next_seventh_number,
+        nextSeventhColor: result.next_seventh_color,
+        isHit: result.is_hit,
+        currentMiss: result.current_miss,
+        maxMiss: result.max_miss
+      }));
+      
+      // 存储分析结果到全局变量
+      currentColorAnalysisResults = convertedResults;
+      currentColorAnalysisPage = 1; // 重置到第一页
+      
+      // 渲染分析结果
+      renderColorAnalysisTable(convertedResults, 1);
+      
+      // 显示统计信息
+      showColorAnalysisStats(convertedResults);
+      
+      // 显示最新预测
+      if (latestPrediction) {
+        showLatestPrediction(latestPrediction);
+      }
+      
+      return; // 如果有API结果，直接返回，不进行本地分析
+    }
+    
+    // 如果没有API分析结果，显示提示信息
+    console.warn('API波色分析结果为空');
+    resultDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无分析数据，请稍后再试</div>';
+    return;
+    
+  } catch (error) {
+    console.error('波色分析加载失败:', error);
+    resultDiv.innerHTML = '<div style="text-align: center; color: #e74c3c; padding: 20px;">加载失败：' + error.message + '</div>';
+  }
+}
+
+// 执行波色分析
+function performColorAnalysis(records) {
+  const results = [];
+  let currentMiss = 0; // 当前遗漏期数
+  let maxMiss = 0; // 最大遗漏期数
+  
+  for (let i = 0; i < records.length - 1; i++) {
+    const currentRecord = records[i];
+    const nextRecord = records[i + 1];
+    
+    // 检查数据完整性
+    if (!currentRecord.open_numbers || !Array.isArray(currentRecord.open_numbers) || currentRecord.open_numbers.length < 7) {
+      console.warn(`跳过不完整的数据记录: ${currentRecord.period || '未知期数'}`);
+      continue;
+    }
+    
+    if (!nextRecord.open_numbers || !Array.isArray(nextRecord.open_numbers) || nextRecord.open_numbers.length < 7) {
+      console.warn(`跳过不完整的下期数据记录: ${nextRecord.period || '未知期数'}`);
+      continue;
+    }
+    
+    // 检查期数连续性
+    if (!isConsecutivePeriods(currentRecord.period, nextRecord.period)) {
+      console.warn(`期数不连续，跳过: ${currentRecord.period} -> ${nextRecord.period}`);
+      continue;
+    } else {
+      console.log(`期数连续: ${currentRecord.period} -> ${nextRecord.period}`);
+    }
+    
+    try {
+      // 获取当前期前6个号码并排序
+      const first6Numbers = currentRecord.open_numbers.slice(0, 6).map(num => {
+        const parsed = parseInt(num);
+        if (isNaN(parsed)) {
+          throw new Error(`无法解析号码: ${num}`);
+        }
+        return parsed;
+      }).sort((a, b) => a - b);
+      
+      // 获取第二个号码的波色组
+      const secondNumber = first6Numbers[1];
+      const secondNumberColor = getNumberColorGroup(secondNumber);
+      
+      // 获取下一期第七个号码的波色组
+      const nextSeventhNumber = parseInt(nextRecord.open_numbers[6]);
+      if (isNaN(nextSeventhNumber)) {
+        console.warn(`无法解析下期第7位号码: ${nextRecord.open_numbers[6]}`);
+        continue;
+      }
+      const nextSeventhColor = getNumberColorGroup(nextSeventhNumber);
+      
+      // 判断是否命中
+      const isHit = secondNumberColor === nextSeventhColor;
+      
+      // 更新遗漏统计
+      if (isHit) {
+        // 命中，重置当前遗漏
+        currentMiss = 0;
+      } else {
+        // 遗漏，增加当前遗漏期数
+        currentMiss++;
+        // 更新最大遗漏
+        if (currentMiss > maxMiss) {
+          maxMiss = currentMiss;
+        }
+      }
+      
+      results.push({
+        currentPeriod: currentRecord.period,
+        currentOpenTime: currentRecord.open_time,
+        currentNumbers: currentRecord.open_numbers,
+        first6Sorted: first6Numbers,
+        secondNumber: secondNumber,
+        secondNumberColor: secondNumberColor,
+        nextPeriod: nextRecord.period,
+        nextSeventhNumber: nextSeventhNumber,
+        nextSeventhColor: nextSeventhColor,
+        isHit: isHit,
+        currentMiss: currentMiss,
+        maxMiss: maxMiss
+      });
+    } catch (error) {
+      console.warn(`处理记录时出错: ${currentRecord.period}`, error);
+      continue;
+    }
+  }
+  
+  console.log('波色分析完成，结果数量:', results.length);
+  console.log('最终统计 - 当前遗漏:', currentMiss, '最大遗漏:', maxMiss);
+  return results;
+}
+
+// 检查期数是否连续
+function isConsecutivePeriods(currentPeriod, nextPeriod) {
+  if (!currentPeriod || !nextPeriod) {
+    return false;
+  }
+  
+  const current = currentPeriod.toString();
+  const next = nextPeriod.toString();
+  
+  // 如果期数长度不同，可能不是连续的
+  if (current.length !== next.length) {
+    console.log(`期数长度不同: ${current}(${current.length}) vs ${next}(${next.length})`);
+    return false;
+  }
+  
+  // 尝试解析为数字并检查连续性
+  const currentNum = parseInt(current);
+  const nextNum = parseInt(next);
+  
+  if (isNaN(currentNum) || isNaN(nextNum)) {
+    console.log(`期数解析失败: ${current} -> ${next}`);
+    return false;
+  }
+  
+  // 检查是否是连续的期数（相差1）
+  const isConsecutive = nextNum === currentNum + 1;
+  if (!isConsecutive) {
+    console.log(`期数不连续: ${currentNum} + 1 = ${currentNum + 1}, 但下一期是 ${nextNum}`);
+  }
+  
+  return isConsecutive;
+}
+
+// 渲染波色分析表格
+function renderColorAnalysisTable(results, page = 1) {
+  const resultDiv = document.getElementById('colorAnalysisResult');
+  
+  if (!results || !Array.isArray(results) || results.length === 0) {
+    resultDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无分析数据</div>';
+    return;
+  }
+  
+  // 对结果按期数从大到小排序
+  const sortedResults = [...results].sort((a, b) => {
+    const periodA = parseInt(a.currentPeriod) || 0;
+    const periodB = parseInt(b.currentPeriod) || 0;
+    return periodB - periodA; // 从大到小排序
+  });
+  
+  const pageSize = 20;
+  const totalRecords = sortedResults.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  
+  // 确保页码在有效范围内
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  
+  // 计算当前页的数据
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentPageData = sortedResults.slice(startIndex, endIndex);
+  
+  let html = `
+    <div style="margin-bottom: 16px;">
+      <button id="exportColorAnalysisBtn" class="btn-secondary">导出分析</button>
+    </div>
+    <div class="table-container">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>当前期数</th>
+            <th>开奖时间</th>
+            <th>开奖号码</th>
+            <th>前6码排序</th>
+            <th>第2位号码</th>
+            <th>第2位波色</th>
+            <th>下期期数</th>
+            <th>下期第7位</th>
+            <th>下期第7位波色</th>
+            <th>是否命中</th>
+            <th>当前遗漏</th>
+            <th>最大遗漏</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  currentPageData.forEach(result => {
+    // 验证结果项的数据完整性
+    if (!result || typeof result.isHit !== 'boolean') {
+      console.warn('跳过无效的分析结果项:', result);
+      return;
+    }
+    
+    const hitClass = result.isHit ? 'hit-yes' : 'hit-no';
+    const hitText = result.isHit ? '命中' : '遗漏';
+    
+    // 安全地获取数据，提供默认值
+    const currentPeriod = result.currentPeriod || '未知';
+    const currentOpenTime = result.currentOpenTime ? formatColorAnalysisDateTime(result.currentOpenTime) : '未知';
+    const currentNumbers = Array.isArray(result.currentNumbers) ? result.currentNumbers.join(',') : '未知';
+    const first6Sorted = Array.isArray(result.first6Sorted) ? result.first6Sorted.join(',') : '未知';
+    const secondNumber = result.secondNumber ? result.secondNumber.toString().padStart(2, '0') : '未知';
+    const secondNumberColor = result.secondNumberColor || '未知';
+    const nextPeriod = result.nextPeriod || '未知';
+    const nextSeventhNumber = result.nextSeventhNumber ? result.nextSeventhNumber.toString().padStart(2, '0') : '未知';
+    const nextSeventhColor = result.nextSeventhColor || '未知';
+    const currentMiss = result.currentMiss !== undefined ? result.currentMiss : 0;
+    const maxMiss = result.maxMiss !== undefined ? result.maxMiss : 0;
+    
+          html += `
+        <tr>
+          <td>${currentPeriod}</td>
+          <td>${currentOpenTime}</td>
+          <td>${currentNumbers}</td>
+          <td>${first6Sorted}</td>
+          <td>${secondNumber}</td>
+          <td style="${getColorGroupStyle(secondNumberColor)}">${getColorGroupName(secondNumberColor)}</td>
+          <td>${nextPeriod}</td>
+          <td>${nextSeventhNumber}</td>
+          <td style="${getColorGroupStyle(nextSeventhColor)}">${getColorGroupName(nextSeventhColor)}</td>
+          <td class="${hitClass}">${hitText}</td>
+          <td class="${currentMiss > 0 ? 'miss-highlight' : ''}">${currentMiss}</td>
+          <td>${maxMiss}</td>
+        </tr>
+      `;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  // 添加分页控件
+  if (totalPages > 1) {
+    html += `
+      <div class="pagination-container" style="margin-top: 20px;">
+        <div class="pagination-info">
+          <span>显示 ${startIndex + 1}-${Math.min(endIndex, totalRecords)} 条，共 ${totalRecords} 条记录</span>
+        </div>
+        <div class="pagination-controls">
+          <button class="pagination-btn" onclick="changeColorAnalysisPage(1)" ${page === 1 ? 'disabled' : ''}>首页</button>
+          <button class="pagination-btn" onclick="changeColorAnalysisPage(${page - 1})" ${page === 1 ? 'disabled' : ''}>上一页</button>
+          <span class="page-numbers">
+    `;
+    
+    // 生成页码按钮
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const activeClass = i === page ? 'active' : '';
+      html += `<button class="page-number ${activeClass}" onclick="changeColorAnalysisPage(${i})">${i}</button>`;
+    }
+    
+    html += `
+          </span>
+          <button class="pagination-btn" onclick="changeColorAnalysisPage(${page + 1})" ${page === totalPages ? 'disabled' : ''}>下一页</button>
+          <button class="pagination-btn" onclick="changeColorAnalysisPage(${totalPages})" ${page === totalPages ? 'disabled' : ''}>末页</button>
+        </div>
+      </div>
+    `;
+  }
+  
+  resultDiv.innerHTML = html;
+  
+  // 绑定按钮事件
+  bindColorAnalysisEvents();
+  
+  // 更新统计信息（基于当前页数据）
+  updateColorAnalysisStats(results, currentPageData);
+}
+
+// 显示波色分析统计信息
+function showColorAnalysisStats(results) {
+  const statsDiv = document.getElementById('colorAnalysisStats');
+  
+  if (!results || !Array.isArray(results) || results.length === 0) {
+    statsDiv.style.display = 'none';
+    return;
+  }
+  
+  updateColorAnalysisStats(results, results);
+  statsDiv.style.display = 'block';
+}
+
+// 更新波色分析统计信息
+function updateColorAnalysisStats(allResults, currentPageResults = []) {
+  const statsDiv = document.getElementById('colorAnalysisStats');
+  
+  if (!statsDiv) return;
+  
+  // 总体统计
+  const totalPeriods = allResults.length;
+  const totalHitCount = allResults.filter(r => r && r.isHit).length;
+  const totalMissCount = totalPeriods - totalHitCount;
+  const totalHitRate = totalPeriods > 0 ? ((totalHitCount / totalPeriods) * 100).toFixed(2) : '0.00';
+  
+  // 遗漏统计
+  const currentMiss = allResults.length > 0 ? (allResults[allResults.length - 1]?.currentMiss || 0) : 0;
+  const maxMiss = allResults.length > 0 ? Math.max(...allResults.map(r => r?.maxMiss || 0)) : 0;
+  
+  // 当前页统计
+  const pageHitCount = currentPageResults.filter(r => r && r.isHit).length;
+  const pageMissCount = currentPageResults.length - pageHitCount;
+  const pageHitRate = currentPageResults.length > 0 ? ((pageHitCount / currentPageResults.length) * 100).toFixed(2) : '0.00';
+  
+  // 更新总体统计
+  const totalColorPeriodsEl = document.getElementById('totalColorPeriods');
+  const colorHitCountEl = document.getElementById('colorHitCount');
+  const colorMissCountEl = document.getElementById('colorMissCount');
+  const colorHitRateEl = document.getElementById('colorHitRate');
+  
+  if (totalColorPeriodsEl) totalColorPeriodsEl.textContent = totalPeriods;
+  if (colorHitCountEl) colorHitCountEl.textContent = totalHitCount;
+  if (colorMissCountEl) colorMissCountEl.textContent = totalMissCount;
+  if (colorHitRateEl) colorHitRateEl.textContent = totalHitRate + '%';
+  
+  // 添加遗漏统计到总体统计区域
+  const overallStatsSection = statsDiv.querySelector('.stats-section:first-child .stats-grid');
+  if (overallStatsSection) {
+    // 检查是否已经有遗漏统计，如果没有则添加
+    const existingMissStats = overallStatsSection.querySelector('.stats-item[data-miss-stat]');
+    if (!existingMissStats) {
+      const missStatsHtml = `
+        <div class="stats-item" data-miss-stat>
+          <span class="stats-label">当前遗漏：</span>
+          <span class="stats-value miss-highlight">${currentMiss}</span>
+        </div>
+        <div class="stats-item" data-miss-stat>
+          <span class="stats-label">最大遗漏：</span>
+          <span class="stats-value">${maxMiss}</span>
+        </div>
+      `;
+      overallStatsSection.innerHTML += missStatsHtml;
+    } else {
+      // 更新现有的遗漏统计
+      const missItems = overallStatsSection.querySelectorAll('.stats-item[data-miss-stat]');
+      if (missItems.length >= 2) {
+        missItems[0].querySelector('.stats-value').textContent = currentMiss;
+        missItems[1].querySelector('.stats-value').textContent = maxMiss;
+      }
+    }
+  }
+  
+  // 添加当前页统计
+  const pageStatsHtml = `
+    <div class="stats-section">
+      <h3 class="stats-title">当前页统计</h3>
+      <div class="stats-grid">
+        <div class="stats-item">
+          <span class="stats-label">本页记录数：</span>
+          <span class="stats-value">${currentPageResults.length}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">本页命中：</span>
+          <span class="stats-value">${pageHitCount}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">本页遗漏：</span>
+          <span class="stats-value">${pageMissCount}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">本页命中率：</span>
+          <span class="stats-value">${pageHitRate}%</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 查找或创建当前页统计区域
+  let pageStatsSection = statsDiv.querySelector('.stats-section:last-child');
+  if (!pageStatsSection || !pageStatsSection.querySelector('.stats-title').textContent.includes('当前页统计')) {
+    // 如果没有当前页统计区域，添加一个
+    statsDiv.innerHTML += pageStatsHtml;
+  } else {
+    // 更新现有的当前页统计
+    pageStatsSection.innerHTML = pageStatsHtml;
+  }
+}
+
+// 绑定波色分析事件
+function bindColorAnalysisEvents() {
+  // 彩种切换按钮
+  const colorTypeBtns = document.querySelectorAll('.color-analysis-type-btn');
+  colorTypeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      colorTypeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const type = this.dataset.type;
+      currentColorType = type;
+    });
+  });
+  
+  // 开始分析按钮
+  const startBtn = document.getElementById('startColorAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      loadColorAnalysis(currentColorType);
+    });
+  }
+  
+  // 导出分析按钮
+  const exportBtn = document.getElementById('exportColorAnalysisBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      exportColorAnalysis();
+    });
+  }
+}
+
+// 导出波色分析
+function exportColorAnalysis() {
+  // 这里可以实现导出功能
+  alert('导出功能待实现');
+}
+
+// 初始化波色分析
+function initColorAnalysis() {
+  // 绑定彩种切换按钮事件
+  const colorTypeBtns = document.querySelectorAll('.color-analysis-type-btn');
+  colorTypeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      colorTypeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const type = this.dataset.type;
+      currentColorType = type;
+    });
+  });
+  
+  // 绑定开始分析按钮事件
+  const startBtn = document.getElementById('startColorAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      loadColorAnalysis(currentColorType);
+    });
+  }
+}
+
+// 分页切换函数
+function changeColorAnalysisPage(page) {
+  if (!currentColorAnalysisResults || currentColorAnalysisResults.length === 0) {
+    console.warn('没有分析数据可供分页');
+    return;
+  }
+  
+  const pageSize = 20;
+  const totalPages = Math.ceil(currentColorAnalysisResults.length / pageSize);
+  
+  if (page < 1 || page > totalPages) {
+    console.warn('页码超出范围:', page);
+    return;
+  }
+  
+  currentColorAnalysisPage = page;
+  renderColorAnalysisTable(currentColorAnalysisResults, page);
+}
+
+// 显示最新预测
+function showLatestPrediction(prediction) {
+  const resultDiv = document.getElementById('colorAnalysisResult');
+  if (!resultDiv || !prediction) return;
+  
+  const predictionHtml = `
+    <div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+      <h3 style="margin: 0 0 10px 0; color: white;">最新预测</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div>
+          <strong>当前期数：</strong>${prediction.current_period}
+        </div>
+        <div>
+          <strong>下期期数：</strong>${prediction.next_period}
+        </div>
+        <div>
+          <strong>第2位号码：</strong>${prediction.second_number.toString().padStart(2, '0')}
+        </div>
+        <div>
+          <strong>第2位波色：</strong><span style="${getColorGroupStyle(prediction.second_color)}">${getColorGroupName(prediction.second_color)}</span>
+        </div>
+        <div>
+          <strong>预测波色：</strong><span style="${getColorGroupStyle(prediction.predicted_color)}">${getColorGroupName(prediction.predicted_color)}</span>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-style: italic; opacity: 0.9;">
+        ${prediction.prediction_basis}
+      </div>
+    </div>
+  `;
+  
+  // 在表格前插入预测信息
+  const tableContainer = resultDiv.querySelector('.table-container');
+  if (tableContainer) {
+    tableContainer.insertAdjacentHTML('beforebegin', predictionHtml);
+  } else {
+    resultDiv.insertAdjacentHTML('afterbegin', predictionHtml);
+  }
+}
+
+// 页面加载完成后初始化波色分析
+document.addEventListener('DOMContentLoaded', function() {
+  initColorAnalysis();
+});
+
+// ==================== 推荐8码命中情况分析功能 ====================
+
+// 全局变量
+let selectedPosition = 7; // 当前选择的位置
+
+// 位置选择函数
+function selectPosition(position) {
+  selectedPosition = position;
+  
+  // 更新按钮状态
+  document.querySelectorAll('.position-select-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-position="${position}"]`).classList.add('active');
+  
+  // 更新显示文本
+  const selectedPositionText = document.getElementById('selectedPositionText');
+  if (selectedPositionText) {
+    selectedPositionText.textContent = `第${position}位`;
+  }
+  
+  console.log(`已选择位置：第${position}位`);
+}
+
+// 初始化推荐8码命中情况分析
+function initRecommendHitAnalysis() {
+  console.log('初始化推荐8码命中情况分析...');
+  
+  // 绑定彩种切换按钮事件
+  const typeBtns = document.querySelectorAll('.recommend-hit-type-btn');
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      typeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  
+  // 绑定分析按钮事件
+  const analyzeBtn = document.getElementById('analyzeRecommendHitBtn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', function() {
+      const activeBtn = document.querySelector('.recommend-hit-type-btn.active');
+      const lotteryType = activeBtn ? activeBtn.dataset.type : 'am';
+      analyzeRecommendHit(lotteryType);
+    });
+  }
+  
+  // 显示初始提示
+  const resultDiv = document.getElementById('recommendHitResult');
+  if (resultDiv) {
+    resultDiv.innerHTML = `
+      <div style="text-align:center;color:#888;padding:20px;">
+        点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况<br>
+        <small style="color:#666;margin-top:10px;display:block;">
+          <strong>注意：</strong>每个位置的8个推荐号码只与对应位置的开奖号码比较<br>
+          <strong>新功能：</strong>支持选择特定位置，并统计近100期按5期周期的开奖情况
+        </small>
+      </div>
+    `;
+  }
+}
+
+// 分析推荐8码命中情况
+async function analyzeRecommendHit(lotteryType) {
+  console.log(`开始分析${lotteryType}彩种的推荐8码命中情况...`);
+  
+  const resultDiv = document.getElementById('recommendHitResult');
+  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">正在获取推荐历史数据...</div>';
+  
+  try {
+    // 获取推荐历史数据
+    const response = await fetch(`${window.BACKEND_URL}/api/recommend_history?lottery_type=${lotteryType}`);
+    const data = await response.json();
+    
+    if (data.success && data.data && data.data.length > 0) {
+      console.log('获取到推荐历史数据:', data.data);
+      // 显示期数选择界面
+      renderRecommendPeriodSelection(data.data, lotteryType);
+    } else {
+      // 如果没有历史数据，尝试获取最新推荐
+      console.log('没有历史推荐数据，尝试获取最新推荐...');
+      const recommendResponse = await fetch(`${window.BACKEND_URL}/recommend?lottery_type=${lotteryType}`);
+      const recommendData = await recommendResponse.json();
+      
+      if (recommendData.recommend && recommendData.latest_period) {
+        console.log('获取到最新推荐数据:', recommendData);
+        await analyzeSingleRecommend(recommendData, lotteryType);
+      } else {
+        resultDiv.innerHTML = '<div style="text-align:center;color:red;padding:20px;">暂无推荐数据</div>';
+      }
+    }
+  } catch (error) {
+    console.error('分析推荐命中情况失败:', error);
+    resultDiv.innerHTML = `<div style="text-align:center;color:red;padding:20px;">分析失败：${error.message}</div>`;
+  }
+}
+
+// 分析单个推荐数据
+async function analyzeSingleRecommend(recommendData, lotteryType) {
+  console.log('分析单个推荐数据:', recommendData);
+  
+  const resultDiv = document.getElementById('recommendHitResult');
+  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">正在分析命中情况...</div>';
+  
+  try {
+    // 获取开奖记录数据（近100期）
+    const recordsResponse = await fetch(`${window.BACKEND_URL}/records?lottery_type=${lotteryType}&page_size=100`);
+    const recordsData = await recordsResponse.json();
+    
+    if (!recordsData.records || recordsData.records.length === 0) {
+      resultDiv.innerHTML = '<div style="text-align:center;color:red;padding:20px;">暂无开奖记录数据</div>';
+      return;
+    }
+    
+    // 找到推荐期数在记录中的位置
+    const recommendPeriod = recommendData.latest_period;
+    const recommendIndex = recordsData.records.findIndex(record => record.period === recommendPeriod);
+    
+    if (recommendIndex === -1) {
+      resultDiv.innerHTML = '<div style="text-align:center;color:red;padding:20px;">未找到推荐期数的开奖记录</div>';
+      return;
+    }
+    
+    // 分析前后10期的命中情况
+    const startIndex = Math.max(0, recommendIndex - 10);
+    const endIndex = Math.min(recordsData.records.length, recommendIndex + 11);
+    const allRecords = recordsData.records.slice(startIndex, endIndex);
+    
+    console.log(`分析范围：第${startIndex}期到第${endIndex}期，共${allRecords.length}期`);
+    
+    // 分析每期的命中情况
+    const periodAnalysis = [];
+    const recommendNumbers = recommendData.recommend;
+    
+    allRecords.forEach((record, index) => {
+      const period = record.period;
+      const openNumbers = record.numbers.split(',').map(n => n.trim());
+      const periodResult = {
+        period: period,
+        openTime: record.open_time,
+        openNumbers: openNumbers,
+        positions: []
+      };
+      
+      // 分析每个位置的命中情况
+      for (let pos = 0; pos < Math.min(7, recommendNumbers.length); pos++) {
+        const recommendNums = recommendNumbers[pos];
+        if (recommendNums && Array.isArray(recommendNums)) {
+          // 只与对应位置的开奖号码比较，不跨位置
+          const openNumberAtPosition = openNumbers[pos];
+          const isHit = recommendNums.includes(openNumberAtPosition);
+          const hitNumbers = isHit ? [openNumberAtPosition] : [];
+          const hitCount = isHit ? 1 : 0;
+          const hitRate = (hitCount / recommendNums.length * 100).toFixed(2);
+          
+          // 调试信息
+          console.log(`位置${pos + 1}: 推荐号码[${recommendNums.join(',')}], 开奖号码${openNumberAtPosition}, 是否命中: ${isHit}`);
+          
+          periodResult.positions.push({
+            position: pos + 1,
+            recommendNumbers: recommendNums,
+            openNumberAtPosition: openNumberAtPosition,
+            hitNumbers: hitNumbers,
+            hitCount: hitCount,
+            hitRate: hitRate,
+            isHit: isHit
+          });
+        }
+      }
+      
+      periodAnalysis.push(periodResult);
+    });
+    
+    // 分组分析结果
+    const beforeRecommend = periodAnalysis.slice(0, recommendIndex - startIndex);
+    const afterRecommend = periodAnalysis.slice(recommendIndex - startIndex + 1);
+    
+    console.log('分析完成，分组结果:', { beforeRecommend, afterRecommend });
+    
+    // 渲染分析结果
+    renderRecommendHitAnalysis(periodAnalysis, recommendData, lotteryType, beforeRecommend, afterRecommend);
+    
+    // 额外分析：近100期按5期周期的统计
+    await analyzeRecent100Periods(recordsData.records, lotteryType);
+    
+  } catch (error) {
+    console.error('分析单个推荐失败:', error);
+    resultDiv.innerHTML = `<div style="text-align:center;color:red;padding:20px;">分析失败：${error.message}</div>`;
+  }
+}
+
+// 渲染推荐期数选择界面
+function renderRecommendPeriodSelection(recommendPeriods, lotteryType) {
+  const resultDiv = document.getElementById('recommendHitResult');
+  
+  let html = `
+    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
+      <h3 style="color: #2980d9; margin: 0 0 15px 0;">📅 选择要分析的推荐期数</h3>
+      <div style="margin-bottom: 15px;">
+        <strong>彩种：</strong>${lotteryType === 'am' ? '澳门' : '香港'}
+        <br><strong>共有推荐期数：</strong>${recommendPeriods.length}期
+      </div>
+    </div>
+    
+    <!-- 位置选择区域 -->
+    <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+      <h4 style="color: #856404; margin: 0 0 15px 0;">🎯 选择要分析的位置</h4>
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 15px;">
+        <button class="position-select-btn" data-position="1" onclick="selectPosition(1)">第1位</button>
+        <button class="position-select-btn" data-position="2" onclick="selectPosition(2)">第2位</button>
+        <button class="button position-select-btn" data-position="3" onclick="selectPosition(3)">第3位</button>
+        <button class="position-select-btn" data-position="4" onclick="selectPosition(4)">第4位</button>
+        <button class="position-select-btn" data-position="5" onclick="selectPosition(5)">第5位</button>
+        <button class="position-select-btn" data-position="6" onclick="selectPosition(6)">第6位</button>
+        <button class="position-select-btn active" data-position="7" onclick="selectPosition(7)">第7位</button>
+      </div>
+      <div style="font-size: 12px; color: #666;">
+        <em>当前选择：<span id="selectedPositionText">第7位</span></em>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: #2980d9; margin-bottom: 15px;">推荐期数列表</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+  `;
+  
+  // 按期数倒序排列（最新的在前面）
+  const sortedPeriods = recommendPeriods.sort((a, b) => {
+    const periodA = parseInt(a.period) || 0;
+    const periodB = parseInt(b.period) || 0;
+    return periodB - periodA;
+  });
+  
+  sortedPeriods.forEach((periodData, index) => {
+    const period = periodData.period;
+    const createdAt = periodData.created_at ? new Date(periodData.created_at).toLocaleString() : '未知时间';
+    const isLatest = index === 0;
+    
+    html += `
+      <div style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s; ${isLatest ? 'border-color: #28a745; background: #f8fff9;' : ''}" 
+           onclick="selectRecommendPeriod('${period}', '${lotteryType}')">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h5 style="margin: 0; color: #2980d9;">期数：${period}</h5>
+          ${isLatest ? '<span style="color: #28a745; font-weight: bold; font-size: 12px;">最新</span>' : ''}
+        </div>
+        <div style="font-size: 14px; color: #666;">
+          <div>生成时间：${createdAt}</div>
+          <div>位置数量：7个</div>
+        </div>
+        <div style="margin-top: 10px; text-align: center;">
+          <button class="btn-primary" style="width: 100%;" onclick="event.stopPropagation(); selectRecommendPeriod('${period}', '${lotteryType}')">
+            分析此期命中情况
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #27ae60;">
+      <h4 style="color: #27ae60; margin: 0 0 10px 0;">💡 使用说明</h4>
+      <p style="margin: 0; color: #155724;">
+        1. 点击任意推荐期数卡片或"分析此期命中情况"按钮<br>
+        2. 系统将分析该期推荐8码前后各10期的命中情况<br>
+        3. <strong>每个位置的8个推荐号码只与对应位置的开奖号码比较</strong><br>
+        4. 可以对比不同期数的推荐效果<br>
+        5. 最新期数会以绿色边框标识
+      </p>
+    </div>
+  `;
+  
+  resultDiv.innerHTML = html;
+}
+
+// 选择推荐期数进行分析
+async function selectRecommendPeriod(period, lotteryType) {
+  const resultDiv = document.getElementById('recommendHitResult');
+  resultDiv.innerHTML = `正在分析期数 ${period} 的推荐8码命中情况...`;
+  
+  try {
+    // 获取指定期数的推荐8码数据
+    const recommendRes = await fetch(`${window.BACKEND_URL}/api/recommend_by_period?lottery_type=${lotteryType}&period=${period}`);
+    const recommendData = await recommendRes.json();
+    
+    if (!recommendData.success || !recommendData.data) {
+      resultDiv.innerHTML = '<span style="color:red;">获取推荐数据失败</span>';
+      return;
+    }
+    
+    // 构造推荐数据格式
+    const recommendInfo = {
+      recommend: recommendData.data.recommend_numbers,
+      latest_period: period
+    };
+    
+    // 分析该期推荐
+    await analyzeSingleRecommend(recommendInfo, lotteryType);
+    
+  } catch (error) {
+    resultDiv.innerHTML = `<span style="color:red;">分析失败：${error.message}</span>`;
+    console.error('分析指定期数推荐失败:', error);
+  }
+}
+
+// 渲染推荐命中情况分析结果
+function renderRecommendHitAnalysis(analysisResults, recommendData, lotteryType, beforeRecommend, afterRecommend) {
+  const resultDiv = document.getElementById('recommendHitResult');
+  
+  let html = `
+    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+      <h3 style="color: #1976d2; margin: 0 0 15px 0;">🎯 推荐8码命中情况分析结果</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div>
+          <strong>彩种：</strong>${lotteryType === 'am' ? '澳门' : '香港'}
+        </div>
+        <div>
+          <strong>推荐期数：</strong>${recommendData.latest_period}
+        </div>
+        <div>
+          <strong>分析范围：</strong>前后各10期
+        </div>
+        <div>
+          <strong>总分析期数：</strong>${analysisResults.length}期
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+      <button id="exportAnalysisBtn" class="btn-secondary">导出分析结果</button>
+    </div>
+  `;
+  
+  // 推荐期号之前的期数分析
+  if (beforeRecommend && beforeRecommend.length > 0) {
+    const beforeStats = calculateGroupStats(beforeRecommend);
+    html += `
+      <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <h4 style="color: #856404; margin: 0 0 15px 0;">📊 推荐期号之前的期数分析（${beforeRecommend.length}期）</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+          <div>
+            <strong>总命中次数：</strong>${beforeStats.totalHits}
+          </div>
+          <div>
+            <strong>总位置数：</strong>${beforeStats.totalPositions}
+          </div>
+          <div>
+            <strong>整体命中率：</strong>${beforeStats.overallHitRate}%
+          </div>
+          <div>
+            <strong>平均每期命中：</strong>${beforeStats.avgHitsPerPeriod}
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 10px;">
+          <em>说明：每个位置的8个推荐号码只与对应位置的开奖号码比较</em>
+        </div>
+      </div>
+    `;
+    
+    html += renderPeriodGroupAnalysis(beforeRecommend, '推荐期号之前的期数详细分析');
+  }
+  
+  // 推荐期号信息
+  html += `
+    <div style="margin-bottom: 20px; padding: 15px; background: #d1ecf1; border-radius: 8px; border-left: 4px solid #17a2b8;">
+      <h4 style="color: #0c5460; margin: 0 0 15px 0;">🎯 推荐期号信息</h4>
+      <div style="margin-bottom: 15px;">
+        <strong>期数：</strong>${recommendData.latest_period}
+        <br><strong>彩种：</strong>${lotteryType === 'am' ? '澳门' : '香港'}
+        <br><strong>推荐时间：</strong>${new Date().toLocaleString()}
+        <br><strong>第${selectedPosition}位推荐8码：</strong>
+        <span style="background: #f8f9fa; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: #2980d9;">
+          ${recommendData.recommend && recommendData.recommend[selectedPosition - 1] ? 
+            recommendData.recommend[selectedPosition - 1].join(',') : '暂无推荐数据'}
+        </span>
+      </div>
+    </div>
+  `;
+  
+  // 推荐期号之后的期数分析
+  if (afterRecommend && afterRecommend.length > 0) {
+    const afterStats = calculateGroupStats(afterRecommend);
+    html += `
+      <div style="margin-bottom: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+        <h4 style="color: #155724; margin: 0 0 15px 0;">📊 推荐期号之后的期数分析（${afterRecommend.length}期）</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+          <div>
+            <strong>总命中次数：</strong>${afterStats.totalHits}
+          </div>
+          <div>
+            <strong>总位置数：</strong>${afterStats.totalPositions}
+          </div>
+          <div>
+            <strong>整体命中率：</strong>${afterStats.overallHitRate}%
+          </div>
+          <div>
+            <strong>平均每期命中：</strong>${afterStats.avgHitsPerPeriod}
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 10px;">
+          <em>说明：每个位置的8个推荐号码只与对应位置的开奖号码比较</em>
+        </div>
+      </div>
+    `;
+    
+    html += renderPeriodGroupAnalysis(afterRecommend, '推荐期号之后的期数详细分析');
+  }
+  
+  resultDiv.innerHTML = html;
+  
+  // 绑定导出按钮事件
+  const exportBtn = document.getElementById('exportAnalysisBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      exportRecommendAnalysis(analysisResults, recommendData, lotteryType);
+    });
+  }
+}
+
+// 计算分组统计信息
+function calculateGroupStats(groupData) {
+  let totalHits = 0;
+  let totalPositions = 0;
+  
+  groupData.forEach(period => {
+    period.positions.forEach(pos => {
+      totalHits += pos.hitCount;
+      totalPositions += 1; // 每个位置只算1次，因为只比较对应位置
+    });
+  });
+  
+  const overallHitRate = totalPositions > 0 ? (totalHits / totalPositions * 100).toFixed(2) : '0.00';
+  const avgHitsPerPeriod = groupData.length > 0 ? (totalHits / groupData.length).toFixed(2) : '0.00';
+  
+  return {
+    totalHits,
+    totalPositions,
+    overallHitRate,
+    avgHitsPerPeriod
+  };
+}
+
+// 渲染期数分组分析表格
+function renderPeriodGroupAnalysis(groupData, groupTitle) {
+  let html = `
+    <div style="margin-bottom: 20px;">
+      <h5 style="color: #495057; margin-bottom: 10px;">${groupTitle}（第${selectedPosition}位）</h5>
+      <div class="table-container">
+        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>期数</th>
+              <th>开奖时间</th>
+              <th>开奖号码</th>
+              <th>第${selectedPosition}位号码</th>
+              <th>推荐8码</th>
+              <th>第${selectedPosition}位分析</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+  
+  groupData.forEach((period, index) => {
+    const periodLabel = groupTitle.includes('之前') ? `前${groupData.length - index}期` : `后${index + 1}期`;
+    
+    // 只显示选择位置的数据
+    const posData = period.positions[selectedPosition - 1];
+    
+    // 获取开奖号码和推荐号码
+    const openNumber = period.openNumbers[selectedPosition - 1] || '-';
+    const recommendNumbers = posData ? posData.recommendNumbers.join(',') : '暂无推荐数据';
+    
+    html += `
+      <tr>
+        <td>${period.period}</td>
+        <td>${period.openTime}</td>
+        <td>${period.openNumbers.join(',')}</td>
+        <td>${openNumber}</td>
+        <td style="background: #f8f9fa; font-weight: bold; color: #2980d9;">${recommendNumbers}</td>
+    `;
+    
+    if (posData) {
+      const hitClass = posData.isHit ? 'hit-yes' : 'hit-no';
+      const hitText = posData.isHit ? '命中' : '未中';
+      html += `<td class="${hitClass}">
+        <div style="color: ${posData.isHit ? '#28a745' : '#dc3545'}; font-weight: bold;">
+          ${hitText} (${posData.hitRate}%)
+        </div>
+      </td>`;
+    } else {
+      html += '<td>-</td>';
+    }
+    
+    html += '</tr>';
+  });
+  
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+// 分析近100期按5期周期的统计
+async function analyzeRecent100Periods(records, lotteryType) {
+  console.log('开始分析近100期按5期周期的统计...');
+  
+  if (!records || records.length === 0) {
+    console.log('没有记录数据可供分析');
+    return;
+  }
+  
+  // 获取推荐数据用于判断命中
+  let recommendData = null;
+  try {
+    // 尝试获取最新的推荐数据
+    const recommendResponse = await fetch(`${window.BACKEND_URL}/recommend?lottery_type=${lotteryType}`);
+    const recommendResult = await recommendResponse.json();
+    if (recommendResult.recommend && recommendResult.latest_period) {
+      recommendData = recommendResult;
+    }
+  } catch (error) {
+    console.log('获取推荐数据失败，将使用开奖号码进行基础分析');
+  }
+  
+  // 按0和5尾数期数分组
+  const periodGroups = [];
+  let currentGroup = [];
+  let groupIndex = 1;
+  
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    const period = record.period;
+    
+    // 检查期数是否以0或5结尾
+    const isPeriodEnd = period.endsWith('0') || period.endsWith('5');
+    
+    if (isPeriodEnd && currentGroup.length > 0) {
+      // 遇到0或5结尾的期数，且当前组有数据，则结束当前组
+      periodGroups.push({
+        groupIndex: groupIndex++,
+        periods: currentGroup,
+        startPeriod: currentGroup[0].period,
+        endPeriod: currentGroup[currentGroup.length - 1].period,
+        records: currentGroup,
+        isCompleteGroup: currentGroup.length === 5
+      });
+      currentGroup = [record]; // 开始新组
+    } else {
+      // 添加到当前组
+      currentGroup.push(record);
+      
+      // 如果当前组达到5期，或者到达最后一条记录，则结束当前组
+      if (currentGroup.length === 5 || i === records.length - 1) {
+        periodGroups.push({
+          groupIndex: groupIndex++,
+          periods: currentGroup,
+          startPeriod: currentGroup[0].period,
+          endPeriod: currentGroup[currentGroup.length - 1].period,
+          records: currentGroup,
+          isCompleteGroup: currentGroup.length === 5
+        });
+        currentGroup = []; // 重置当前组
+      }
+    }
+  }
+  
+  // 如果还有未处理的记录，添加到最后一组
+  if (currentGroup.length > 0) {
+    periodGroups.push({
+      groupIndex: groupIndex,
+      periods: currentGroup,
+      startPeriod: currentGroup[0].period,
+      endPeriod: currentGroup[currentGroup.length - 1].period,
+      records: currentGroup,
+      isCompleteGroup: currentGroup.length === 5
+    });
+  }
+  
+  console.log(`近${records.length}期按0/5尾数分组，共${periodGroups.length}组`);
+  console.log('分组详情:', periodGroups.map(g => `${g.startPeriod}-${g.endPeriod}(${g.records.length}期)`));
+  
+  // 渲染近100期统计结果
+  renderRecent100PeriodsAnalysis(periodGroups, lotteryType, recommendData);
+}
+
+// 渲染近100期按5期周期的分析结果
+function renderRecent100PeriodsAnalysis(periodGroups, lotteryType, recommendData) {
+  const resultDiv = document.getElementById('recommendHitResult');
+  
+  let html = `
+    <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #6f42c1;">
+      <h3 style="color: #6f42c1; margin: 0 0 20px 0;">📊 近100期按0/5尾数分组统计（第${selectedPosition}位）</h3>
+      
+      <div style="margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>总期数：</strong>${periodGroups.reduce((sum, group) => sum + group.records.length, 0)}期
+          </div>
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>分组数：</strong>${periodGroups.length}组
+          </div>
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>分析位置：</strong>第${selectedPosition}位
+          </div>
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>推荐数据：</strong>${recommendData ? '已获取' : '未获取'}
+          </div>
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>分组规则：</strong>以0/5尾数期数为界
+          </div>
+          <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <strong>推荐8码：</strong>
+            ${recommendData && recommendData.recommend && recommendData.recommend[selectedPosition - 1] ? 
+              recommendData.recommend[selectedPosition - 1].join(',') : '暂无推荐数据'}
+          </div>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>周期组</th>
+              <th>期数范围</th>
+              <th>期数</th>
+              <th>开奖号码</th>
+              <th>第${selectedPosition}位号码</th>
+              <th>推荐8码</th>
+              <th>是否命中</th>
+              <th>命中详情</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+  
+  let totalHits = 0;
+  let totalPeriods = 0;
+  
+  periodGroups.forEach((group, index) => {
+    // 获取第selectedPosition位的开奖号码
+    const positionNumbers = group.records.map(record => {
+      const numbers = record.numbers.split(',').map(n => n.trim());
+      return numbers[selectedPosition - 1] || '-';
+    });
+    
+    // 计算命中情况
+    let groupHits = 0;
+    let groupDetails = [];
+    
+    group.records.forEach((record, recordIndex) => {
+      const numbers = record.numbers.split(',').map(n => n.trim());
+      const positionNumber = numbers[selectedPosition - 1];
+      
+      if (positionNumber && recommendData && recommendData.recommend) {
+        // 检查是否命中推荐号码
+        const recommendNums = recommendData.recommend[selectedPosition - 1];
+        if (recommendNums && Array.isArray(recommendNums)) {
+          const isHit = recommendNums.includes(positionNumber);
+          if (isHit) {
+            groupHits++;
+            groupDetails.push(`第${recordIndex + 1}期: ${positionNumber} ✓`);
+          } else {
+            groupDetails.push(`第${recordIndex + 1}期: ${positionNumber} ✗`);
+          }
+        } else {
+          groupDetails.push(`第${recordIndex + 1}期: ${positionNumber} -`);
+        }
+      } else {
+        groupDetails.push(`第${recordIndex + 1}期: ${positionNumber || '-'} -`);
+      }
+      
+      totalPeriods++;
+    });
+    
+    // 计算命中率
+    const hitRate = group.records.length > 0 ? ((groupHits / group.records.length) * 100).toFixed(1) : '0.0';
+    totalHits += groupHits;
+    
+    // 设置命中状态样式
+    const hitStatus = groupHits > 0 ? 
+      `<span style="color: #28a745; font-weight: bold;">命中 (${groupHits}/${group.records.length})</span>` : 
+      `<span style="color: #dc3545; font-weight: bold;">未命中 (0/${group.records.length})</span>`;
+    
+    // 设置分组状态样式
+    const groupStatus = group.isCompleteGroup ? 
+      `<span style="color: #28a745; font-weight: bold;">完整组 (${group.records.length}期)</span>` : 
+      `<span style="color: #ffc107; font-weight: bold;">不足组 (${group.records.length}期)</span>`;
+    
+    // 获取推荐8码
+    let recommendCodes = '';
+    if (recommendData && recommendData.recommend && recommendData.recommend[selectedPosition - 1]) {
+      const recommendNums = recommendData.recommend[selectedPosition - 1];
+      if (Array.isArray(recommendNums)) {
+        recommendCodes = recommendNums.join(',');
+      }
+    } else {
+      recommendCodes = '暂无推荐数据';
+    }
+    
+    html += `
+      <tr>
+        <td>第${group.groupIndex}组</td>
+        <td>${group.startPeriod} - ${group.endPeriod}</td>
+        <td>${group.records.map(r => r.period).join('<br>')}</td>
+        <td>${group.records.map(r => r.numbers).join('<br>')}</td>
+        <td>${positionNumbers.join('<br>')}</td>
+        <td style="background: #f8f9fa; font-weight: bold; color: #2980d9;">${recommendCodes}</td>
+        <td>${hitStatus}</td>
+        <td>${groupDetails.join('<br>')}</td>
+      </tr>
+    `;
+  });
+  
+  // 计算总体命中率
+  const overallHitRate = totalPeriods > 0 ? ((totalHits / totalPeriods) * 100).toFixed(1) : '0.0';
+  
+  html += `
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- 总体统计 -->
+      <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+        <h4 style="color: #1976d2; margin: 0 0 15px 0;">📈 总体统计</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+          <div>
+            <strong>总期数：</strong>${totalPeriods}期
+          </div>
+          <div>
+            <strong>总命中：</strong>${totalHits}期
+          </div>
+          <div>
+            <strong>总未命中：</strong>${totalPeriods - totalHits}期
+          </div>
+          <div>
+            <strong>整体命中率：</strong><span style="color: #2196f3; font-weight: bold;">${overallHitRate}%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #27ae60;">
+        <h4 style="color: #27ae60; margin: 0 0 10px 0;">💡 分组规则说明</h4>
+        <p style="margin: 0; color: #155724;">
+          1. <strong>分组规则：</strong>以0和5尾数的期数作为分组起始点<br>
+          2. <strong>完整组：</strong>每组最多5期，达到5期自动结束<br>
+          3. <strong>不足组：</strong>遇到0/5尾数期数时，不足5期的直接结束<br>
+          4. <strong>期数显示：</strong>每行显示具体的期数，便于查看分组情况<br>
+          5. <strong>命中判断：</strong>基于推荐8码与对应位置开奖号码的比较<br>
+          6. <strong>命中详情：</strong>显示每期的具体命中情况（✓命中 ✗未命中 -无推荐数据）<br>
+          7. 可以切换不同位置查看对应的统计结果
+        </p>
+      </div>
+    </div>
+  `;
+  
+  // 在现有内容后添加
+  resultDiv.innerHTML += html;
+}
+
+// 导出推荐分析结果
+function exportRecommendAnalysis(analysisResults, recommendData, lotteryType) {
+  // 这里可以实现导出功能
+  alert('导出功能待实现');
+}
+
+// 推荐16码功能已移至 recommend16.js 文件中
