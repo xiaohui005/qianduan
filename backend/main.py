@@ -2589,13 +2589,13 @@ def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
         conn = collect.get_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # 获取最近的200期数据，按期数升序排列
+        # 获取最近的若干期数据，按期数升序排列（提高上限，便于观察长遗漏段）
         sql = """
         SELECT period, numbers, open_time
         FROM lottery_result 
         WHERE lottery_type = %s 
         ORDER BY period desc 
-        LIMIT 200
+        LIMIT 500
         """
         cursor.execute(sql, (lottery_type,))
         records = cursor.fetchall()
@@ -2622,6 +2622,8 @@ def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
         # 记录按期的命中序列（升序）以便后续从当前期到最新期的统计
         asc_periods: list[str] = []
         asc_is_hit: list[bool] = []
+        asc_seventh: list[int] = []
+        asc_ranges: list[list[int]] = []
 
         for record in sorted_records:
             current_record = record
@@ -2697,54 +2699,100 @@ def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
                 # 记录升序的命中信息
                 asc_periods.append(current_period)
                 asc_is_hit.append(is_hit)
+                asc_seventh.append(current_seventh)
+                asc_ranges.append(sorted(list(range_numbers)))
                 
             except (ValueError, IndexError) as e:
                 print(f"处理记录时出错: {current_record['period']}, 错误: {e}")
                 continue
         
         # 基于升序命中序列，计算：
-        # - series_hit_count: 自本期（往上数）首次命中开始到最新的命中次数
-        # - series_total_miss: 前后遗漏累加（从“往前的第一期命中”之后开始 +1，直到“往后的第一期命中”停止累加）
+        # - series_hit_count：从当前期开始向后连续命中次数，遇到第一次遗漏即停止累加
+        # - series_total_miss：遗漏段长度（从上一次命中之后开始 +1，一直加到下一次命中为止；命中期为0）
         n = len(asc_is_hit)
-        # 后缀命中/遗漏和，用于 series_hit_count 及区间统计
-        suffix_hits = [0] * (n + 1)
+
+        # 连续命中次数 DP（从后往前）：若本期命中，则为 1 + 后一位连续命中次数；否则为 0
+        consec_hits = [0] * (n + 1)
         for i in range(n - 1, -1, -1):
-            suffix_hits[i] = suffix_hits[i + 1] + (1 if asc_is_hit[i] else 0)
-        # 前缀遗漏和：prefix_miss[i] = [0..i-1] 的遗漏数
-        prefix_miss = [0] * (n + 1)
-        for i in range(n):
-            prefix_miss[i + 1] = prefix_miss[i] + (0 if asc_is_hit[i] else 1)
-        # 最近的“往后的第一期命中”索引（从 i 向后，含 i）
-        next_hit_idx = [-1] * n
-        nh = -1
-        for i in range(n - 1, -1, -1):
+            consec_hits[i] = (1 + consec_hits[i + 1]) if asc_is_hit[i] else 0
+
+        # 计算每个遗漏段的长度，并赋值给段内所有索引，同时记录段起止索引
+        miss_run_len = [0] * n
+        miss_run_start = [-1] * n
+        miss_run_end = [-1] * n
+        i = 0
+        while i < n:
             if asc_is_hit[i]:
-                nh = i
-            next_hit_idx[i] = nh
-        # 最近的“往前的第一期命中”索引（从 i 向前，含 i）
-        prev_hit_idx = [-1] * n
-        ph = -1
-        for i in range(n):
-            if asc_is_hit[i]:
-                ph = i
-            prev_hit_idx[i] = ph
+                i += 1
+                continue
+            j = i
+            while j < n and not asc_is_hit[j]:
+                j += 1
+            run_len = j - i
+            for k in range(i, j):
+                miss_run_len[k] = run_len
+                miss_run_start[k] = i
+                miss_run_end[k] = j - 1
+            i = j
 
         # 写回（与升序 results 对齐）
         for i in range(n):
-            # series_hit_count：从 i 开始，找到“往上的第一次命中”索引 first_up_hit
-            first_up_hit = next_hit_idx[i]
-            per_series_hit_count = suffix_hits[first_up_hit] if first_up_hit != -1 else 0
+            results[i]['series_hit_count'] = consec_hits[i]
+            if asc_is_hit[i]:
+                results[i]['series_total_miss'] = 0
+            else:
+                results[i]['series_total_miss'] = miss_run_len[i]
+                # 附带遗漏段的起止期号，便于前端核对显示
+                start_idx = miss_run_start[i]
+                end_idx = miss_run_end[i]
+                if start_idx != -1 and end_idx != -1:
+                    results[i]['miss_span_start_period'] = asc_periods[start_idx]
+                    # miss 段是 [start_idx, end_idx]（均为遗漏行，对应当前期），下一次命中是 end_idx+1（若存在）
+                    results[i]['miss_span_end_period'] = asc_periods[end_idx]
+                    results[i]['miss_span_length'] = miss_run_len[i]
 
-            # series_total_miss（按你的口径）：
-            # 往前的第一期命中开始计算遗漏+1（不含该命中期），
-            # 到当前期为止（遇到当前期为命中则为0）。
-            # 计算为：从 (left_hit+1 或 0) 到 i（含）之间的遗漏数。
-            left_hit = prev_hit_idx[i]
-            left_bound = (left_hit + 1) if left_hit != -1 else 0
-            per_series_total_miss = prefix_miss[i + 1] - prefix_miss[left_bound]
+        # 为每期增加“与其他期第7码对比命中”统计
+        # 构建第7码到索引列表的映射，加速查找
+        value_to_indices: dict[int, list[int]] = {}
+        for idx, sev in enumerate(asc_seventh):
+            value_to_indices.setdefault(sev, []).append(idx)
 
-            results[i]['series_hit_count'] = per_series_hit_count
-            results[i]['series_total_miss'] = per_series_total_miss
+        for i in range(n):
+            rng = asc_ranges[i] if i < len(asc_ranges) else []
+            matched_indices: list[int] = []
+            for num in rng:
+                for j in value_to_indices.get(num, []):
+                    if j != i:
+                        matched_indices.append(j)
+            matched_indices = sorted(set(matched_indices))
+
+            backward = [asc_periods[j] for j in matched_indices if j < i]
+            forward = [asc_periods[j] for j in matched_indices if j > i]
+
+            results[i]['compare_backward_hit_periods'] = backward
+            results[i]['compare_forward_hit_periods'] = forward
+            results[i]['compare_total_hit_count'] = len(backward) + len(forward)
+
+            # 基于“固定当前期区间 vs 全体期第7码”的最近命中与双向遗漏期数
+            # 最近的前命中索引
+            prev_idx = -1
+            next_idx = -1
+            # 在 matched_indices 中二分可更快，这里 n<=500 直接线性找邻近即可
+            for j in matched_indices:
+                if j < i:
+                    prev_idx = j
+                elif j > i and next_idx == -1:
+                    next_idx = j
+                    break
+            # 左侧遗漏期数：若存在前命中，则 i - prev_idx - 1，否则 i - 0（从开头到 i-1 全是遗漏）
+            left_gap = (i - prev_idx - 1) if prev_idx != -1 else i
+            # 右侧遗漏期数：若存在后命中，则 next_idx - i - 1，否则 n - 1 - i
+            right_gap = (next_idx - i - 1) if next_idx != -1 else (n - 1 - i)
+            results[i]['around_prev_hit_period'] = asc_periods[prev_idx] if prev_idx != -1 else None
+            results[i]['around_next_hit_period'] = asc_periods[next_idx] if next_idx != -1 else None
+            results[i]['around_left_omission'] = left_gap
+            results[i]['around_right_omission'] = right_gap
+            results[i]['around_total_omission'] = left_gap + right_gap
 
         # 计算命中率
         total_analysis = len(results)

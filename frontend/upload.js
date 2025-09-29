@@ -504,7 +504,24 @@ function showOnlyPage(pageId) {
   });
   // 只显示目标页面
   const page = document.getElementById(pageId);
-  if (page) page.style.display = '';
+  if (page) {
+    page.style.display = 'block';
+    // 确保滚动到主内容区域顶部，避免用户视觉上看到“页面底部”
+    const main = document.querySelector('.main-content');
+    // 优先滚动整个窗口到主内容顶部
+    try {
+      const topTarget = main ? main.getBoundingClientRect().top + window.pageYOffset - 10 : 0;
+      window.scrollTo({ top: Math.max(topTarget, 0), behavior: 'smooth' });
+    } catch (e) {
+      // 兜底：尽量滚动到页面顶部或目标区块
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo(0, 0);
+      }
+      if (page.scrollIntoView) {
+        page.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
 }
 
 // 1. 左侧主菜单按钮切换逻辑优化
@@ -6592,6 +6609,17 @@ function renderSeventhRangeAnalysis(data) {
     resultDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无分析数据</div>';
     return;
   }
+
+  // 取本次返回数据中的最新一期期号（用于当“后最近命中”为空时的差值计算）
+  let latestPeriod = null;
+  try {
+    latestPeriod = results.reduce((maxVal, r) => {
+      const p = parseInt((r && r.current_period) || '0', 10);
+      return isNaN(p) ? maxVal : Math.max(maxVal, p);
+    }, 0);
+  } catch (e) {
+    latestPeriod = null;
+  }
   
   let html = `
     <div class="table-container">
@@ -6608,6 +6636,10 @@ function renderSeventhRangeAnalysis(data) {
             <th>自本期起命中数</th>
             <th>自本期起遗漏数</th>
             <th>最大连续遗漏</th>
+            <th>固定区间双向遗漏</th>
+            <th>前最近命中</th>
+            <th>后最近命中</th>
+          <th>后最近命中-前最近命中</th>
           </tr>
         </thead>
         <tbody>
@@ -6623,13 +6655,31 @@ function renderSeventhRangeAnalysis(data) {
         <td>${result.current_period}</td>
         <td>${result.current_open_time}</td>
         <td><strong>${result.current_seventh.toString().padStart(2, '0')}</strong></td>
-        <td style="font-size: 12px; max-width: 200px; word-break: break-all;">${rangeStr}</td>
+        <td style="font-size: 12px;">
+          <div style="max-width: 380px; overflow-x: auto; white-space: nowrap;">${rangeStr}</div>
+        </td>
         <td>${result.next_period}</td>
         <td><strong>${result.next_seventh.toString().padStart(2, '0')}</strong></td>
         <td class="${hitClass}">${hitText}</td>
         <td>${result.series_hit_count ?? 0}</td>
         <td>${result.series_total_miss ?? 0}</td>
         <td>${result.max_miss}</td>
+        <td>${result.around_total_omission ?? ''}</td>
+        <td>${result.around_prev_hit_period ?? '-'}</td>
+        <td>${result.around_next_hit_period ?? '-'}</td>
+        <td>${(() => {
+          const prev = parseInt(result.around_prev_hit_period ?? '', 10);
+          const next = result.around_next_hit_period != null ? parseInt(result.around_next_hit_period, 10) : null;
+          if (!isNaN(prev)) {
+            if (next != null && !isNaN(next)) {
+              return (next - prev);
+            }
+            if (latestPeriod != null && !isNaN(latestPeriod)) {
+              return (latestPeriod - prev);
+            }
+          }
+          return '-';
+        })()}</td>
       </tr>
     `;
   });

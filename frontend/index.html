@@ -289,6 +289,55 @@
           </div>
         </div>
       </div>
+       <div id="seventhRangePage" style="display:none;">
+        <h2>第7个号码+1~+20区间分析</h2>
+        
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startSeventhRangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="seventhRangeResult" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始分析"按钮开始第7个号码+1~+20区间分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="seventhRangeStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总分析期数：</span>
+                <span class="stats-value" id="totalSeventhRangePeriods">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="seventhRangeHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="seventhRangeHitRate">0%</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">当前连续遗漏：</span>
+                <span class="stats-value" id="seventhRangeCurrentMiss">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">最大连续遗漏：</span>
+                <span class="stats-value" id="seventhRangeMaxMiss">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="registerFocusResultPage" style="display:none;">
         <h2>关注点登记结果</h2>
         <form id="placeResultForm" class="focus-form" style="margin-bottom:16px;">
@@ -932,55 +981,7 @@
         </div>
       </div>
       
-      <div id="seventhRangePage" style="display:none;">
-        <h2>第7个号码+1~+20区间分析</h2>
-        
-        <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="seventh-range-type-group">
-            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
-            <button class="seventh-range-type-btn" data-type="hk">香港</button>
-          </div>
-          <button id="startSeventhRangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
-        </div>
-        
-        <!-- 分析结果 -->
-        <div id="seventhRangeResult" style="margin-top: 16px;">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            点击"开始分析"按钮开始第7个号码+1~+20区间分析
-          </div>
-        </div>
-        
-        <!-- 统计信息 -->
-        <div id="seventhRangeStats" class="stats-container" style="display: none; margin-top: 20px;">
-          <div class="stats-section">
-            <h3 class="stats-title">总体统计</h3>
-            <div class="stats-grid">
-              <div class="stats-item">
-                <span class="stats-label">总分析期数：</span>
-                <span class="stats-value" id="totalSeventhRangePeriods">0</span>
-              </div>
-              <div class="stats-item">
-                <span class="stats-label">命中次数：</span>
-                <span class="stats-value" id="seventhRangeHitCount">0</span>
-              </div>
-              <div class="stats-item">
-                <span class="stats-label">命中率：</span>
-                <span class="stats-value" id="seventhRangeHitRate">0%</span>
-              </div>
-              <div class="stats-item">
-                <span class="stats-label">当前连续遗漏：</span>
-                <span class="stats-value" id="seventhRangeCurrentMiss">0</span>
-              </div>
-              <div class="stats-item">
-                <span class="stats-label">最大连续遗漏：</span>
-                <span class="stats-value" id="seventhRangeMaxMiss">0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+     
       
     </main>
   </div>

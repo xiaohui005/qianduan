@@ -20,7 +20,7 @@ REM Give servers a moment to start
 timeout /t 2 >nul
 
 REM Open browser tabs for API docs and frontend
-start "" http://127.0.0.1:8000/docs
+REM start "" http://127.0.0.1:8000/docs
 start "" http://127.0.0.1:8080
 
 echo Launched. You can close this window.
