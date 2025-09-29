@@ -2732,4 +2732,301 @@ h2 {
   color: #856404;
   border-color: #ffc107;
   box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+}
+
+/* 20区间分析按钮样式 */
+.twenty-range-type-btn {
+  padding: 8px 16px;
+  margin: 0 4px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.twenty-range-type-btn:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.twenty-range-type-btn.active {
+  background: #2980d9;
+  color: white;
+  border-color: #2980d9;
+}
+
+.position-select-group {
+  display: inline-block;
+  margin-left: 10px;
+}
+
+/* 20区间分析表格样式 */
+.twenty-range-table {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.twenty-range-table .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.twenty-range-table .data-table th,
+.twenty-range-table .data-table td {
+  border: 1px solid #ddd;
+  padding: 4px 2px;
+  text-align: center;
+  min-width: 50px;
+}
+
+.twenty-range-table .data-table th:first-child,
+.twenty-range-table .data-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #f8f9fa;
+  z-index: 10;
+  min-width: 80px;
+  font-weight: bold;
+}
+
+.twenty-range-table .data-table th {
+  background: #e9ecef;
+  font-weight: bold;
+  color: #495057;
+}
+
+.twenty-range-table .data-table tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.twenty-range-table .data-table tr:hover {
+  background: #e3f2fd;
+}
+
+/* 遗漏统计行样式 */
+.miss-stats-row {
+  display: flex;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  overflow-x: auto;
+  margin-bottom: 0;
+}
+
+.miss-stat-item {
+  min-width: 80px;
+  border-right: 1px solid #ddd;
+  padding: 8px 4px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.miss-stat-item:first-child {
+  min-width: 100px;
+  background: #e9ecef;
+  font-weight: bold;
+  position: sticky;
+  left: 0;
+  z-index: 15;
+}
+
+.miss-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.miss-stat-title {
+  font-weight: bold;
+  font-size: 11px;
+  color: #495057;
+}
+
+.miss-stat-values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.max-miss {
+  color: #6c757d;
+}
+
+.current-miss {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* 表格滚动容器 */
+.table-scroll-container {
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 固定列样式 */
+.sticky-col {
+  position: sticky !important;
+  left: 0 !important;
+  background: #f8f9fa !important;
+  z-index: 10 !important;
+  border-right: 2px solid #ddd !important;
+}
+
+/* 分页控件样式 */
+.pagination-controls {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.pagination-info {
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.pagination-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.pagination-current {
+  padding: 8px 16px;
+  background: #e9ecef;
+  border-radius: 4px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.page-size-control {
+  text-align: center;
+}
+
+.page-size-control label {
+  margin-right: 10px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.page-size-control select {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+/* 采集源头选择按钮样式 */
+.source-selection-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.source-btn {
+  padding: 10px 20px;
+  border: 2px solid #ddd;
+  background: #f8f9fa;
+  color: #333;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.source-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.source-btn.active {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border-color: #28a745;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  transform: translateY(-2px);
+}
+
+.source-btn.active:hover {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  border-color: #20c997;
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+/* 文龙珠源头按钮特殊样式 */
+.source-btn[data-source="wenlongzhu"] {
+  background: linear-gradient(135deg, #ffc107, #ff8c00);
+  color: #fff;
+  border-color: #ffc107;
+}
+
+.source-btn[data-source="wenlongzhu"]:hover {
+  background: linear-gradient(135deg, #ff8c00, #ff7f00);
+  border-color: #ff8c00;
+}
+
+.source-btn[data-source="wenlongzhu"].active {
+  background: linear-gradient(135deg, #ff8c00, #ff7f00);
+  border-color: #ff8c00;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+}
+
+.source-btn[data-source="wenlongzhu"].active:hover {
+  background: linear-gradient(135deg, #ff7f00, #ff6b00);
+  border-color: #ff7f00;
+  box-shadow: 0 6px 16px rgba(255, 140, 0, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .source-selection-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .source-btn {
+    width: 100%;
+    min-width: auto;
+  }
 } 

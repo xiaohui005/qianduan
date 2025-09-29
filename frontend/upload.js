@@ -39,6 +39,28 @@ const buttons = {
       collectResult.innerHTML = '采集香港失败：' + e;
     }
   },
+  'collectAmWenlongzhuBtn': async function() {
+    const collectResult = document.getElementById('collectResult');
+    collectResult.innerHTML = '正在采集澳门 (文龙珠)...';
+    try {
+      const resAm = await fetch(window.BACKEND_URL + '/collect_wenlongzhu?type=am');
+      const dataAm = await resAm.json();
+      collectResult.innerHTML = `<b>澳门采集 (文龙珠)：</b>${JSON.stringify(dataAm)}`;
+    } catch (e) {
+      collectResult.innerHTML = '采集澳门 (文龙珠) 失败：' + e;
+    }
+  },
+  'collectHkWenlongzhuBtn': async function() {
+    const collectResult = document.getElementById('collectResult');
+    collectResult.innerHTML = '正在采集香港 (文龙珠)...';
+    try {
+      const resHk = await fetch(window.BACKEND_URL + '/collect_wenlongzhu?type=hk');
+      const dataHk = await resHk.json();
+      collectResult.innerHTML = `<b>香港采集 (文龙珠)：</b>${JSON.stringify(dataHk)}`;
+    } catch (e) {
+      collectResult.innerHTML = '采集香港 (文龙珠) 失败：' + e;
+    }
+  },
   'collectAmHistoryBtn': async function() {
     const collectResult = document.getElementById('collectResult');
     const url = document.getElementById('customAmUrl').value;
@@ -494,6 +516,7 @@ if (typeof pageMap === 'undefined') {
     menuTensBtn: 'tensPage',
     menuUnitsBtn: 'unitsPage',
     menuRangeBtn: 'rangePage',
+    menuSeventhRangeBtn: 'seventhRangePage',
     menuMinusRangeBtn: 'minusRangePage',
     menuPlusMinus6Btn: 'plusMinus6Page',
     // 新增每期分析页面
@@ -523,8 +546,10 @@ Object.keys(pageMap).forEach(id => {
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
+        seventhRangePage: '第7个号码+1~+20区间分析',
         minusRangePage: '-1~-20区间分析',
         plusMinus6Page: '加减前6码分析',
+        twentyRangePage: '20区间分析',
         eachIssuePage: '每期分析',
         colorAnalysisPage: '波色分析',
         recommendHitPage: '推荐8码的命中情况',
@@ -554,6 +579,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuRangeBtn':
           if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
+          break;
+        case 'menuSeventhRangeBtn':
+          if (typeof loadSeventhRangeAnalysis === 'function') loadSeventhRangeAnalysis(currentSeventhRangeType);
           break;
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
@@ -862,6 +890,9 @@ if (!document.getElementById('rangePage')) {
 let currentRangeType = 'am';
 let currentRangePos = 1;
 let currentRangeNextPos = 7; // 默认第7位
+
+// 第7个号码区间分析相关变量
+let currentSeventhRangeType = 'am';
 let currentRangePage = 1;
 let currentRangeYear = '';
 function loadRangeAnalysis(type, nextPos, page, year) {
@@ -1142,6 +1173,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuRangeBtn':
           if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
+          break;
+        case 'menuSeventhRangeBtn':
+          if (typeof loadSeventhRangeAnalysis === 'function') loadSeventhRangeAnalysis(currentSeventhRangeType);
           break;
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
@@ -1538,11 +1572,13 @@ if (typeof pageMap === 'undefined') {
     menuRangeBtn: 'rangePage',
     menuMinusRangeBtn: 'minusRangePage',
     menuPlusMinus6Btn: 'plusMinus6Page',
+    menu20RangeBtn: 'twentyRangePage',
     // 新增每期分析页面
     menuEachIssueBtn: 'eachIssuePage',
   };
 } else {
   pageMap.menuPlusMinus6Btn = 'plusMinus6Page';
+  pageMap.menu20RangeBtn = 'twentyRangePage';
 }
 Object.keys(pageMap).forEach(id => {
   const btn = document.getElementById(id);
@@ -6463,5 +6499,383 @@ function exportRecommendAnalysis(analysisResults, recommendData, lotteryType) {
   // 这里可以实现导出功能
   alert('导出功能待实现');
 }
+
+// ==================== 20区间分析功能 ====================
+
+// 20区间分析相关变量
+let currentTwentyRangeType = 'am';
+let currentTwentyRangePosition = 1;
+
+// 初始化20区间分析页面
+function initTwentyRangeAnalysis() {
+  // 彩种选择按钮事件
+  document.querySelectorAll('.twenty-range-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.twenty-range-type-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentTwentyRangeType = this.dataset.type;
+    });
+  });
+
+  // 位置选择按钮事件
+  document.querySelectorAll('.position-select-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.position-select-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentTwentyRangePosition = parseInt(this.dataset.position);
+    });
+  });
+
+  // 开始分析按钮事件
+  const startBtn = document.getElementById('start20RangeAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      loadTwentyRangeAnalysis(currentTwentyRangeType, currentTwentyRangePosition);
+    });
+  }
+}
+
+// 第7个号码区间分析相关函数
+function initSeventhRangeAnalysis() {
+  // 彩种选择按钮事件
+  document.querySelectorAll('.seventh-range-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.seventh-range-type-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentSeventhRangeType = this.dataset.type;
+    });
+  });
+
+  // 开始分析按钮事件
+  const startBtn = document.getElementById('startSeventhRangeAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      loadSeventhRangeAnalysis(currentSeventhRangeType);
+    });
+  }
+}
+
+// 加载第7个号码区间分析数据
+async function loadSeventhRangeAnalysis(lotteryType) {
+  const resultDiv = document.getElementById('seventhRangeResult');
+  const statsDiv = document.getElementById('seventhRangeStats');
+  
+  if (!resultDiv) return;
+  
+  resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">正在分析第7个号码+1~+20区间数据...</div>';
+  statsDiv.style.display = 'none';
+  
+  try {
+    const response = await fetch(`${window.BACKEND_URL}/api/seventh_number_range_analysis?lottery_type=${lotteryType}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      renderSeventhRangeAnalysis(data.data);
+      updateSeventhRangeStats(data.data);
+    } else {
+      resultDiv.innerHTML = `<div style="color: red; text-align: center; padding: 20px;">分析失败: ${data.message}</div>`;
+    }
+  } catch (error) {
+    console.error('第7个号码区间分析失败:', error);
+    resultDiv.innerHTML = `<div style="color: red; text-align: center; padding: 20px;">分析失败: ${error.message}</div>`;
+  }
+}
+
+// 渲染第7个号码区间分析结果
+function renderSeventhRangeAnalysis(data) {
+  const resultDiv = document.getElementById('seventhRangeResult');
+  if (!resultDiv) return;
+  
+  const { results, lottery_type } = data;
+  
+  if (!results || results.length === 0) {
+    resultDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无分析数据</div>';
+    return;
+  }
+  
+  let html = `
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>当前期数</th>
+            <th>开奖时间</th>
+            <th>当前期第7个号码</th>
+            <th>+1~+20区间</th>
+            <th>下一期期数</th>
+            <th>下一期第7个号码</th>
+            <th>是否命中</th>
+            <th>自本期起命中数</th>
+            <th>自本期起遗漏数</th>
+            <th>最大连续遗漏</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  results.forEach(result => {
+    const hitClass = result.is_hit ? 'hit' : 'miss';
+    const hitText = result.is_hit ? '命中' : '遗漏';
+    const rangeStr = result.range_numbers.join(', ');
+    
+    html += `
+      <tr>
+        <td>${result.current_period}</td>
+        <td>${result.current_open_time}</td>
+        <td><strong>${result.current_seventh.toString().padStart(2, '0')}</strong></td>
+        <td style="font-size: 12px; max-width: 200px; word-break: break-all;">${rangeStr}</td>
+        <td>${result.next_period}</td>
+        <td><strong>${result.next_seventh.toString().padStart(2, '0')}</strong></td>
+        <td class="${hitClass}">${hitText}</td>
+        <td>${result.series_hit_count ?? 0}</td>
+        <td>${result.series_total_miss ?? 0}</td>
+        <td>${result.max_miss}</td>
+      </tr>
+    `;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  resultDiv.innerHTML = html;
+}
+
+// 更新第7个号码区间分析统计信息
+function updateSeventhRangeStats(data) {
+  const statsDiv = document.getElementById('seventhRangeStats');
+  if (!statsDiv) return;
+  
+  const { total_analysis, hit_count, hit_rate, current_miss, max_miss } = data || {};
+  
+  const el1 = document.getElementById('totalSeventhRangePeriods');
+  const el2 = document.getElementById('seventhRangeHitCount');
+  const el3 = document.getElementById('seventhRangeHitRate');
+  const el4 = document.getElementById('seventhRangeCurrentMiss');
+  const el5 = document.getElementById('seventhRangeMaxMiss');
+  if (el1) el1.textContent = (total_analysis ?? 0).toString();
+  if (el2) el2.textContent = (hit_count ?? 0).toString();
+  if (el3) el3.textContent = ((hit_rate ?? 0) + '%').toString();
+  if (el4) el4.textContent = (current_miss ?? 0).toString();
+  if (el5) el5.textContent = (max_miss ?? 0).toString();
+  
+  statsDiv.style.display = 'block';
+}
+
+// 加载20区间分析数据
+async function loadTwentyRangeAnalysis(lotteryType, position) {
+  const resultDiv = document.getElementById('twentyRangeResult');
+  const statsDiv = document.getElementById('twentyRangeStats');
+  
+  if (!resultDiv) return;
+  
+  resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">正在分析20区间数据...</div>';
+  statsDiv.style.display = 'none';
+  
+  try {
+    const response = await fetch(`${window.BACKEND_URL}/api/twenty_range_analysis?lottery_type=${lotteryType}&position=${position}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      renderTwentyRangeAnalysis(data.data);
+      updateTwentyRangeStats(data.data);
+    } else {
+      resultDiv.innerHTML = `<div style="color: red; text-align: center; padding: 20px;">分析失败: ${data.message}</div>`;
+    }
+  } catch (error) {
+    console.error('20区间分析失败:', error);
+    resultDiv.innerHTML = `<div style="color: red; text-align: center; padding: 20px;">分析失败: ${error.message}</div>`;
+  }
+}
+
+// 渲染20区间分析结果
+function renderTwentyRangeAnalysis(data) {
+  const resultDiv = document.getElementById('twentyRangeResult');
+  if (!resultDiv) return;
+  
+  const { analysis_results, lottery_type, position, description } = data;
+  
+  let html = `
+    <div style="margin-bottom: 20px;">
+      <h3>20区间分析结果</h3>
+      <p style="color: #666; margin: 10px 0;">${description}</p>
+      <p style="color: #666; margin: 10px 0;">彩种: ${lottery_type === 'am' ? '澳门' : '香港'} | 位置: 第${position}位</p>
+    </div>
+  `;
+  
+  if (analysis_results && analysis_results.length > 0) {
+    html += `
+      <div class="table-container">
+        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 8px;">期号</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">开奖时间</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">开奖号码</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">第${position}位号码</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">20区间</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">当前遗漏</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">最大遗漏</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">历史最大遗漏</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    analysis_results.slice(0, 50).forEach(record => { // 只显示最近50期
+      const posData = record.positions[position - 1];
+      if (posData) {
+        const rangeStr = posData.range_start <= posData.range_end 
+          ? `${posData.range_start}~${posData.range_end}`
+          : `${posData.range_start}~${posData.range_end}`;
+        
+        html += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${record.period}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${record.open_time}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${record.numbers.join(',')}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: #2980d9;">${posData.number}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${rangeStr}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: ${posData.current_miss > 10 ? '#e74c3c' : posData.current_miss > 5 ? '#f39c12' : '#27ae60'}; font-weight: bold;">${posData.current_miss}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #e74c3c; font-weight: bold;">${posData.max_miss}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #8e44ad; font-weight: bold;">${posData.historical_max_miss}</td>
+          </tr>
+        `;
+      }
+    });
+    
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    html += '<div style="text-align: center; color: #888; padding: 20px;">没有找到分析数据</div>';
+  }
+  
+  resultDiv.innerHTML = html;
+}
+
+// 更新20区间分析统计信息
+function updateTwentyRangeStats(data) {
+  const statsDiv = document.getElementById('twentyRangeStats');
+  if (!statsDiv || !data.analysis_results) return;
+  
+  const results = data.analysis_results;
+  const totalPeriods = results.length;
+  
+  // 计算统计信息
+  let totalCurrentMiss = 0;
+  let totalMaxMiss = 0;
+  let totalHistoricalMaxMiss = 0;
+  let maxCurrentMiss = 0;
+  let maxMaxMiss = 0;
+  let maxHistoricalMaxMiss = 0;
+  
+  results.forEach(record => {
+    const posData = record.positions[data.position - 1];
+    if (posData) {
+      totalCurrentMiss += posData.current_miss;
+      totalMaxMiss += posData.max_miss;
+      totalHistoricalMaxMiss += posData.historical_max_miss;
+      
+      maxCurrentMiss = Math.max(maxCurrentMiss, posData.current_miss);
+      maxMaxMiss = Math.max(maxMaxMiss, posData.max_miss);
+      maxHistoricalMaxMiss = Math.max(maxHistoricalMaxMiss, posData.historical_max_miss);
+    }
+  });
+  
+  const avgCurrentMiss = totalPeriods > 0 ? (totalCurrentMiss / totalPeriods).toFixed(2) : 0;
+  const avgMaxMiss = totalPeriods > 0 ? (totalMaxMiss / totalPeriods).toFixed(2) : 0;
+  const avgHistoricalMaxMiss = totalPeriods > 0 ? (totalHistoricalMaxMiss / totalPeriods).toFixed(2) : 0;
+  
+  // 更新统计显示
+  document.getElementById('total20RangePeriods').textContent = totalPeriods;
+  document.getElementById('twentyRangeHitCount').textContent = totalPeriods;
+  document.getElementById('twentyRangeMissCount').textContent = totalCurrentMiss;
+  document.getElementById('twentyRangeHitRate').textContent = '100%';
+  
+  // 添加更多统计信息
+  let statsHtml = `
+    <div class="stats-section">
+      <h3 class="stats-title">总体统计</h3>
+      <div class="stats-grid">
+        <div class="stats-item">
+          <span class="stats-label">总期数：</span>
+          <span class="stats-value">${totalPeriods}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">平均当前遗漏：</span>
+          <span class="stats-value">${avgCurrentMiss}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">平均最大遗漏：</span>
+          <span class="stats-value">${avgMaxMiss}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">平均历史最大遗漏：</span>
+          <span class="stats-value">${avgHistoricalMaxMiss}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">最高当前遗漏：</span>
+          <span class="stats-value" style="color: #e74c3c;">${maxCurrentMiss}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">最高最大遗漏：</span>
+          <span class="stats-value" style="color: #e74c3c;">${maxMaxMiss}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">最高历史最大遗漏：</span>
+          <span class="stats-value" style="color: #8e44ad;">${maxHistoricalMaxMiss}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  statsDiv.innerHTML = statsHtml;
+  statsDiv.style.display = 'block';
+}
+
+// 页面加载完成后初始化20区间分析
+document.addEventListener('DOMContentLoaded', function() {
+  initTwentyRangeAnalysis();
+  initSeventhRangeAnalysis();
+});
+
+// ==================== 采集源头选择功能 ====================
+
+// 初始化采集源头选择功能
+function initCollectSourceSelection() {
+  // 源头选择按钮事件
+  document.querySelectorAll('.source-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // 移除所有按钮的active类
+      document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+      // 给当前按钮添加active类
+      this.classList.add('active');
+      
+      const source = this.dataset.source;
+      
+      // 根据选择的源头显示/隐藏对应的按钮组
+      const defaultButtons = document.getElementById('defaultSourceButtons');
+      const wenlongzhuButtons = document.getElementById('wenlongzhuSourceButtons');
+      
+      if (source === 'default') {
+        defaultButtons.style.display = 'block';
+        wenlongzhuButtons.style.display = 'none';
+      } else if (source === 'wenlongzhu') {
+        defaultButtons.style.display = 'none';
+        wenlongzhuButtons.style.display = 'block';
+      }
+    });
+  });
+}
+
+// 页面加载完成后初始化采集源头选择
+document.addEventListener('DOMContentLoaded', function() {
+  initCollectSourceSelection();
+});
 
 // 推荐16码功能已移至 recommend16.js 文件中

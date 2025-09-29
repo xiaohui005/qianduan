@@ -17,7 +17,8 @@
         <button class="menu-btn" id="menuRecommendHitBtn">推荐8码的命中情况</button>
         <button class="menu-btn" id="menuTensBtn">第N位十位分析</button>
         <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
-        <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button>
+        <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button> 
+        <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
         <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
@@ -44,8 +45,28 @@
       </header>
       <div id="collectPage">
         <h2>采集</h2>
-        <button id="collectAmBtn" type="button">采集澳门开奖数据</button>
-        <button id="collectHkBtn" type="button">采集香港开奖数据</button>
+        
+        <!-- 采集源头选择 -->
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 10px; font-weight: bold;">选择采集源头：</label>
+          <div class="source-selection-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="source-btn active" data-source="default">默认源头</button>
+            <button class="source-btn" data-source="wenlongzhu">文龙珠源头</button>
+          </div>
+        </div>
+        
+        <!-- 默认源头按钮 -->
+        <div id="defaultSourceButtons">
+          <button id="collectAmBtn" type="button">采集澳门开奖数据</button>
+          <button id="collectHkBtn" type="button">采集香港开奖数据</button>
+        </div>
+        
+        <!-- 文龙珠源头按钮 -->
+        <div id="wenlongzhuSourceButtons" style="display: none;">
+          <button id="collectAmWenlongzhuBtn" type="button">采集澳门开奖数据 (文龙珠)</button>
+          <button id="collectHkWenlongzhuBtn" type="button">采集香港开奖数据 (文龙珠)</button>
+        </div>
+        
         <button id="toggleHistoryBtn" type="button" style="margin-top:10px;">显示历史采集</button>
         <div id="historyCollectArea" style="display:none;">
           <div style="margin-top:10px;">
@@ -825,37 +846,146 @@
         
         <!-- 统计信息 -->
         <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;">
-                        <div class="stats-section">
-                <h3 class="stats-title">总体统计</h3>
-                <div class="stats-grid">
-                  <div class="stats-item">
-                    <span class="stats-label">总期数：</span>
-                    <span class="stats-value" id="totalColorPeriods">0</span>
-                  </div>
-                  <div class="stats-item">
-                    <span class="stats-label">命中次数：</span>
-                    <span class="stats-value" id="colorHitCount">0</span>
-                  </div>
-                  <div class="stats-item">
-                    <span class="stats-label">遗漏次数：</span>
-                    <span class="stats-value" id="colorMissCount">0</span>
-                  </div>
-                  <div class="stats-item">
-                    <span class="stats-label">命中率：</span>
-                    <span class="stats-value" id="colorHitRate">0%</span>
-                  </div>
-                </div>
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总期数：</span>
+                <span class="stats-value" id="totalColorPeriods">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="colorHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">遗漏次数：</span>
+                <span class="stats-value" id="colorMissCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="colorHitRate">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        </div>
+      </div>
+      
+      <div id="twentyRangePage" style="display:none;">
+        <h2>20区间分析</h2>
+        
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="twenty-range-type-group">
+            <button class="twenty-range-type-btn active" data-type="am">澳门</button>
+            <button class="twenty-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="start20RangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        
+        <!-- 位置选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择位置：</label>
+          <div class="position-select-group">
+            <button class="position-select-btn active" data-position="1">位置1</button>
+            <button class="position-select-btn" data-position="2">位置2</button>
+            <button class="position-select-btn" data-position="3">位置3</button>
+            <button class="position-select-btn" data-position="4">位置4</button>
+            <button class="position-select-btn" data-position="5">位置5</button>
+            <button class="position-select-btn" data-position="6">位置6</button>
+            <button class="position-select-btn" data-position="7">位置7</button>
+          </div>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="twentyRangeResult" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始分析"按钮开始20区间分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="twentyRangeStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总期数：</span>
+                <span class="stats-value" id="total20RangePeriods">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="twentyRangeHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">遗漏次数：</span>
+                <span class="stats-value" id="twentyRangeMissCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="twentyRangeHitRate">0%</span>
               </div>
             </div>
           </div>
         </div>
       </div>
       
+      <div id="seventhRangePage" style="display:none;">
+        <h2>第7个号码+1~+20区间分析</h2>
+        
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startSeventhRangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="seventhRangeResult" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始分析"按钮开始第7个号码+1~+20区间分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="seventhRangeStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总分析期数：</span>
+                <span class="stats-value" id="totalSeventhRangePeriods">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="seventhRangeHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="seventhRangeHitRate">0%</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">当前连续遗漏：</span>
+                <span class="stats-value" id="seventhRangeCurrentMiss">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">最大连续遗漏：</span>
+                <span class="stats-value" id="seventhRangeMaxMiss">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       
     </main>
   </div>
-      <script src="config.js"></script>
-    <script src="upload.js"></script>
+  <script src="config.js"></script>
+  <script src="upload.js"></script>
     <script src="recommend16.js"></script>
     <script>
       // 调试信息
@@ -863,5 +993,5 @@
       console.log('recommend16.js 加载状态:', typeof initRecommend16HitAnalysis);
       console.log('recommend16HitPage 元素:', document.getElementById('recommend16HitPage'));
     </script>
-  </body>
+</body>
 </html> 

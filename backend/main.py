@@ -88,21 +88,64 @@ def collect_api(type: str = None):
     print(f"采集结果: {result}")
     return result
 
-@app.get("/collect_history")
-def collect_history_api(type: str = None, url: str = None):
-    urls = config.COLLECT_HISTORY_URLS.copy()
-    if url and type in urls:
-        urls[type] = url
+@app.get("/collect_wenlongzhu")
+def collect_wenlongzhu_api(type: str = None):
+    """
+    文龙珠源头采集API
+    澳门: https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh
+    香港: https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh
+    """
+    wenlongzhu_urls = {
+        'am': 'https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh',
+        'hk': 'https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh'
+    }
+    
     result = {}
-    types = [type] if type in urls else urls.keys() if not type else []
+    types = [type] if type in wenlongzhu_urls else wenlongzhu_urls.keys() if not type else []
+    
     for t in types:
-        print(f"开始采集历史: {t}")
-        data = collect.fetch_lottery(urls[t], t, check_max_period=False)
-        print(f"采集到{len(data)}条历史数据: {data[:1]}")
-        collect.save_results(data)
-        result[t] = f"采集{len(data)}条历史"
-    print(f"历史采集结果: {result}")
+        print(f"开始采集文龙珠源头: {t}")
+        try:
+            # 使用文龙珠URL进行采集
+            data = collect.fetch_lottery(wenlongzhu_urls[t], t)
+            print(f"文龙珠采集到{len(data)}条数据: {data[:1]}")
+            collect.save_results(data)
+            
+            # 检查是否有0或5结尾的期数，如果有则自动生成推荐号码
+            if data:
+                new_periods = [item['period'] for item in data]
+                target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
+                
+                if target_periods:
+                    print(f"发现0或5结尾的期数: {target_periods}，自动生成推荐号码")
+                    # 自动生成推荐8码
+                    try:
+                        recommend_result = recommend_api(t)
+                        if recommend_result.get('recommend'):
+                            print(f"推荐8码生成成功，基于期号: {recommend_result.get('latest_period')}")
+                    except Exception as e:
+                        print(f"生成推荐8码时出错: {e}")
+                    
+                    # 自动生成推荐16码
+                    try:
+                        recommend16_result = recommend16_api(t)
+                        if recommend16_result.get('recommend16'):
+                            print(f"推荐16码生成成功，基于期号: {recommend16_result.get('latest_period')}")
+                    except Exception as e:
+                        print(f"生成推荐16码时出错: {e}")
+                    
+                    result[t] = f"文龙珠采集{len(data)}条，自动生成推荐号码"
+                else:
+                    result[t] = f"文龙珠采集{len(data)}条"
+            else:
+                result[t] = "文龙珠无新数据"
+        except Exception as e:
+            print(f"文龙珠采集{t}失败: {e}")
+            result[t] = f"文龙珠采集失败: {str(e)}"
+    
+    print(f"文龙珠采集结果: {result}")
     return result
+
 
 @app.get("/records")
 def get_records(
@@ -2413,6 +2456,322 @@ def get_recommend16_stats(lottery_type: str = Query('am')):
         return {"success": False, "message": f"获取推荐16码统计失败: {str(e)}"}
 
 # --- END ---
+
+@app.get("/api/twenty_range_analysis")
+def get_twenty_range_analysis(lottery_type: str = Query('am'), position: int = Query(1, ge=1, le=7)):
+    """
+    获取20区间分析数据
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 获取最近的200期数据，按期数排序
+        sql = """
+        SELECT period, numbers 
+        FROM lottery_result 
+        WHERE lottery_type = %s 
+        ORDER BY period DESC 
+        LIMIT 200
+        """
+        cursor.execute(sql, (lottery_type,))
+        records = cursor.fetchall()
+        
+        if not records:
+            cursor.close()
+            conn.close()
+            return {"success": False, "message": "没有找到开奖数据"}
+        
+        # 按期数分组，并计算每个位置的20区间计数
+        periods_data = {}
+        for record in records:
+            period = record['period']
+            numbers_str = record['numbers']
+            
+            if period not in periods_data:
+                periods_data[period] = {'period': period, 'positions': [None] * 7}
+            
+            # 解析numbers字段，获取每个位置的号码
+            numbers = numbers_str.split(',')
+            for pos in range(min(7, len(numbers))):
+                try:
+                    number = int(numbers[pos])
+                    # 计算该号码在各个20区间中的计数
+                    counts = calculate_twenty_range_counts(number, pos + 1, lottery_type, cursor)
+                    periods_data[period]['positions'][pos] = {
+                        'number': number,
+                        'count': counts.get(pos + 1, 0)
+                    }
+                except (ValueError, IndexError):
+                    continue
+        
+        # 转换为列表并按期数排序
+        periods = list(periods_data.values())
+        periods.sort(key=lambda x: x['period'], reverse=True)
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "lottery_type": lottery_type,
+                "position": position,
+                "periods": periods
+            }
+        }
+        
+    except Exception as e:
+        print(f"20区间分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+
+def calculate_twenty_range_counts(number, position, lottery_type, cursor):
+    """
+    计算指定号码在各个20区间中的遗漏计数
+    """
+    counts = {}
+    
+    # 获取该位置的历史开奖数据
+    sql = """
+    SELECT period, numbers 
+    FROM lottery_result 
+    WHERE lottery_type = %s 
+    ORDER BY period DESC 
+    LIMIT 200
+    """
+    cursor.execute(sql, (lottery_type,))
+    history = cursor.fetchall()
+    
+    # 为每个位置计算20区间遗漏计数
+    for pos in range(1, 8):
+        miss_count = 0
+        for record in history:
+            try:
+                numbers = record['numbers'].split(',')
+                if pos <= len(numbers):
+                    history_number = int(numbers[pos - 1])
+                    # 检查历史号码是否在目标号码的20区间内
+                    if is_number_in_twenty_range(history_number, number, pos):
+                        # 命中，停止计数
+                        break
+                    else:
+                        # 未命中，遗漏+1
+                        miss_count += 1
+            except (ValueError, IndexError):
+                continue
+        counts[pos] = miss_count
+    
+    return counts
+
+def is_number_in_twenty_range(target_number, history_number, position):
+    """
+    判断历史号码是否在目标号码的20区间内
+    """
+    # 计算目标号码的20区间起始和结束号码
+    range_start = target_number
+    range_end = (target_number + 19) % 49
+    if range_end == 0:
+        range_end = 49
+    
+    if range_start <= range_end:
+        return range_start <= history_number <= range_end
+    else:
+        # 处理跨49的情况，如 45~14
+        return history_number >= range_start or history_number <= range_end
+
+@app.get("/api/seventh_number_range_analysis")
+def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
+    """
+    获取第7个号码+1~+20区间命中遗漏分析
+    每一期开奖的第7个号码在开奖号码+1~+20区间，下一期开奖的第7个号码在这区间为命中，不在为遗漏
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 获取最近的200期数据，按期数升序排列
+        sql = """
+        SELECT period, numbers, open_time
+        FROM lottery_result 
+        WHERE lottery_type = %s 
+        ORDER BY period desc 
+        LIMIT 200
+        """
+        cursor.execute(sql, (lottery_type,))
+        records = cursor.fetchall()
+        
+        if len(records) < 2:
+            cursor.close()
+            conn.close()
+            return {"success": False, "message": "数据不足，需要至少2期数据"}
+        
+        results = []
+        total_hit_count = 0  # 总命中次数累加（从历史开始）
+        current_miss = 0  # 当前连续遗漏期数（从最后一次命中后开始计算）
+        max_miss = 0  # 最大连续遗漏期数
+        
+        # 按期数字典快速查找下一期
+        period_dict = {record['period']: record for record in records}
+        
+        # 按期数升序排列，确保正确的遗漏统计顺序
+        sorted_records = sorted(records, key=lambda x: int(x['period']))
+        
+        # 从第一期开始，逐期累积统计
+        current_miss = 0  # 当前连续遗漏期数
+
+        # 记录按期的命中序列（升序）以便后续从当前期到最新期的统计
+        asc_periods: list[str] = []
+        asc_is_hit: list[bool] = []
+
+        for record in sorted_records:
+            current_record = record
+            current_period = current_record['period']
+            
+            # 计算下一期期数
+            try:
+                next_period = str(int(current_period) + 1)
+            except ValueError:
+                continue
+                
+            # 查找下一期记录
+            if next_period not in period_dict:
+                continue
+                
+            next_record = period_dict[next_period]
+            
+            try:
+                # 解析当前期开奖号码
+                current_numbers = [int(n.strip()) for n in current_record['numbers'].split(',') if n.strip().isdigit()]
+                if len(current_numbers) < 7:
+                    continue
+                
+                # 获取当前期第7个号码
+                current_seventh = current_numbers[6]
+                
+                # 计算+1~+20区间（超过49的转换为1，然后继续加后续值）
+                range_numbers = set()
+                for offset in range(1, 21):  # +1到+20
+                    range_num = current_seventh + offset
+                    if range_num > 49:
+                        # 超过49的转换为1，然后加(range_num - 49 - 1)
+                        range_num = 1 + (range_num - 49 - 1)
+                    range_numbers.add(range_num)
+                
+                # 解析下一期开奖号码
+                next_numbers = [int(n.strip()) for n in next_record['numbers'].split(',') if n.strip().isdigit()]
+                if len(next_numbers) < 7:
+                    continue
+                
+                # 获取下一期第7个号码
+                next_seventh = next_numbers[6]
+                
+                # 判断是否命中
+                is_hit = next_seventh in range_numbers
+                
+                # 更新统计 - 从历史开始累积的命中计算，遗漏只计算从最后一次命中后到现在
+                if is_hit:
+                    total_hit_count += 1  # 总命中次数+1
+                    # 命中后停止当前连续遗漏，重置连续遗漏计数器
+                    final_miss = current_miss  # 记录命中前的连续遗漏期数
+                    current_miss = 0  # 重置连续遗漏计数器
+                else:
+                    # 遗漏，连续遗漏期数+1（从最后一次命中后开始计算）
+                    current_miss += 1
+                    final_miss = current_miss
+                    if current_miss > max_miss:
+                        max_miss = current_miss
+                
+                # 记录结果（先按升序累积）
+                results.append({
+                    'current_period': current_period,
+                    'next_period': next_period,
+                    'current_open_time': current_record['open_time'].strftime('%Y-%m-%d') if hasattr(current_record['open_time'], 'strftime') else str(current_record['open_time']),
+                    'current_seventh': current_seventh,
+                    'range_numbers': sorted(list(range_numbers)),
+                    'next_seventh': next_seventh,
+                    'is_hit': is_hit,
+                    # 为避免混淆，不在每条记录上返回全局累计命中与当前遗漏
+                    'max_miss': max_miss
+                })
+
+                # 记录升序的命中信息
+                asc_periods.append(current_period)
+                asc_is_hit.append(is_hit)
+                
+            except (ValueError, IndexError) as e:
+                print(f"处理记录时出错: {current_record['period']}, 错误: {e}")
+                continue
+        
+        # 基于升序命中序列，计算：
+        # - series_hit_count: 自本期（往上数）首次命中开始到最新的命中次数
+        # - series_total_miss: 前后遗漏累加（从“往前的第一期命中”之后开始 +1，直到“往后的第一期命中”停止累加）
+        n = len(asc_is_hit)
+        # 后缀命中/遗漏和，用于 series_hit_count 及区间统计
+        suffix_hits = [0] * (n + 1)
+        for i in range(n - 1, -1, -1):
+            suffix_hits[i] = suffix_hits[i + 1] + (1 if asc_is_hit[i] else 0)
+        # 前缀遗漏和：prefix_miss[i] = [0..i-1] 的遗漏数
+        prefix_miss = [0] * (n + 1)
+        for i in range(n):
+            prefix_miss[i + 1] = prefix_miss[i] + (0 if asc_is_hit[i] else 1)
+        # 最近的“往后的第一期命中”索引（从 i 向后，含 i）
+        next_hit_idx = [-1] * n
+        nh = -1
+        for i in range(n - 1, -1, -1):
+            if asc_is_hit[i]:
+                nh = i
+            next_hit_idx[i] = nh
+        # 最近的“往前的第一期命中”索引（从 i 向前，含 i）
+        prev_hit_idx = [-1] * n
+        ph = -1
+        for i in range(n):
+            if asc_is_hit[i]:
+                ph = i
+            prev_hit_idx[i] = ph
+
+        # 写回（与升序 results 对齐）
+        for i in range(n):
+            # series_hit_count：从 i 开始，找到“往上的第一次命中”索引 first_up_hit
+            first_up_hit = next_hit_idx[i]
+            per_series_hit_count = suffix_hits[first_up_hit] if first_up_hit != -1 else 0
+
+            # series_total_miss（按你的口径）：
+            # 往前的第一期命中开始计算遗漏+1（不含该命中期），
+            # 到当前期为止（遇到当前期为命中则为0）。
+            # 计算为：从 (left_hit+1 或 0) 到 i（含）之间的遗漏数。
+            left_hit = prev_hit_idx[i]
+            left_bound = (left_hit + 1) if left_hit != -1 else 0
+            per_series_total_miss = prefix_miss[i + 1] - prefix_miss[left_bound]
+
+            results[i]['series_hit_count'] = per_series_hit_count
+            results[i]['series_total_miss'] = per_series_total_miss
+
+        # 计算命中率
+        total_analysis = len(results)
+        hit_rate = (total_hit_count / total_analysis * 100) if total_analysis > 0 else 0
+        
+        # 按期数从大到小排序（最新期数在前）
+        results.sort(key=lambda x: x['current_period'], reverse=True)
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "data": {
+                "lottery_type": lottery_type,
+                "total_analysis": total_analysis,
+                "hit_count": total_hit_count,
+                "hit_rate": round(hit_rate, 2),
+                "current_miss": current_miss,
+                "max_miss": max_miss,
+                "results": results
+            }
+        }
+        
+    except Exception as e:
+        print(f"第7个号码区间分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn

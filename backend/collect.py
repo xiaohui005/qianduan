@@ -44,7 +44,11 @@ def get_max_period(lottery_type):
 
 def fetch_lottery(url, lottery_type, check_max_period=True):
     resp = httpx.get(url, timeout=10)
-    resp.encoding = 'utf-8'
+    # 尝试自动检测编码，如果失败则使用gb2312
+    try:
+        resp.encoding = resp.apparent_encoding or 'gb2312'
+    except:
+        resp.encoding = 'gb2312'
     soup = BeautifulSoup(resp.text, 'html.parser')
     results = []
     max_db_period = get_max_period(lottery_type) if check_max_period else None
@@ -104,16 +108,65 @@ def save_results(results):
         return
     conn = get_connection()
     cursor = conn.cursor()
+    saved_count = 0
+    
+    # 按期号排序，确保先处理期号较小的记录
+    results.sort(key=lambda x: x['period'])
+    
     for r in results:
-        cursor.execute(
-            """
-            INSERT INTO lottery_result (lottery_type, period, open_time, lunar_date, numbers, animals, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            ON DUPLICATE KEY UPDATE numbers=VALUES(numbers), animals=VALUES(animals), open_time=VALUES(open_time), lunar_date=VALUES(lunar_date)
-            """,
-            (r['lottery_type'], r['period'], r['open_time'], r['lunar_date'], r['numbers'], r['animals'])
-        )
+        try:
+            # 先检查是否已存在相同的期号记录
+            cursor.execute(
+                "SELECT id FROM lottery_result WHERE lottery_type=%s AND period=%s",
+                (r['lottery_type'], r['period'])
+            )
+            existing_record = cursor.fetchone()
+            
+            if existing_record:
+                # 如果期号已存在，更新记录
+                cursor.execute(
+                    """
+                    UPDATE lottery_result 
+                    SET open_time=%s, lunar_date=%s, numbers=%s, animals=%s, created_at=NOW()
+                    WHERE lottery_type=%s AND period=%s
+                    """,
+                    (r['open_time'], r['lunar_date'], r['numbers'], r['animals'], r['lottery_type'], r['period'])
+                )
+                print(f"更新记录: {r['lottery_type']} {r['period']}")
+            else:
+                # 如果期号不存在，检查是否有相同开奖时间的记录
+                cursor.execute(
+                    "SELECT id, period FROM lottery_result WHERE lottery_type=%s AND open_time=%s",
+                    (r['lottery_type'], r['open_time'])
+                )
+                same_time_records = cursor.fetchall()
+                
+                if same_time_records:
+                    # 如果存在相同开奖时间的记录，只删除期号较小的记录
+                    for same_time_record in same_time_records:
+                        old_period = same_time_record[1]
+                        if old_period < r['period']:  # 只删除期号较小的记录
+                            cursor.execute(
+                                "DELETE FROM lottery_result WHERE lottery_type=%s AND period=%s",
+                                (r['lottery_type'], old_period)
+                            )
+                            print(f"删除相同开奖时间的旧记录: {r['lottery_type']} {old_period}")
+                
+                # 插入新记录
+                cursor.execute(
+                    """
+                    INSERT INTO lottery_result (lottery_type, period, open_time, lunar_date, numbers, animals, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    """,
+                    (r['lottery_type'], r['period'], r['open_time'], r['lunar_date'], r['numbers'], r['animals'])
+                )
+                print(f"插入新记录: {r['lottery_type']} {r['period']}")
+            saved_count += 1
+        except Exception as e:
+            print(f"保存记录失败 {r['lottery_type']} {r['period']}: {e}")
+            continue
+    
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"已保存{len(results)}条数据") 
+    print(f"已保存{saved_count}条数据") 
