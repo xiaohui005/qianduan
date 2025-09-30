@@ -506,7 +506,7 @@ function showOnlyPage(pageId) {
   const page = document.getElementById(pageId);
   if (page) {
     page.style.display = 'block';
-    // 确保滚动到主内容区域顶部，避免用户视觉上看到“页面底部”
+    // 确保滚动到主内容区域顶部，避免用户视觉上看到"页面底部"
     const main = document.querySelector('.main-content');
     // 优先滚动整个窗口到主内容顶部
     try {
@@ -540,6 +540,8 @@ if (typeof pageMap === 'undefined') {
     menuEachIssueBtn: 'eachIssuePage',
     // 新增波色分析页面
     menuColorAnalysisBtn: 'colorAnalysisPage',
+    // 新增第二个号码四肖页面
+    menuSecondFourxiaoBtn: 'secondFourxiaoPage',
     // 新增推荐8码命中情况页面
     menuRecommendHitBtn: 'recommendHitPage',
     // 新增推荐16码命中情况页面
@@ -564,6 +566,7 @@ Object.keys(pageMap).forEach(id => {
         unitsPage: '第N个码个位分析',
         rangePage: '+1~+20区间分析',
         seventhRangePage: '第7个号码+1~+20区间分析',
+  secondFourxiaoPage: '第二个号码四肖分析',
         minusRangePage: '-1~-20区间分析',
         plusMinus6Page: '加减前6码分析',
         twentyRangePage: '20区间分析',
@@ -611,6 +614,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuColorAnalysisBtn':
           loadColorAnalysis(currentColorType);
+          break;
+        case 'menuSecondFourxiaoBtn':
+          loadSecondFourxiaoAnalysis(currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2);
           break;
         case 'menuRecommendHitBtn':
           initRecommendHitAnalysis();
@@ -1794,7 +1800,6 @@ setTimeout(() => {
   }
 }, 0);
 // ... existing code ...
-
 // 登记点分析展开/折叠按钮事件绑定
 setTimeout(() => {
   const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
@@ -2430,7 +2435,6 @@ setTimeout(() => {
       suggest.style.display = 'none';
     }
   }
-  
   // 设置关注点自动完成功能
   function setupQueryPlaceAutocomplete() {
     const input = document.getElementById('queryPlace');
@@ -2877,7 +2881,6 @@ function downloadCSV(rows, filename) {
   link.click();
   document.body.removeChild(link);
 }
-
 // ... existing code ...
 
 // 关注点登记结果相关功能
@@ -3513,7 +3516,6 @@ function downloadCSV(rows, filename) {
       });
     }
   }
-
   // 绑定是否正确按钮事件
   function bindIsCorrectButtons() {
     console.log('开始绑定是否正确按钮事件'); // 调试信息
@@ -4044,7 +4046,6 @@ function downloadCSV(rows, filename) {
     setTimeout(initPlaceAnalysis, 100);
   }
 }
-
 // 投注点报表功能
 (function() {
   let allPlaces = [];
@@ -4669,7 +4670,6 @@ function downloadCSV(rows, filename) {
       console.error('加载关注号码失败:', error);
     }
   }
-
   // 渲染关注号码表格
   function renderFavoriteNumbersTable(favoriteNumbers, lotteryType, position) {
     console.log('开始渲染关注号码表格，数据:', favoriteNumbers);
@@ -5249,7 +5249,6 @@ async function loadColorAnalysis(type = 'am') {
     resultDiv.innerHTML = '<div style="text-align: center; color: #e74c3c; padding: 20px;">加载失败：' + error.message + '</div>';
   }
 }
-
 // 执行波色分析
 function performColorAnalysis(records) {
   const results = [];
@@ -5842,7 +5841,6 @@ async function analyzeRecommendHit(lotteryType) {
     resultDiv.innerHTML = `<div style="text-align:center;color:red;padding:20px;">分析失败：${error.message}</div>`;
   }
 }
-
 // 分析单个推荐数据
 async function analyzeSingleRecommend(recommendData, lotteryType) {
   console.log('分析单个推荐数据:', recommendData);
@@ -6336,7 +6334,6 @@ async function analyzeRecent100Periods(records, lotteryType) {
   // 渲染近100期统计结果
   renderRecent100PeriodsAnalysis(periodGroups, lotteryType, recommendData);
 }
-
 // 渲染近100期按5期周期的分析结果
 function renderRecent100PeriodsAnalysis(periodGroups, lotteryType, recommendData) {
   const resultDiv = document.getElementById('recommendHitResult');
@@ -6572,6 +6569,107 @@ function initSeventhRangeAnalysis() {
   }
 }
 
+// 第二个号码四肖：页面初始化与加载
+function initSecondFourxiaoAnalysis() {
+  document.querySelectorAll('.seventh-range-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.seventh-range-type-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      window.currentSeventhRangeType = this.dataset.type;
+    });
+  });
+  // 位置选择高亮
+  const posContainer = document.getElementById('secondFourxiaoPositions');
+  if (posContainer) {
+    posContainer.querySelectorAll('.pos-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        posContainer.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        window.secondFourxiaoPos = parseInt(this.dataset.pos, 10) || 2;
+      });
+    });
+  }
+  const startBtn = document.getElementById('startSecondFourxiaoAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      loadSecondFourxiaoAnalysis(window.currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2);
+    });
+  }
+}
+
+async function loadSecondFourxiaoAnalysis(lotteryType, position) {
+  const resultDiv = document.getElementById('secondFourxiaoResult');
+  const statsDiv = document.getElementById('secondFourxiaoStats');
+  if (!resultDiv) return;
+  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">正在分析第二个号码四肖...</div>';
+  if (statsDiv) statsDiv.style.display = 'none';
+  try {
+    const res = await fetch(`${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lotteryType}&position=${position}`);
+    const data = await res.json();
+    if (!data.success) {
+      resultDiv.innerHTML = `<div style="color:red;text-align:center;padding:20px;">分析失败：${data.message}</div>`;
+      return;
+    }
+    renderSecondFourxiao(data.data);
+  } catch (e) {
+    resultDiv.innerHTML = `<div style="color:red;text-align:center;padding:20px;">分析异常：${e.message}</div>`;
+  }
+}
+
+function renderSecondFourxiao(data) {
+  const resultDiv = document.getElementById('secondFourxiaoResult');
+  const statsDiv = document.getElementById('secondFourxiaoStats');
+  if (!resultDiv) return;
+  const { results, total_triggers, hit_count, hit_rate } = data || {};
+  let html = `
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>触发期数</th>
+            <th>开奖时间</th>
+            <th>基础位置</th>
+            <th>基础号码</th>
+            <th>生成16码</th>
+            <th>窗口期(后5期)</th>
+            <th>窗口第7码</th>
+            <th>是否命中</th>
+            <th>命中期</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  (results || []).forEach(r => {
+    const rangeStr = (r.generated_numbers || []).join(', ');
+    const winStr = (r.window_periods || []).join(', ');
+    const win7Str = (r.window_seventh_numbers || []).map(x => x == null ? '-' : String(x).padStart(2, '0')).join(', ');
+    html += `
+      <tr>
+        <td>${r.current_period}</td>
+        <td>${r.current_open_time}</td>
+        <td>${r.base_position || 2}</td>
+        <td>${String(r.current_base ?? r.current_second).padStart(2, '0')}</td>
+        <td><div style="max-width:380px;overflow-x:auto;white-space:nowrap;">${rangeStr}</div></td>
+        <td>${winStr}</td>
+        <td>${win7Str}</td>
+        <td class="${r.is_hit ? 'hit' : 'miss'}">${r.is_hit ? '命中' : '遗漏'}</td>
+        <td>${r.hit_period || '-'}</td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table></div>`;
+  resultDiv.innerHTML = html;
+  if (statsDiv) {
+    document.getElementById('secondFourxiaoTotal').textContent = String(total_triggers || 0);
+    document.getElementById('secondFourxiaoHitCount').textContent = String(hit_count || 0);
+    document.getElementById('secondFourxiaoHitRate').textContent = String((hit_rate || 0) + '%');
+    statsDiv.style.display = 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  initSecondFourxiaoAnalysis();
+});
 // 加载第7个号码区间分析数据
 async function loadSeventhRangeAnalysis(lotteryType) {
   const resultDiv = document.getElementById('seventhRangeResult');
@@ -6610,7 +6708,7 @@ function renderSeventhRangeAnalysis(data) {
     return;
   }
 
-  // 取本次返回数据中的最新一期期号（用于当“后最近命中”为空时的差值计算）
+  // 取本次返回数据中的最新一期期号（用于当"后最近命中"为空时的差值计算）
   let latestPeriod = null;
   try {
     latestPeriod = results.reduce((maxVal, r) => {
@@ -6893,7 +6991,6 @@ document.addEventListener('DOMContentLoaded', function() {
   initTwentyRangeAnalysis();
   initSeventhRangeAnalysis();
 });
-
 // ==================== 采集源头选择功能 ====================
 
 // 初始化采集源头选择功能

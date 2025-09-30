@@ -19,6 +19,7 @@
         <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
         <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button> 
         <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
+        <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
         <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
@@ -334,6 +335,39 @@
                 <span class="stats-label">最大连续遗漏：</span>
                 <span class="stats-value" id="seventhRangeMaxMiss">0</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="secondFourxiaoPage" style="display:none;">
+        <h2>第二个号码四肖分析</h2>
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <label class="records-query-label" style="margin-left:24px;">选择基础位置：</label>
+          <div class="position-buttons" id="secondFourxiaoPositions" style="display:inline-block;">
+            <button type="button" class="pos-btn active" data-pos="2">第2位</button>
+            <button type="button" class="pos-btn" data-pos="1">第1位</button>
+            <button type="button" class="pos-btn" data-pos="3">第3位</button>
+            <button type="button" class="pos-btn" data-pos="4">第4位</button>
+            <button type="button" class="pos-btn" data-pos="5">第5位</button>
+            <button type="button" class="pos-btn" data-pos="6">第6位</button>
+            <button type="button" class="pos-btn" data-pos="7">第7位</button>
+          </div>
+          <button id="startSecondFourxiaoAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        <div id="secondFourxiaoResult" style="margin-top: 16px;"></div>
+        <div id="secondFourxiaoStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item"><span class="stats-label">触发期数：</span><span class="stats-value" id="secondFourxiaoTotal">0</span></div>
+              <div class="stats-item"><span class="stats-label">命中次数：</span><span class="stats-value" id="secondFourxiaoHitCount">0</span></div>
+              <div class="stats-item"><span class="stats-label">命中率：</span><span class="stats-value" id="secondFourxiaoHitRate">0%</span></div>
             </div>
           </div>
         </div>

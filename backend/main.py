@@ -2584,6 +2584,132 @@ def is_number_in_twenty_range(target_number, history_number, position):
         # 处理跨49的情况，如 45~14
         return history_number >= range_start or history_number <= range_end
 
+def plus49_wrap(value: int) -> int:
+    # 将大于49的值按49循环到1开始
+    while value > 49:
+        value = 1 + (value - 50)
+    if value <= 0:
+        value = ((value - 1) % 49) + 1
+    return value
+
+@app.get("/api/second_number_fourxiao")
+def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = Query(2, ge=1, le=7)):
+    """
+    第二个号码“四肖”分析：
+    - 仅当期号个位为3或8时触发（封3结尾/封8结尾）。
+    - 取该期第 position 个开奖号码，生成16个号码：+3,+6,...,+48,+0（超过49按1起算继续加，+0为自身）。
+    - 周期为后续5期（当前期后1~5期）。若这5期内任一期第7个号码在这16个号码中，则命中，否则遗漏。
+    返回每个触发期的窗口详情与命中情况。
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+        SELECT period, numbers, open_time
+        FROM lottery_result
+        WHERE lottery_type = %s
+        ORDER BY period DESC
+        LIMIT 500
+        """
+        cursor.execute(sql, (lottery_type,))
+        rows = cursor.fetchall()
+        if not rows:
+            cursor.close(); conn.close()
+            return {"success": False, "message": "暂无数据"}
+
+        # 按期号升序，便于窗口查找
+        records = sorted(rows, key=lambda r: int(r['period']))
+        period_to_idx = {r['period']: idx for idx, r in enumerate(records)}
+
+        def gen_16_nums(base_num: int) -> list[int]:
+            offsets = [3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,0]
+            nums = []
+            for off in offsets:
+                n = plus49_wrap(base_num + off)
+                nums.append(n)
+            # 去重并排序
+            return sorted(list(dict.fromkeys(nums)))
+
+        results = []
+        total_hit = 0
+        for idx, rec in enumerate(records):
+            period = rec['period']
+            # 仅处理期号末位为3或8
+            try:
+                if int(period) % 10 not in (3, 8):
+                    continue
+            except Exception:
+                continue
+            # 解析第 position 个号码
+            try:
+                nums = [int(n.strip()) for n in rec['numbers'].split(',') if n.strip().isdigit()]
+                if len(nums) < position:
+                    continue
+                base_num = nums[position - 1]
+            except Exception:
+                continue
+
+            gen_nums = gen_16_nums(base_num)
+
+            # 窗口：后续5期
+            window = []
+            window7 = []
+            hit_period = None
+            for k in range(1, 6):
+                j = idx + k
+                if j >= len(records):
+                    break
+                recj = records[j]
+                window.append(recj['period'])
+                try:
+                    numsj = [int(n.strip()) for n in recj['numbers'].split(',') if n.strip().isdigit()]
+                    if len(numsj) >= 7:
+                        seventh = numsj[6]
+                        window7.append(seventh)
+                        if hit_period is None and seventh in gen_nums:
+                            hit_period = recj['period']
+                    else:
+                        window7.append(None)
+                except Exception:
+                    window7.append(None)
+
+            is_hit = hit_period is not None
+            if is_hit:
+                total_hit += 1
+
+            results.append({
+                'current_period': period,
+                'current_open_time': rec['open_time'].strftime('%Y-%m-%d') if hasattr(rec['open_time'], 'strftime') else str(rec['open_time']),
+                'base_position': position,
+                'current_base': base_num,
+                'generated_numbers': gen_nums,
+                'window_periods': window,
+                'window_seventh_numbers': window7,
+                'cycle_size': 5,
+                'is_hit': is_hit,
+                'hit_period': hit_period
+            })
+
+        # 最新期在前
+        results.sort(key=lambda x: x['current_period'], reverse=True)
+        total = len(results)
+        hit_rate = round((total_hit / total * 100), 2) if total else 0.0
+
+        cursor.close(); conn.close()
+        return {
+            'success': True,
+            'data': {
+                'lottery_type': lottery_type,
+                'total_triggers': total,
+                'hit_count': total_hit,
+                'hit_rate': hit_rate,
+                'results': results
+            }
+        }
+    except Exception as e:
+        print(f"第二个号码四肖分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+
 @app.get("/api/seventh_number_range_analysis")
 def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
     """
