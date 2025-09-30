@@ -376,8 +376,8 @@ function renderTensTable(data, pos, page = 1) {
       loadTensAnalysis(currentTensType, currentTensPos, 1, window.currentTensYear);
     };
   });
-  if (page > 1) document.getElementById('tensPrevPage').onclick = () => queryRecords(areaId, data.page - 1);
-  if (page < totalPages) document.getElementById('tensNextPage').onclick = () => queryRecords(areaId, data.page + 1);
+  if (page > 1) document.getElementById('tensPrevPage').onclick = () => loadTensAnalysis(currentTensType, currentTensPos, page - 1, window.currentTensYear);
+  if (page < totalPages) document.getElementById('tensNextPage').onclick = () => loadTensAnalysis(currentTensType, currentTensPos, page + 1, window.currentTensYear);
   // 导出本页
   const exportBtn = tensResult.querySelector('.export-tens-btn');
   if (exportBtn) {

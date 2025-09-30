@@ -22,3 +22,12 @@ COLLECT_HISTORY_URLS = {
     'am': 'https://qnjl.zkclhb.com:2025/2023.html',
     'hk': 'https://qnjl.zkclhb.com:2025/20221.html'
 } 
+
+# 文龙珠源（备用采集源）
+WENLONGZHU_URLS = {
+    'am': 'https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh',
+    'hk': 'https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh'
+}
+
+# 默认采集失败时的回退源（目前与文龙珠相同，可按需调整）
+FALLBACK_COLLECT_URLS = WENLONGZHU_URLS

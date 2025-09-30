@@ -51,10 +51,18 @@ def collect_api(type: str = None):
     urls = config.COLLECT_URLS
     result = {}
     types = [type] if type in urls else urls.keys() if not type else []
+    # 备用源（当默认源抓不到数据时自动回退）
+    fallback_urls = getattr(config, 'FALLBACK_COLLECT_URLS', {})
     for t in types:
         print(f"开始采集: {t}")
         data = collect.fetch_lottery(urls[t], t)
-        print(f"采集到{len(data)}条数据: {data[:1]}")
+        if not data:
+            print(f"默认源未采集到数据，尝试备用源: {t}")
+            try:
+                data = collect.fetch_lottery(fallback_urls.get(t, ''), t)
+            except Exception as e:
+                print(f"备用源采集异常: {e}")
+        print(f"采集到{len(data)}条数据: {data[:1] if data else '[]'}")
         collect.save_results(data)
         
         # 检查是否有0或5结尾的期数，如果有则自动生成推荐号码
@@ -95,10 +103,7 @@ def collect_wenlongzhu_api(type: str = None):
     澳门: https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh
     香港: https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh
     """
-    wenlongzhu_urls = {
-        'am': 'https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh',
-        'hk': 'https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh'
-    }
+    wenlongzhu_urls = getattr(config, 'WENLONGZHU_URLS', {})
     
     result = {}
     types = [type] if type in wenlongzhu_urls else wenlongzhu_urls.keys() if not type else []

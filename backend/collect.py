@@ -43,7 +43,12 @@ def get_max_period(lottery_type):
     return row[0] if row and row[0] else None
 
 def fetch_lottery(url, lottery_type, check_max_period=True):
-    resp = httpx.get(url, timeout=10)
+    if not url:
+        return []
+    # 兼容部分站点需带UA与关闭验证
+    resp = httpx.get(url, timeout=15, headers={
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+    }, verify=False)
     # 尝试自动检测编码，如果失败则使用gb2312
     try:
         resp.encoding = resp.apparent_encoding or 'gb2312'
@@ -59,7 +64,8 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
             continue
         dt_text = dt.get_text(strip=True)
         # 修复正则表达式，支持<b>标签和不同的日期格式
-        m = re.match(r'(\d+)期\(开奖时间:(\d{4}-\d{1,2}-\d{1,2})\)', dt_text)
+        # 兼容不同页面样式（可能有空格、冒号变体等）
+        m = re.match(r'(\d+)期\(\s*开奖时间\s*[:：]\s*(\d{4}-\d{1,2}-\d{1,2})\s*\)', dt_text)
         if not m:
             continue
         period_raw = m.group(1)
@@ -78,7 +84,8 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         lunar_date = f"{lunar_y}-{lunar_m:02d}-{lunar_d:02d}"
         balls = []
         animals = []
-        for div in li.find_all('div', class_='ball'):
+        # ball结构兼容：class可能不同或span/b标签层级不同
+        for div in li.find_all('div', class_=re.compile('ball')):
             num_span = div.find('span')
             animal_b = div.find('b')
             if num_span and animal_b:
