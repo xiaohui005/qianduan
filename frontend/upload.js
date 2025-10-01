@@ -6720,7 +6720,7 @@ async function loadSixthThreexiaoAnalysis(lotteryType, position) {
   try {
     resultDiv.innerHTML = '<p>正在加载分析数据...</p>';
     
-    const response = await fetch(`/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${position}`);
+    const response = await fetch(`http://127.0.0.1:8000/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${position}`);
     const result = await response.json();
     
     if (result.success) {
