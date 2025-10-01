@@ -2592,6 +2592,145 @@ def plus49_wrap(value: int) -> int:
         value = ((value - 1) % 49) + 1
     return value
 
+def minus49_wrap(value: int) -> int:
+    # 将小于1的值按49循环到49开始
+    while value < 1:
+        value = 49 + (value - 0)
+    if value > 49:
+        value = ((value - 1) % 49) + 1
+    return value
+
+@app.get("/api/sixth_number_threexiao")
+def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = Query(6, ge=1, le=7)):
+    """
+    第6个号码3肖分析：
+    - 取该期第 position 个开奖号码，先循环减12直到小于12停止
+    - 对结果进行-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37运算
+    - 超过49按1起算继续加，小于1按49起算继续减
+    - 判定下一期第7个号码是否在这12/13个号码中，命中/遗漏
+    - 统计最大遗漏和历史遗漏
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+        SELECT period, numbers, open_time
+        FROM lottery_result
+        WHERE lottery_type = %s
+        ORDER BY period DESC
+        LIMIT 500
+        """
+        cursor.execute(sql, (lottery_type,))
+        rows = cursor.fetchall()
+        if not rows:
+            cursor.close(); conn.close()
+            return {"success": False, "message": "暂无数据"}
+
+        # 按期号升序，便于查找下一期
+        records = sorted(rows, key=lambda r: int(r['period']))
+        period_to_idx = {r['period']: idx for idx, r in enumerate(records)}
+
+        def gen_threexiao_nums(base_num: int) -> list[int]:
+            # 先循环减12直到小于12停止
+            reduced_num = base_num
+            while reduced_num >= 12:
+                reduced_num -= 12
+            
+            # 对结果进行运算：-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37
+            offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37]
+            nums = []
+            for off in offsets:
+                if off >= 0:
+                    n = plus49_wrap(reduced_num + off)
+                else:
+                    n = minus49_wrap(reduced_num + off)
+                nums.append(n)
+            # 去重并排序
+            return sorted(list(dict.fromkeys(nums)))
+
+        results = []
+        total_hit = 0
+        current_miss = 0
+        max_miss = 0
+        history_max_miss = 0
+        
+        for idx, rec in enumerate(records):
+            period = rec['period']
+            # 解析第 position 个号码
+            try:
+                nums = [int(n.strip()) for n in rec['numbers'].split(',') if n.strip().isdigit()]
+                if len(nums) < position:
+                    continue
+                base_num = nums[position - 1]
+            except Exception:
+                continue
+
+            gen_nums = gen_threexiao_nums(base_num)
+
+            # 查找下一期
+            next_period = str(int(period) + 1)
+            next_idx = period_to_idx.get(next_period)
+            is_hit = False
+            next_seventh = None
+            
+            if next_idx is not None:
+                next_rec = records[next_idx]
+                try:
+                    next_nums = [int(n.strip()) for n in next_rec['numbers'].split(',') if n.strip().isdigit()]
+                    if len(next_nums) >= 7:
+                        next_seventh = next_nums[6]
+                        is_hit = next_seventh in gen_nums
+                except Exception:
+                    pass
+
+            if is_hit:
+                total_hit += 1
+                if current_miss > history_max_miss:
+                    history_max_miss = current_miss
+                current_miss = 0
+            else:
+                current_miss += 1
+                if current_miss > max_miss:
+                    max_miss = current_miss
+
+            results.append({
+                'current_period': period,
+                'current_open_time': rec['open_time'].strftime('%Y-%m-%d') if hasattr(rec['open_time'], 'strftime') else str(rec['open_time']),
+                'base_position': position,
+                'current_base': base_num,
+                'generated_numbers': gen_nums,
+                'next_period': next_period,
+                'next_seventh': next_seventh,
+                'is_hit': is_hit,
+                'current_miss': current_miss,
+                'max_miss': max_miss,
+                'history_max_miss': history_max_miss
+            })
+
+        # 最新期在前
+        results.sort(key=lambda x: x['current_period'], reverse=True)
+        total = len(results)
+        hit_rate = round((total_hit / total * 100), 2) if total else 0.0
+
+        cursor.close(); conn.close()
+        return {
+            'success': True,
+            'data': {
+                'lottery_type': lottery_type,
+                'base_position': position,
+                'total_analysis': total,
+                'hit_count': total_hit,
+                'hit_rate': hit_rate,
+                'current_miss': current_miss,
+                'max_miss': max_miss,
+                'history_max_miss': history_max_miss,
+                'results': results
+            }
+        }
+    except Exception as e:
+        print(f"第6个号码3肖分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+
 @app.get("/api/second_number_fourxiao")
 def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = Query(2, ge=1, le=7)):
     """

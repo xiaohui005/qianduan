@@ -542,6 +542,7 @@ if (typeof pageMap === 'undefined') {
     menuColorAnalysisBtn: 'colorAnalysisPage',
     // 新增第二个号码四肖页面
     menuSecondFourxiaoBtn: 'secondFourxiaoPage',
+    menuSixthThreexiaoBtn: 'sixthThreexiaoPage',
     // 新增推荐8码命中情况页面
     menuRecommendHitBtn: 'recommendHitPage',
     // 新增推荐16码命中情况页面
@@ -617,6 +618,9 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuSecondFourxiaoBtn':
           loadSecondFourxiaoAnalysis(currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2);
+          break;
+        case 'menuSixthThreexiaoBtn':
+          loadSixthThreexiaoAnalysis(currentSeventhRangeType || 'am', window.sixthThreexiaoPos || 6);
           break;
         case 'menuRecommendHitBtn':
           initRecommendHitAnalysis();
@@ -6667,8 +6671,132 @@ function renderSecondFourxiao(data) {
   }
 }
 
+// 初始化第6个号码3肖分析
+function initSixthThreexiaoAnalysis() {
+  // 彩种选择
+  const typeBtns = document.querySelectorAll('#sixthThreexiaoPage .seventh-range-type-btn');
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      typeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const lotteryType = this.getAttribute('data-type');
+      window.currentSixthThreexiaoType = lotteryType;
+    });
+  });
+
+  // 位置选择
+  const posBtns = document.querySelectorAll('#sixthThreexiaoPage .pos-btn');
+  posBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      posBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const position = parseInt(this.getAttribute('data-pos'));
+      window.sixthThreexiaoPos = position;
+    });
+  });
+
+  // 开始分析按钮
+  const startBtn = document.getElementById('startSixthThreexiaoAnalysisBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      const lotteryType = window.currentSixthThreexiaoType || 'am';
+      const position = window.sixthThreexiaoPos || 6;
+      loadSixthThreexiaoAnalysis(lotteryType, position);
+    });
+  }
+
+  // 设置默认值
+  window.currentSixthThreexiaoType = 'am';
+  window.sixthThreexiaoPos = 6;
+}
+
+// 加载第6个号码3肖分析数据
+async function loadSixthThreexiaoAnalysis(lotteryType, position) {
+  const resultDiv = document.getElementById('sixthThreexiaoResult');
+  const statsDiv = document.getElementById('sixthThreexiaoStats');
+  
+  if (!resultDiv) return;
+  
+  try {
+    resultDiv.innerHTML = '<p>正在加载分析数据...</p>';
+    
+    const response = await fetch(`/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${position}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderSixthThreexiao(result.data, resultDiv, statsDiv);
+    } else {
+      resultDiv.innerHTML = `<p style="color: red;">加载失败: ${result.message}</p>`;
+    }
+  } catch (error) {
+    console.error('加载第6个号码3肖分析失败:', error);
+    resultDiv.innerHTML = '<p style="color: red;">加载失败，请检查网络连接</p>';
+  }
+}
+
+// 渲染第6个号码3肖分析结果
+function renderSixthThreexiao(data, resultDiv, statsDiv) {
+  const { results, total_analysis, hit_count, hit_rate, current_miss, max_miss, history_max_miss, base_position } = data;
+  
+  let html = `
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>期号</th>
+            <th>开奖时间</th>
+            <th>基础位置</th>
+            <th>基础号码</th>
+            <th>生成号码</th>
+            <th>下一期期号</th>
+            <th>下一期第7个号码</th>
+            <th>命中状态</th>
+            <th>当前遗漏</th>
+            <th>最大遗漏</th>
+            <th>历史最大遗漏</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  results.forEach(item => {
+    const hitStatus = item.is_hit ? '<span style="color: #27ae60; font-weight: bold;">命中</span>' : '<span style="color: #e74c3c; font-weight: bold;">遗漏</span>';
+    const generatedNums = item.generated_numbers.join(', ');
+    
+    html += `
+      <tr>
+        <td>${item.current_period}</td>
+        <td>${item.current_open_time}</td>
+        <td>第${item.base_position}位</td>
+        <td>${item.current_base}</td>
+        <td style="font-size: 12px; max-width: 200px; word-wrap: break-word;">${generatedNums}</td>
+        <td>${item.next_period}</td>
+        <td>${item.next_seventh || '-'}</td>
+        <td>${hitStatus}</td>
+        <td>${item.current_miss}</td>
+        <td>${item.max_miss}</td>
+        <td>${item.history_max_miss}</td>
+      </tr>
+    `;
+  });
+  
+  html += `</tbody></table></div>`;
+  resultDiv.innerHTML = html;
+  
+  if (statsDiv) {
+    document.getElementById('sixthThreexiaoTotal').textContent = String(total_analysis || 0);
+    document.getElementById('sixthThreexiaoHitCount').textContent = String(hit_count || 0);
+    document.getElementById('sixthThreexiaoHitRate').textContent = String((hit_rate || 0) + '%');
+    document.getElementById('sixthThreexiaoCurrentMiss').textContent = String(current_miss || 0);
+    document.getElementById('sixthThreexiaoMaxMiss').textContent = String(max_miss || 0);
+    document.getElementById('sixthThreexiaoHistoryMaxMiss').textContent = String(history_max_miss || 0);
+    statsDiv.style.display = 'block';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   initSecondFourxiaoAnalysis();
+  initSixthThreexiaoAnalysis();
 });
 // 加载第7个号码区间分析数据
 async function loadSeventhRangeAnalysis(lotteryType) {
