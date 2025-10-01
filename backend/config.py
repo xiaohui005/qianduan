@@ -9,7 +9,8 @@ REDIS_PORT = 6379
 
 # FastAPI服务配置
 API_HOST = "0.0.0.0"
-API_PORT = 8000 
+API_PORT = 8000
+ 
 
 # 采集网址配置
 COLLECT_URLS = {

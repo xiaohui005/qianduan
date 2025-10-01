@@ -2636,15 +2636,23 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
             while reduced_num >= 12:
                 reduced_num -= 12
             
-            # 对结果进行运算：-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37
+            # 对原始基础号码进行运算：-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37
             offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37]
             nums = []
             for off in offsets:
                 if off >= 0:
-                    n = plus49_wrap(reduced_num + off)
+                    n = plus49_wrap(base_num + off)
                 else:
-                    n = minus49_wrap(reduced_num + off)
+                    n = minus49_wrap(base_num + off)
                 nums.append(n)
+            
+            # 如果基础号码是12，额外添加1
+            if base_num == 12:
+                nums.append(1)
+            # 如果基础号码包含1（个位是1）或者循环减12后的结果包含1，额外添加49
+            elif base_num % 10 == 1 or reduced_num == 1:
+                nums.append(49)
+            
             # 去重并排序
             return sorted(list(dict.fromkeys(nums)))
 
