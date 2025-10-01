@@ -2649,9 +2649,10 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
             # 如果基础号码是12，额外添加1
             if base_num == 12:
                 nums.append(1)
-            # 如果基础号码包含1（个位是1）或者循环减12后的结果包含1，额外添加49
+            # 如果基础号码包含1（个位是1）或者循环减12后的结果包含1，额外添加49与47
             elif base_num % 10 == 1 or reduced_num == 1:
                 nums.append(49)
+                nums.append(47)
             
             # 去重并排序
             return sorted(list(dict.fromkeys(nums)))
