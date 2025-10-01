@@ -6624,7 +6624,7 @@ function renderSecondFourxiao(data) {
   const resultDiv = document.getElementById('secondFourxiaoResult');
   const statsDiv = document.getElementById('secondFourxiaoStats');
   if (!resultDiv) return;
-  const { results, total_triggers, hit_count, hit_rate, max_miss } = data || {};
+  const { results, total_triggers, hit_count, hit_rate } = data || {};
   let html = `
     <div class="table-container">
       <table class="data-table">
@@ -6639,7 +6639,6 @@ function renderSecondFourxiao(data) {
             <th>窗口第7码</th>
             <th>是否命中</th>
             <th>命中期</th>
-            <th>当前遗漏</th>
           </tr>
         </thead>
         <tbody>
@@ -6659,7 +6658,6 @@ function renderSecondFourxiao(data) {
         <td>${win7Str}</td>
         <td class="${r.is_hit ? 'hit' : 'miss'}">${r.is_hit ? '命中' : '遗漏'}</td>
         <td>${r.hit_period || '-'}</td>
-        <td>${r.current_miss != null ? r.current_miss : '-'}</td>
       </tr>
     `;
   });
@@ -6669,8 +6667,6 @@ function renderSecondFourxiao(data) {
     document.getElementById('secondFourxiaoTotal').textContent = String(total_triggers || 0);
     document.getElementById('secondFourxiaoHitCount').textContent = String(hit_count || 0);
     document.getElementById('secondFourxiaoHitRate').textContent = String((hit_rate || 0) + '%');
-    const maxMissEl = document.getElementById('secondFourxiaoMaxMiss');
-    if (maxMissEl) maxMissEl.textContent = String(max_miss || 0);
     statsDiv.style.display = 'block';
   }
 }

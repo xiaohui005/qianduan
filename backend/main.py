@@ -2661,8 +2661,6 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
         total_hit = 0
         current_miss = 0
         max_miss = 0
-        current_miss = 0
-        max_miss = 0
         history_max_miss = 0
         
         for idx, rec in enumerate(records):
@@ -2826,13 +2824,6 @@ def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = 
             is_hit = hit_period is not None
             if is_hit:
                 total_hit += 1
-                # 命中则清空当前遗漏并在追加前记录本行的当前遗漏为0
-                current_miss = 0
-            else:
-                # 未命中则累计当前遗漏
-                current_miss += 1
-                if current_miss > max_miss:
-                    max_miss = current_miss
 
             results.append({
                 'current_period': period,
@@ -2844,8 +2835,7 @@ def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = 
                 'window_seventh_numbers': window7,
                 'cycle_size': 5,
                 'is_hit': is_hit,
-                'hit_period': hit_period,
-                'current_miss': current_miss
+                'hit_period': hit_period
             })
 
         # 最新期在前
@@ -2861,7 +2851,6 @@ def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = 
                 'total_triggers': total,
                 'hit_count': total_hit,
                 'hit_rate': hit_rate,
-                'max_miss': max_miss,
                 'results': results
             }
         }
