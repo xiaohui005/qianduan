@@ -6596,24 +6596,29 @@ function initSecondFourxiaoAnalysis() {
   const startBtn = document.getElementById('startSecondFourxiaoAnalysisBtn');
   if (startBtn) {
     startBtn.addEventListener('click', function() {
-      loadSecondFourxiaoAnalysis(window.currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2);
+      window.secondFourxiaoPage = 1;
+      loadSecondFourxiaoAnalysis(window.currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2, window.secondFourxiaoPage || 1, 30);
     });
   }
 }
 
-async function loadSecondFourxiaoAnalysis(lotteryType, position) {
+async function loadSecondFourxiaoAnalysis(lotteryType, position, page = 1, pageSize = 30) {
   const resultDiv = document.getElementById('secondFourxiaoResult');
   const statsDiv = document.getElementById('secondFourxiaoStats');
   if (!resultDiv) return;
   resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">正在分析第二个号码四肖...</div>';
   if (statsDiv) statsDiv.style.display = 'none';
   try {
-    const res = await fetch(`${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lotteryType}&position=${position}`);
+    const res = await fetch(`${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lotteryType}&position=${position}&page=${page}&page_size=${pageSize}`);
     const data = await res.json();
     if (!data.success) {
       resultDiv.innerHTML = `<div style="color:red;text-align:center;padding:20px;">分析失败：${data.message}</div>`;
       return;
     }
+    window.secondFourxiaoPage = data.data.page || page;
+    window.secondFourxiaoTotalPages = data.data.total_pages || 1;
+    window.secondFourxiaoLotteryType = lotteryType;
+    window.secondFourxiaoPosition = position;
     renderSecondFourxiao(data.data);
   } catch (e) {
     resultDiv.innerHTML = `<div style="color:red;text-align:center;padding:20px;">分析异常：${e.message}</div>`;
@@ -6624,8 +6629,21 @@ function renderSecondFourxiao(data) {
   const resultDiv = document.getElementById('secondFourxiaoResult');
   const statsDiv = document.getElementById('secondFourxiaoStats');
   if (!resultDiv) return;
-  const { results, total_triggers, hit_count, hit_rate } = data || {};
+  const { results, total_triggers, hit_count, hit_rate, page, total_pages, page_size } = data || {};
+  const pagerHtml = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0;">
+      <div>
+        <button id="secondFourxiaoPrev" class="btn-secondary" ${page <= 1 ? 'disabled' : ''}>上一页</button>
+        <span style="margin:0 8px;">第 <strong>${page || 1}</strong> / <strong>${total_pages || 1}</strong> 页</span>
+        <button id="secondFourxiaoNext" class="btn-secondary" ${(!total_pages || page >= total_pages) ? 'disabled' : ''}>下一页</button>
+      </div>
+      <div>
+        <button id="secondFourxiaoExport" class="btn-secondary">导出CSV</button>
+      </div>
+    </div>
+  `;
   let html = `
+    ${pagerHtml}
     <div class="table-container">
       <table class="data-table">
         <thead>
@@ -6661,13 +6679,40 @@ function renderSecondFourxiao(data) {
       </tr>
     `;
   });
-  html += `</tbody></table></div>`;
+  html += `</tbody></table></div>${pagerHtml}`;
   resultDiv.innerHTML = html;
   if (statsDiv) {
     document.getElementById('secondFourxiaoTotal').textContent = String(total_triggers || 0);
     document.getElementById('secondFourxiaoHitCount').textContent = String(hit_count || 0);
     document.getElementById('secondFourxiaoHitRate').textContent = String((hit_rate || 0) + '%');
     statsDiv.style.display = 'block';
+  }
+
+  // 绑定分页与导出
+  const prevBtn = document.getElementById('secondFourxiaoPrev');
+  const nextBtn = document.getElementById('secondFourxiaoNext');
+  const exportBtn = document.getElementById('secondFourxiaoExport');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(){
+      if ((page || 1) > 1) {
+        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page - 1), page_size || 30);
+      }
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(){
+      if (page < total_pages) {
+        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page + 1), page_size || 30);
+      }
+    });
+  }
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function(){
+      const lt = window.secondFourxiaoLotteryType || 'am';
+      const pos = window.secondFourxiaoPosition || 2;
+      const url = `${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lt}&position=${pos}&export=csv`;
+      window.open(url, '_blank');
+    });
   }
 }
 
@@ -6701,7 +6746,8 @@ function initSixthThreexiaoAnalysis() {
     startBtn.addEventListener('click', function() {
       const lotteryType = window.currentSixthThreexiaoType || 'am';
       const position = window.sixthThreexiaoPos || 6;
-      loadSixthThreexiaoAnalysis(lotteryType, position);
+      window.sixthThreexiaoPage = 1;
+      loadSixthThreexiaoAnalysis(lotteryType, position, window.sixthThreexiaoPage || 1, 30);
     });
   }
 
@@ -6711,7 +6757,7 @@ function initSixthThreexiaoAnalysis() {
 }
 
 // 加载第6个号码3肖分析数据
-async function loadSixthThreexiaoAnalysis(lotteryType, position) {
+async function loadSixthThreexiaoAnalysis(lotteryType, position, page = 1, pageSize = 30) {
   const resultDiv = document.getElementById('sixthThreexiaoResult');
   const statsDiv = document.getElementById('sixthThreexiaoStats');
   
@@ -6719,11 +6765,14 @@ async function loadSixthThreexiaoAnalysis(lotteryType, position) {
   
   try {
     resultDiv.innerHTML = '<p>正在加载分析数据...</p>';
-    
-    const response = await fetch(`http://127.0.0.1:8000/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${position}`);
+    const response = await fetch(`${window.BACKEND_URL}/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${position}&page=${page}&page_size=${pageSize}`);
     const result = await response.json();
     
     if (result.success) {
+      window.sixthThreexiaoPage = result.data.page || page;
+      window.sixthThreexiaoTotalPages = result.data.total_pages || 1;
+      window.sixthThreexiaoLotteryType = lotteryType;
+      window.sixthThreexiaoPosition = position;
       renderSixthThreexiao(result.data, resultDiv, statsDiv);
     } else {
       resultDiv.innerHTML = `<p style="color: red;">加载失败: ${result.message}</p>`;
@@ -6736,9 +6785,22 @@ async function loadSixthThreexiaoAnalysis(lotteryType, position) {
 
 // 渲染第6个号码3肖分析结果
 function renderSixthThreexiao(data, resultDiv, statsDiv) {
-  const { results, total_analysis, hit_count, hit_rate, current_miss, max_miss, history_max_miss, base_position } = data;
+  const { results, total_analysis, hit_count, hit_rate, current_miss, max_miss, history_max_miss, base_position, page, total_pages, page_size } = data;
+  const pagerHtml = `
+    <div style=\"display:flex;justify-content:space-between;align-items:center;margin:10px 0;\">
+      <div>
+        <button id=\"sixthThreexiaoPrev\" class=\"btn-secondary\" ${page <= 1 ? 'disabled' : ''}>上一页</button>
+        <span style=\"margin:0 8px;\">第 <strong>${page || 1}</strong> / <strong>${total_pages || 1}</strong> 页</span>
+        <button id=\"sixthThreexiaoNext\" class=\"btn-secondary\" ${(!total_pages || page >= total_pages) ? 'disabled' : ''}>下一页</button>
+      </div>
+      <div>
+        <button id=\"sixthThreexiaoExport\" class=\"btn-secondary\">导出CSV</button>
+      </div>
+    </div>
+  `;
   
   let html = `
+    ${pagerHtml}
     <div class="table-container">
       <table class="data-table">
         <thead>
@@ -6780,7 +6842,7 @@ function renderSixthThreexiao(data, resultDiv, statsDiv) {
     `;
   });
   
-  html += `</tbody></table></div>`;
+  html += `</tbody></table></div>${pagerHtml}`;
   resultDiv.innerHTML = html;
   
   if (statsDiv) {
@@ -6791,6 +6853,33 @@ function renderSixthThreexiao(data, resultDiv, statsDiv) {
     document.getElementById('sixthThreexiaoMaxMiss').textContent = String(max_miss || 0);
     document.getElementById('sixthThreexiaoHistoryMaxMiss').textContent = String(history_max_miss || 0);
     statsDiv.style.display = 'block';
+  }
+
+  // 绑定分页与导出
+  const prevBtn = document.getElementById('sixthThreexiaoPrev');
+  const nextBtn = document.getElementById('sixthThreexiaoNext');
+  const exportBtn = document.getElementById('sixthThreexiaoExport');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(){
+      if ((page || 1) > 1) {
+        loadSixthThreexiaoAnalysis(window.sixthThreexiaoLotteryType || 'am', window.sixthThreexiaoPosition || 6, (page - 1), page_size || 30);
+      }
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(){
+      if (page < total_pages) {
+        loadSixthThreexiaoAnalysis(window.sixthThreexiaoLotteryType || 'am', window.sixthThreexiaoPosition || 6, (page + 1), page_size || 30);
+      }
+    });
+  }
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function(){
+      const lt = window.sixthThreexiaoLotteryType || 'am';
+      const pos = window.sixthThreexiaoPosition || 6;
+      const url = `${window.BACKEND_URL}/api/sixth_number_threexiao?lottery_type=${lt}&position=${pos}&export=csv`;
+      window.open(url, '_blank');
+    });
   }
 }
 

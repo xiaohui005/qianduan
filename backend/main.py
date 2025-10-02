@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, Query, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import os
@@ -2601,7 +2601,13 @@ def minus49_wrap(value: int) -> int:
     return value
 
 @app.get("/api/sixth_number_threexiao")
-def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = Query(6, ge=1, le=7)):
+def get_sixth_number_threexiao(
+    lottery_type: str = Query('am'),
+    position: int = Query(6, ge=1, le=7),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    export: str | None = Query(None)
+):
     """
     第6个号码3肖分析：
     - 取该期第 position 个开奖号码，先循环减12直到小于12停止
@@ -2721,6 +2727,41 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
         total = len(results)
         hit_rate = round((total_hit / total * 100), 2) if total else 0.0
 
+        # 导出 CSV（导出全部结果，忽略分页）
+        if export == 'csv':
+            import io, csv
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                '期号', '开奖时间', '基础位置', '基础号码', '生成号码', '下一期期号', '下一期第7个号码', '是否命中', '当前遗漏', '最大遗漏', '历史最大遗漏'
+            ])
+            for item in results:
+                writer.writerow([
+                    item.get('current_period', ''),
+                    item.get('current_open_time', ''),
+                    item.get('base_position', ''),
+                    item.get('current_base', ''),
+                    ','.join(str(n) for n in item.get('generated_numbers', [])),
+                    item.get('next_period', ''),
+                    '' if item.get('next_seventh') is None else item.get('next_seventh'),
+                    '命中' if item.get('is_hit') else '遗漏',
+                    item.get('current_miss', ''),
+                    item.get('max_miss', ''),
+                    item.get('history_max_miss', '')
+                ])
+            output.seek(0)
+            filename = f"sixth_threexiao_{lottery_type}_pos{position}.csv"
+            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            })
+
+        # 分页
+        total_pages = (total + page_size - 1) // page_size if page_size else 1
+        page = max(1, min(page, max(total_pages, 1)))
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_results = results[start:end]
+
         cursor.close(); conn.close()
         return {
             'success': True,
@@ -2733,7 +2774,10 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
                 'current_miss': current_miss,
                 'max_miss': max_miss,
                 'history_max_miss': history_max_miss,
-                'results': results
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'results': paged_results
             }
         }
     except Exception as e:
@@ -2741,7 +2785,13 @@ def get_sixth_number_threexiao(lottery_type: str = Query('am'), position: int = 
         return {"success": False, "message": f"分析失败: {str(e)}"}
 
 @app.get("/api/second_number_fourxiao")
-def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = Query(2, ge=1, le=7)):
+def get_second_number_fourxiao(
+    lottery_type: str = Query('am'),
+    position: int = Query(2, ge=1, le=7),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    export: str | None = Query(None)
+):
     """
     第二个号码“四肖”分析：
     - 仅当期号个位为3或8时触发（封3结尾/封8结尾）。
@@ -2843,6 +2893,39 @@ def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = 
         total = len(results)
         hit_rate = round((total_hit / total * 100), 2) if total else 0.0
 
+        # 导出 CSV（导出全部结果，忽略分页）
+        if export == 'csv':
+            import io, csv
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                '触发期数', '开奖时间', '基础位置', '基础号码', '生成16码', '窗口期(后5期)', '窗口第7码', '是否命中', '命中期'
+            ])
+            for item in results:
+                writer.writerow([
+                    item.get('current_period', ''),
+                    item.get('current_open_time', ''),
+                    item.get('base_position', ''),
+                    item.get('current_base', ''),
+                    ','.join(str(n) for n in item.get('generated_numbers', [])),
+                    ','.join(item.get('window_periods', [])),
+                    ','.join('-' if n is None else str(n) for n in item.get('window_seventh_numbers', [])),
+                    '命中' if item.get('is_hit') else '遗漏',
+                    item.get('hit_period', '') or '-'
+                ])
+            output.seek(0)
+            filename = f"second_fourxiao_{lottery_type}_pos{position}.csv"
+            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            })
+
+        # 分页
+        total_pages = (total + page_size - 1) // page_size if page_size else 1
+        page = max(1, min(page, max(total_pages, 1)))
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_results = results[start:end]
+
         cursor.close(); conn.close()
         return {
             'success': True,
@@ -2851,7 +2934,10 @@ def get_second_number_fourxiao(lottery_type: str = Query('am'), position: int = 
                 'total_triggers': total,
                 'hit_count': total_hit,
                 'hit_rate': hit_rate,
-                'results': results
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'results': paged_results
             }
         }
     except Exception as e:
