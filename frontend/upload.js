@@ -602,7 +602,10 @@ Object.keys(pageMap).forEach(id => {
           if (typeof loadRangeAnalysis === 'function') loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, '');
           break;
         case 'menuSeventhRangeBtn':
-          if (typeof loadSeventhRangeAnalysis === 'function') loadSeventhRangeAnalysis(currentSeventhRangeType);
+          if (typeof loadSeventhRangeAnalysis === 'function') {
+            window.seventhRangePage = 1;
+            loadSeventhRangeAnalysis(currentSeventhRangeType);
+          }
           break;
         case 'menuMinusRangeBtn':
           loadMinusRangeAnalysis(1);
@@ -6898,10 +6901,15 @@ async function loadSeventhRangeAnalysis(lotteryType) {
   statsDiv.style.display = 'none';
   
   try {
-    const response = await fetch(`${window.BACKEND_URL}/api/seventh_number_range_analysis?lottery_type=${lotteryType}`);
+    const page = window.seventhRangePage || 1;
+    const pageSize = 30;
+    const response = await fetch(`${window.BACKEND_URL}/api/seventh_number_range_analysis?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`);
     const data = await response.json();
     
     if (data.success) {
+      window.seventhRangePage = data.data.page || page;
+      window.seventhRangeTotalPages = data.data.total_pages || 1;
+      window.seventhRangeLotteryType = lotteryType;
       renderSeventhRangeAnalysis(data.data);
       updateSeventhRangeStats(data.data);
     } else {
@@ -6918,7 +6926,19 @@ function renderSeventhRangeAnalysis(data) {
   const resultDiv = document.getElementById('seventhRangeResult');
   if (!resultDiv) return;
   
-  const { results, lottery_type } = data;
+  const { results, lottery_type, page, total_pages, page_size } = data;
+  const pagerHtml = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0;">
+      <div>
+        <button id="seventhRangePrev" class="btn-secondary" ${page <= 1 ? 'disabled' : ''}>上一页</button>
+        <span style="margin:0 8px;">第 <strong>${page || 1}</strong> / <strong>${total_pages || 1}</strong> 页</span>
+        <button id="seventhRangeNext" class="btn-secondary" ${(!total_pages || page >= total_pages) ? 'disabled' : ''}>下一页</button>
+      </div>
+      <div>
+        <button id="seventhRangeExport" class="btn-secondary">导出CSV</button>
+      </div>
+    </div>
+  `;
   
   if (!results || results.length === 0) {
     resultDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无分析数据</div>';
@@ -6937,6 +6957,7 @@ function renderSeventhRangeAnalysis(data) {
   }
   
   let html = `
+    ${pagerHtml}
     <div class="table-container">
       <table class="data-table">
         <thead>
@@ -7003,9 +7024,40 @@ function renderSeventhRangeAnalysis(data) {
         </tbody>
       </table>
     </div>
+    ${pagerHtml}
   `;
   
   resultDiv.innerHTML = html;
+
+  // 绑定分页与导出
+  const prevBtn = document.getElementById('seventhRangePrev');
+  const nextBtn = document.getElementById('seventhRangeNext');
+  const exportBtn = document.getElementById('seventhRangeExport');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(){
+      if ((page || 1) > 1) {
+        const lt = window.seventhRangeLotteryType || 'am';
+        window.seventhRangePage = (page - 1);
+        loadSeventhRangeAnalysis(lt);
+      }
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(){
+      if (page < total_pages) {
+        const lt = window.seventhRangeLotteryType || 'am';
+        window.seventhRangePage = (page + 1);
+        loadSeventhRangeAnalysis(lt);
+      }
+    });
+  }
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function(){
+      const lt = window.seventhRangeLotteryType || 'am';
+      const url = `${window.BACKEND_URL}/api/seventh_number_range_analysis?lottery_type=${lt}&export=csv`;
+      window.open(url, '_blank');
+    });
+  }
 }
 
 // 更新第7个号码区间分析统计信息

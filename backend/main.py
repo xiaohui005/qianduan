@@ -2624,7 +2624,7 @@ def get_sixth_number_threexiao(
         FROM lottery_result
         WHERE lottery_type = %s
         ORDER BY period DESC
-        LIMIT 500
+        LIMIT 670
         """
         cursor.execute(sql, (lottery_type,))
         rows = cursor.fetchall()
@@ -2641,24 +2641,23 @@ def get_sixth_number_threexiao(
             reduced_num = base_num
             while reduced_num >= 12:
                 reduced_num -= 12
-            
-            # 对原始基础号码进行运算：-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37
-            offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37]
+              # 根据reduced_num的值选择偏移量
+            if reduced_num in [1, 2, 12]:
+                # 1、2、12的情况：使用完整偏移量
+                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37, 47]
+            else:
+                # 其他情况：使用基础偏移量
+                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36,37]
+ 
             nums = []
             for off in offsets:
                 if off >= 0:
-                    n = plus49_wrap(base_num + off)
+                    n = plus49_wrap(reduced_num + off)
                 else:
-                    n = minus49_wrap(base_num + off)
+                    n = minus49_wrap(reduced_num + off)
                 nums.append(n)
             
-            # 如果基础号码是12，额外添加1
-            if base_num == 12:
-                nums.append(1)
-            # 如果基础号码包含1（个位是1）或者循环减12后的结果包含1，额外添加49与47
-            elif base_num % 10 == 1 or reduced_num == 1:
-                nums.append(49)
-                nums.append(47)
+       
             
             # 去重并排序
             return sorted(list(dict.fromkeys(nums)))
@@ -2822,9 +2821,20 @@ def get_second_number_fourxiao(
         def gen_16_nums(base_num: int) -> list[int]:
             offsets = [3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,0]
             nums = []
+
+            def custom_wrap(num: int) -> int:
+                if num <= 49:
+                    return num
+                else:
+                    # 大于49：变成1 + (num - 50) + 1
+                    return 1 + (num - 50) + 1
             for off in offsets:
-                n = plus49_wrap(base_num + off)
+                n = custom_wrap(base_num + off)
                 nums.append(n)
+
+             # 特殊规则：如果包含4,7,10且不包含1，则补上1
+            if (4 in nums or 7 in nums or 10 in nums) and 1 not in nums:
+                nums.append(1)
             # 去重并排序
             return sorted(list(dict.fromkeys(nums)))
 
@@ -2945,7 +2955,12 @@ def get_second_number_fourxiao(
         return {"success": False, "message": f"分析失败: {str(e)}"}
 
 @app.get("/api/seventh_number_range_analysis")
-def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
+def get_seventh_number_range_analysis(
+    lottery_type: str = Query('am'),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    export: str | None = Query(None)
+):
     """
     获取第7个号码+1~+20区间命中遗漏分析
     每一期开奖的第7个号码在开奖号码+1~+20区间，下一期开奖的第7个号码在这区间为命中，不在为遗漏
@@ -3165,7 +3180,45 @@ def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
         
         # 按期数从大到小排序（最新期数在前）
         results.sort(key=lambda x: x['current_period'], reverse=True)
-        
+
+        # CSV 导出（导出全部，不分页）
+        if export == 'csv':
+            import io, csv
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                '当前期数', '开奖时间', '当前期第7个号码', '+1~+20区间', '下一期期数', '下一期第7个号码', '是否命中',
+                '连续命中数(自本期起)', '遗漏段长度', '最大连续遗漏', '前最近命中', '后最近命中', '双向遗漏期数合计'
+            ])
+            for item in results:
+                writer.writerow([
+                    item.get('current_period', ''),
+                    item.get('current_open_time', ''),
+                    item.get('current_seventh', ''),
+                    ','.join(str(n) for n in item.get('range_numbers', [])),
+                    item.get('next_period', ''),
+                    item.get('next_seventh', ''),
+                    '命中' if item.get('is_hit') else '遗漏',
+                    item.get('series_hit_count', 0),
+                    item.get('series_total_miss', 0),
+                    item.get('max_miss', 0),
+                    item.get('around_prev_hit_period', '') or '-',
+                    item.get('around_next_hit_period', '') or '-',
+                    item.get('around_total_omission', '')
+                ])
+            output.seek(0)
+            filename = f"seventh_plus20_{lottery_type}.csv"
+            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            })
+
+        # 分页
+        total_pages = (total_analysis + page_size - 1) // page_size if page_size else 1
+        page = max(1, min(page, max(total_pages, 1)))
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_results = results[start:end]
+
         cursor.close()
         conn.close()
         
@@ -3178,7 +3231,10 @@ def get_seventh_number_range_analysis(lottery_type: str = Query('am')):
                 "hit_rate": round(hit_rate, 2),
                 "current_miss": current_miss,
                 "max_miss": max_miss,
-                "results": results
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "results": paged_results
             }
         }
         
