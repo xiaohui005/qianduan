@@ -21,6 +21,7 @@
         <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
         <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
         <button class="menu-btn" id="menuSixthThreexiaoBtn">第6个号码3肖分析</button>
+        <button class="menu-btn" id="menuFront6SzzBtn">前6码三中三</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
         <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
@@ -405,6 +406,31 @@
               <div class="stats-item"><span class="stats-label">当前遗漏：</span><span class="stats-value" id="sixthThreexiaoCurrentMiss">0</span></div>
               <div class="stats-item"><span class="stats-label">最大遗漏：</span><span class="stats-value" id="sixthThreexiaoMaxMiss">0</span></div>
               <div class="stats-item"><span class="stats-label">历史最大遗漏：</span><span class="stats-value" id="sixthThreexiaoHistoryMaxMiss">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="front6SzzPage" style="display:none;">
+        <h2>前6码三中三</h2>
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startFront6SzzBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        <div id="front6SzzResult" style="margin-top: 16px;"></div>
+        <div id="front6SzzStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item"><span class="stats-label">触发期数：</span><span class="stats-value" id="front6SzzTotal">0</span></div>
+              <div class="stats-item"><span class="stats-label">命中次数：</span><span class="stats-value" id="front6SzzHitCount">0</span></div>
+              <div class="stats-item"><span class="stats-label">命中率：</span><span class="stats-value" id="front6SzzHitRate">0%</span></div>
+              <div class="stats-item"><span class="stats-label">当前遗漏：</span><span class="stats-value" id="front6SzzCurrentMiss">0</span></div>
+              <div class="stats-item"><span class="stats-label">最大遗漏：</span><span class="stats-value" id="front6SzzMaxMiss">0</span></div>
             </div>
           </div>
         </div>

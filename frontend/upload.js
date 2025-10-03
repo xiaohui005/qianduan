@@ -495,7 +495,6 @@ if (!document.getElementById('unitsPage')) {
   `;
   mainContent.appendChild(unitsDiv);
 }
-
 // 页面切换通用函数
 function showOnlyPage(pageId) {
   // 隐藏所有主内容区页面（id以Page结尾的div）
@@ -547,6 +546,8 @@ if (typeof pageMap === 'undefined') {
     menuRecommendHitBtn: 'recommendHitPage',
     // 新增推荐16码命中情况页面
     menuRecommend16HitBtn: 'recommend16HitPage',
+    // 新增前6码三中三页面
+    menuFront6SzzBtn: 'front6SzzPage',
   };
 }
 Object.keys(pageMap).forEach(id => {
@@ -575,6 +576,7 @@ Object.keys(pageMap).forEach(id => {
         colorAnalysisPage: '波色分析',
         recommendHitPage: '推荐8码的命中情况',
         recommend16HitPage: '推荐16码的命中情况',
+        front6SzzPage: '前6码三中三',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据（如有需要）
@@ -660,10 +662,171 @@ Object.keys(pageMap).forEach(id => {
             }
           }
           break;
+        case 'menuFront6SzzBtn':
+          if (typeof initFront6Szz === 'function') {
+            initFront6Szz();
+          } else {
+            console.error('initFront6Szz 未定义');
+          }
+          break;
       }
     });
   }
 });
+
+// ==================== 前6码三中三（前端） ====================
+function initFront6Szz() {
+  const page = document.getElementById('front6SzzPage');
+  if (!page) return;
+
+  // 彩种切换按钮
+  const typeBtns = page.querySelectorAll('.seventh-range-type-btn');
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      typeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      window.front6SzzType = this.getAttribute('data-type');
+    });
+  });
+  window.front6SzzType = (page.querySelector('.seventh-range-type-btn.active')?.getAttribute('data-type')) || 'am';
+
+  const startBtn = document.getElementById('startFront6SzzBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      window.front6SzzPage = 1;
+      loadFront6Szz(window.front6SzzType || 'am', window.front6SzzPage || 1, 30);
+    });
+  }
+
+  // 进入页面时默认加载
+  window.front6SzzPage = 1;
+  loadFront6Szz(window.front6SzzType || 'am', window.front6SzzPage || 1, 30);
+}
+
+async function loadFront6Szz(lotteryType, page = 1, pageSize = 30) {
+  const resultDiv = document.getElementById('front6SzzResult');
+  const statsDiv = document.getElementById('front6SzzStats');
+  if (!resultDiv) return;
+  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">正在分析前6码三中三...</div>';
+  if (statsDiv) statsDiv.style.display = 'none';
+  try {
+    const res = await fetch(`${window.BACKEND_URL}/api/front6_sanzhong3?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`);
+    const data = await res.json();
+    if (!data.success) {
+      resultDiv.innerHTML = `<div style="color:red;text-align:center;padding:20px;">分析失败：${data.message}</div>`;
+      return;
+    }
+    window.front6SzzPage = data.data.page || page;
+    window.front6SzzTotalPages = data.data.total_pages || 1;
+    window.front6SzzType = lotteryType;
+    renderFront6Szz(data.data);
+  } catch (e) {
+    resultDiv.innerHTML = `<div style=\"color:red;text-align:center;padding:20px;\">分析异常：${e.message}</div>`;
+  }
+}
+
+function renderFront6Szz(data) {
+  const resultDiv = document.getElementById('front6SzzResult');
+  const statsDiv = document.getElementById('front6SzzStats');
+  if (!resultDiv) return;
+  const { results, total_triggers, hit_count, hit_rate, current_miss, max_miss, page, total_pages, page_size } = data || {};
+
+  const pagerHtml = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0;">
+      <div>
+        <button id="front6SzzPrev" class="btn-secondary" ${page <= 1 ? 'disabled' : ''}>上一页</button>
+        <span style="margin:0 8px;">第 <strong>${page || 1}</strong> / <strong>${total_pages || 1}</strong> 页</span>
+        <button id="front6SzzNext" class="btn-secondary" ${(!total_pages || page >= total_pages) ? 'disabled' : ''}>下一页</button>
+      </div>
+      <div>
+        <button id="front6SzzExport" class="btn-secondary">导出CSV</button>
+      </div>
+    </div>
+  `;
+
+  let html = `${pagerHtml}
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>触发期数</th>
+            <th>开奖时间</th>
+            <th>推荐6码</th>
+            <th>窗口期(后5期)</th>
+            <th>窗口前6号码</th>
+            <th>是否命中</th>
+            <th>命中期</th>
+            <th>命中重合号码</th>
+            <th>连续遗漏</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  (results || []).forEach(r => {
+    const rec6 = (r.recommend6 || []).join(',');
+    const winStr = (r.window_periods || []).join(', ');
+    const winFront6 = (r.window_front6 || []).map(arr => (arr || []).join(',')).join(' | ');
+    const isHit = r.is_hit ? '命中' : '遗漏';
+    const hitPeriod = (r.hit_detail && r.hit_detail.hit_period) ? r.hit_detail.hit_period : '-';
+    const hitNums = (r.hit_detail && r.hit_detail.hit_common_numbers) ? r.hit_detail.hit_common_numbers.join(',') : '';
+    html += `
+      <tr>
+        <td>${r.trigger_period}</td>
+        <td>${r.open_time}</td>
+        <td style="white-space:nowrap;">${rec6}</td>
+        <td>${winStr}</td>
+        <td style="font-size:12px;">${winFront6}</td>
+        <td class="${r.is_hit ? 'hit' : 'miss'}">${isHit}</td>
+        <td>${hitPeriod}</td>
+        <td>${hitNums}</td>
+        <td>${typeof r.omission_streak === 'number' ? r.omission_streak : ''}</td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>${pagerHtml}`;
+  resultDiv.innerHTML = html;
+
+  if (statsDiv) {
+    const totalEl = document.getElementById('front6SzzTotal');
+    const hitEl = document.getElementById('front6SzzHitCount');
+    const rateEl = document.getElementById('front6SzzHitRate');
+    const curMissEl = document.getElementById('front6SzzCurrentMiss');
+    const maxMissEl = document.getElementById('front6SzzMaxMiss');
+    if (totalEl) totalEl.textContent = String(total_triggers || 0);
+    if (hitEl) hitEl.textContent = String(hit_count || 0);
+    if (rateEl) rateEl.textContent = String((hit_rate || 0) + '%');
+    if (curMissEl) curMissEl.textContent = String(current_miss || 0);
+    if (maxMissEl) maxMissEl.textContent = String(max_miss || 0);
+    statsDiv.style.display = 'block';
+  }
+
+  const prevBtn = document.getElementById('front6SzzPrev');
+  const nextBtn = document.getElementById('front6SzzNext');
+  const exportBtn = document.getElementById('front6SzzExport');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(){
+      if ((page || 1) > 1) {
+        loadFront6Szz(window.front6SzzType || 'am', (page - 1), page_size || 30);
+      }
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(){
+      if (page < total_pages) {
+        loadFront6Szz(window.front6SzzType || 'am', (page + 1), page_size || 30);
+      }
+    });
+  }
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function(){
+      const lt = window.front6SzzType || 'am';
+      const url = `${window.BACKEND_URL}/api/front6_sanzhong3?lottery_type=${lt}&export=csv`;
+      window.open(url, '_blank');
+    });
+  }
+}
 
 // 2. 登记点分析下拉菜单按钮切换逻辑优化
 setTimeout(() => {
@@ -916,7 +1079,6 @@ if (!document.getElementById('rangePage')) {
   `;
   mainContent.appendChild(rangeDiv);
 }
-
 let currentRangeType = 'am';
 let currentRangePos = 1;
 let currentRangeNextPos = 7; // 默认第7位
@@ -1868,7 +2030,6 @@ setTimeout(() => {
   });
 }, 0);
 // ... existing code ...
-
 // 关注点管理：增删改查
 (function() {
   // 工具函数
@@ -2279,7 +2440,6 @@ setTimeout(() => {
     // 绑定关注点自动完成功能
     setupQueryPlaceAutocomplete();
   }
-  
   // 过滤投注记录
   function filterBets() {
     const queryPlace = document.getElementById('queryPlace').value.trim().toLowerCase();
@@ -2701,7 +2861,6 @@ setTimeout(() => {
     loadBets();
   }
 })();
-
 // ... existing code ...
 // 6. 每期分析交互与渲染
 (function() {
@@ -3191,7 +3350,6 @@ function downloadCSV(rows, filename) {
       return [];
     }
   }
-
   // 设置关注点登记结果关注点按钮选择
   function setupPlaceResultPlaceButtons() {
     console.log('设置关注点登记结果按钮选择功能'); // 调试信息
@@ -3633,7 +3791,6 @@ function downloadCSV(rows, filename) {
     setTimeout(initPlaceResults, 100);
   }
 }
-
 // ... existing code ...
 
 // 关注点分析相关功能
@@ -4551,7 +4708,6 @@ function downloadCSV(rows, filename) {
     console.log('formatCurrency输出:', result); // 调试信息
     return result;
   }
-
   function formatDateTime(dateTime) {
     if (!dateTime) return '';
     return dateTime.replace('T', ' ').slice(0, 19);
@@ -5015,7 +5171,6 @@ function downloadCSV(rows, filename) {
     // 保存分析数据到全局变量，供分页使用
     window.currentAnalysisData = analysis;
   }
-
   // 分页切换函数
   window.changeAnalysisPage = function(page) {
     const analysis = window.currentAnalysisData;
@@ -5380,7 +5535,6 @@ function isConsecutivePeriods(currentPeriod, nextPeriod) {
   
   return isConsecutive;
 }
-
 // 渲染波色分析表格
 function renderColorAnalysisTable(results, page = 1) {
   const resultDiv = document.getElementById('colorAnalysisResult');
@@ -6785,7 +6939,6 @@ async function loadSixthThreexiaoAnalysis(lotteryType, position, page = 1, pageS
     resultDiv.innerHTML = '<p style="color: red;">加载失败，请检查网络连接</p>';
   }
 }
-
 // 渲染第6个号码3肖分析结果
 function renderSixthThreexiao(data, resultDiv, statsDiv) {
   const { results, total_analysis, hit_count, hit_rate, current_miss, max_miss, history_max_miss, base_position, page, total_pages, page_size } = data;
@@ -7261,7 +7414,6 @@ document.addEventListener('DOMContentLoaded', function() {
   initSeventhRangeAnalysis();
 });
 // ==================== 采集源头选择功能 ====================
-
 // 初始化采集源头选择功能
 function initCollectSourceSelection() {
   // 源头选择按钮事件

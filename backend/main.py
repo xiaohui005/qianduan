@@ -3242,6 +3242,190 @@ def get_seventh_number_range_analysis(
         print(f"第7个号码区间分析失败: {e}")
         return {"success": False, "message": f"分析失败: {str(e)}"}
 
+@app.get("/api/front6_sanzhong3")
+def get_front6_sanzhong3(
+    lottery_type: str = Query('am'),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    export: str | None = Query(None)
+):
+    """
+    前6码三中三：
+    - 触发期：期号尾数为0或5
+    - 每个触发期生成6个推荐号码（基于前100期的前6码历史进行推荐）
+    - 之后5期内，任意一期的前6个开奖号码中至少包含这6个号码中的任意3个，算命中，否则遗漏
+    - 返回最大遗漏与当前遗漏
+    - 支持分页与CSV导出
+    备注：推荐生成策略（简化且稳定）：统计触发期之前最近100期的前6码出现频次，取频次最高的6个作为推荐；不足6个时按数值补齐。
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        # 取较多期，便于构造窗口
+        cursor.execute(
+            """
+            SELECT period, numbers, open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period ASC
+            """,
+            (lottery_type,)
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            cursor.close(); conn.close()
+            return {"success": False, "message": "暂无数据"}
+
+        # 构建便捷结构
+        records = []
+        for r in rows:
+            try:
+                nums = [int(n.strip()) for n in (r['numbers'] or '').split(',') if n.strip().isdigit()]
+            except Exception:
+                nums = []
+            records.append({
+                'period': r['period'],
+                'open_time': r['open_time'],
+                'numbers': nums
+            })
+
+        period_to_index = {rec['period']: idx for idx, rec in enumerate(records)}
+
+        def pick_top6_before(index: int) -> list[int]:
+            start = max(0, index - 100)
+            counter = Counter()
+            for i in range(start, index):
+                nums = records[i]['numbers'][:6]
+                for n in nums:
+                    counter[n] += 1
+            # 选择频次最高的6个
+            top = [n for n, _ in counter.most_common(8)]
+            # 如果不足6个，按从1到49补齐（不与已有重复）
+            if len(top) < 8:
+                seen = set(top)
+                for x in range(1, 50):
+                    if x not in seen:
+                        top.append(x)
+                        if len(top) == 8:
+                            break
+            return sorted(top)
+
+        results = []
+        total_hit = 0
+        current_miss = 0
+        max_miss = 0
+
+        # 遍历触发期（尾号0或5）
+        for idx, rec in enumerate(records):
+            period = rec['period']
+            try:
+                if int(period) % 10 not in (0, 5):
+                    continue
+            except Exception:
+                continue
+
+            # 生成6个推荐号码（基于触发期之前的100期前6位）
+            recommend6 = pick_top6_before(idx)
+
+            # 窗口后5期
+            window_periods = []
+            window_front6 = []
+            hit = False
+            hit_detail = None
+            for k in range(1, 6):
+                j = idx + k
+                if j >= len(records):
+                    break
+                window_periods.append(records[j]['period'])
+                front6 = records[j]['numbers'][:6]
+                window_front6.append(front6)
+                # 命中判定：推荐6中至少3个出现在该期前6
+                common = set(recommend6).intersection(front6)
+                if not hit and len(common) >= 3:
+                    hit = True
+                    hit_detail = {
+                        'hit_period': records[j]['period'],
+                        'hit_common_numbers': sorted(list(common))
+                    }
+
+            if hit:
+                total_hit += 1
+                current_miss = 0
+            else:
+                current_miss += 1
+                if current_miss > max_miss:
+                    max_miss = current_miss
+
+            omission_streak = current_miss  # 命中后为0，未中则递增
+
+            results.append({
+                'trigger_period': period,
+                'open_time': rec['open_time'].strftime('%Y-%m-%d') if hasattr(rec['open_time'], 'strftime') else str(rec['open_time']),
+                'recommend6': recommend6,
+                'window_periods': window_periods,
+                'window_front6': window_front6,
+                'is_hit': hit,
+                'hit_detail': hit_detail,
+                'omission_streak': omission_streak
+            })
+
+        # 最新期在前
+        results.sort(key=lambda x: x['trigger_period'], reverse=True)
+        total_triggers = len(results)
+        hit_rate = round((total_hit / total_triggers * 100), 2) if total_triggers else 0.0
+
+        # 导出 CSV（导出全部）
+        if export == 'csv':
+            import io, csv
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                '触发期数', '开奖时间', '推荐6码', '窗口期(后5期)', '窗口前6号码', '是否命中', '命中期', '命中重合号码', '连续遗漏'
+            ])
+            for item in results:
+                writer.writerow([
+                    item.get('trigger_period', ''),
+                    item.get('open_time', ''),
+                    ','.join(str(n) for n in item.get('recommend6', [])),
+                    ','.join(item.get('window_periods', [])),
+                    '|'.join(','.join(str(n) for n in arr) for arr in item.get('window_front6', [])),
+                    '命中' if item.get('is_hit') else '遗漏',
+                    (item.get('hit_detail') or {}).get('hit_period', '-') ,
+                    ','.join(str(n) for n in (item.get('hit_detail') or {}).get('hit_common_numbers', [])),
+                    item.get('omission_streak', 0)
+                ])
+            output.seek(0)
+            filename = f"front6_sanzhong3_{lottery_type}.csv"
+            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            })
+
+        # 分页
+        total_pages = (total_triggers + page_size - 1) // page_size if page_size else 1
+        page = max(1, min(page, max(total_pages, 1)))
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_results = results[start:end]
+
+        cursor.close(); conn.close()
+        return {
+            'success': True,
+            'data': {
+                'lottery_type': lottery_type,
+                'total_triggers': total_triggers,
+                'hit_count': total_hit,
+                'hit_rate': hit_rate,
+                'current_miss': current_miss,
+                'max_miss': max_miss,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'results': paged_results
+            }
+        }
+    except Exception as e:
+        print(f"前6码三中三分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
 if __name__ == "__main__":
     import uvicorn
     import config
