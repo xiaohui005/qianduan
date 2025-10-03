@@ -1,0 +1,337 @@
+from fastapi import APIRouter, Request
+from backend import collect
+
+router = APIRouter()
+
+@router.get("/api/favorite_numbers")
+def get_favorite_numbers(position: int = 7, lottery_type: str = 'am'):
+    """获取所有关注号码组"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM favorite_numbers ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+
+        # 获取最新开奖记录用于计算遗漏
+        cursor.execute("SELECT numbers FROM lottery_result WHERE lottery_type=%s ORDER BY open_time DESC LIMIT 1", (lottery_type,))
+        latest_record = cursor.fetchone()
+
+        # 为每个关注号码组计算遗漏
+        for row in rows:
+            current_miss = 0
+            max_miss = 0
+
+            if latest_record:
+                numbers = [int(n.strip()) for n in row['numbers'].split(',') if n.strip().isdigit()]
+
+                # 获取所有历史开奖记录用于计算遗漏（按期数正序排列）
+                cursor.execute("SELECT numbers, open_time, period FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC", (lottery_type,))
+                all_records = cursor.fetchall()
+
+                if all_records:
+                    # 计算当前遗漏和最大遗漏
+                    current_miss = 0
+                    max_miss = 0
+                    temp_miss = 0
+
+                    # 按期数从旧到新遍历
+                    for record in all_records:
+                        latest_numbers = [int(n) for n in record['numbers'].split(',')]
+                        # 检查指定位置的号码（position-1是因为索引从0开始）
+                        target_number = latest_numbers[position-1] if len(latest_numbers) > position-1 else None
+
+                        # 检查关注号码中是否包含指定位置的号码
+                        hit = target_number in numbers if target_number is not None else False
+
+                        if not hit:
+                            temp_miss += 1
+                            max_miss = max(max_miss, temp_miss)
+                        else:
+                            temp_miss = 0
+
+                    current_miss = temp_miss
+
+            row['current_miss'] = current_miss
+            row['max_miss'] = max_miss
+
+        return {"success": True, "data": rows}
+    except Exception as e:
+        return {"success": False, "message": f"获取关注号码失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@router.post("/api/favorite_numbers")
+def add_favorite_numbers(req: Request):
+    """添加关注号码组"""
+    import asyncio
+    async def inner():
+        data = await req.json()
+        numbers = data.get("numbers")
+        name = data.get("name", "")
+
+        if not numbers:
+            return {"success": False, "message": "关注号码不能为空"}
+
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO favorite_numbers (numbers, name) VALUES (%s, %s)",
+                (numbers, name)
+            )
+            conn.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": f"添加失败: {str(e)}"}
+        finally:
+            cursor.close()
+            conn.close()
+    return asyncio.run(inner())
+
+@router.put("/api/favorite_numbers/{number_id}")
+def update_favorite_numbers(number_id: int, req: Request):
+    """更新关注号码组"""
+    import asyncio
+    async def inner():
+        data = await req.json()
+        numbers = data.get("numbers")
+        name = data.get("name", "")
+
+        if not numbers:
+            return {"success": False, "message": "关注号码不能为空"}
+
+        conn = collect.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE favorite_numbers SET numbers=%s, name=%s WHERE id=%s",
+                (numbers, name, number_id)
+            )
+            conn.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": f"更新失败: {str(e)}"}
+        finally:
+            cursor.close()
+            conn.close()
+    return asyncio.run(inner())
+
+@router.delete("/api/favorite_numbers/{number_id}")
+def delete_favorite_numbers(number_id: int):
+    """删除关注号码组"""
+    conn = collect.get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM favorite_numbers WHERE id=%s", (number_id,))
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": f"删除失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@router.get("/api/favorite_numbers/{number_id}/analysis")
+def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', position: int = 7):
+    """获取关注号码组的中奖分析"""
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 获取关注号码组信息
+        cursor.execute("SELECT * FROM favorite_numbers WHERE id=%s", (number_id,))
+        favorite_group = cursor.fetchone()
+        if not favorite_group:
+            return {"success": False, "message": "关注号码组不存在"}
+
+        numbers = favorite_group['numbers'].split(',')
+        numbers = [int(n.strip()) for n in numbers if n.strip().isdigit()]
+
+        if not numbers:
+            return {"success": False, "message": "关注号码格式错误"}
+
+        # 获取指定彩种的所有开奖记录，按时间排序
+        cursor.execute("""
+            SELECT lottery_type, period, open_time, numbers
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY open_time DESC
+        """, (lottery_type,))
+        all_records = cursor.fetchall()
+
+        analysis_results = []
+        miss_streaks = []  # 遗漏统计
+        hit_streaks = []   # 连中统计
+        current_miss = 0
+        max_miss = 0
+        current_streak = 0
+        max_streak = 0
+        total_hits = 0
+        total_checks = 0
+
+        # 按位置统计遗漏和连中
+        position_stats = {i: {'miss': 0, 'hits': 0, 'max_miss': 0, 'max_streak': 0, 'current_miss': 0, 'current_streak': 0} for i in range(1, 8)}
+
+        # 先获取最新一期的开奖结果
+        latest_record = all_records[0] if all_records else None
+        latest_open_numbers = []
+        latest_hit = False
+
+        if latest_record:
+            latest_open_numbers = [int(n.strip()) for n in latest_record['numbers'].split(',') if n.strip().isdigit()]
+            if len(latest_open_numbers) >= 7:
+                target_pos = position - 1  # 转换为0基索引
+                latest_hit = target_pos < len(latest_open_numbers) and latest_open_numbers[target_pos] in numbers
+
+        # 遍历所有记录计算遗漏和连中
+        for i, record in enumerate(all_records):
+            # 解析开奖号码
+            open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
+            if len(open_numbers) < 7:
+                continue
+
+            # 检查关注号码在指定位置的中奖情况
+            hits = []
+            hit_positions = []
+            target_pos = position - 1  # 转换为0基索引
+
+            if target_pos < len(open_numbers) and open_numbers[target_pos] in numbers:
+                hits.append(open_numbers[target_pos])
+                hit_positions.append(position)
+                # 更新位置统计
+                position_stats[position]['hits'] += 1
+                if position_stats[position]['current_miss'] > 0:
+                    if position_stats[position]['current_miss'] > position_stats[position]['max_miss']:
+                        position_stats[position]['max_miss'] = position_stats[position]['current_miss']
+                    position_stats[position]['current_miss'] = 0
+                position_stats[position]['current_streak'] += 1
+            else:
+                # 更新位置统计
+                position_stats[position]['miss'] += 1
+                if position_stats[position]['current_streak'] > 0:
+                    if position_stats[position]['current_streak'] > position_stats[position]['max_streak']:
+                        position_stats[position]['max_streak'] = position_stats[position]['current_streak']
+                    position_stats[position]['current_streak'] = 0
+                position_stats[position]['current_miss'] += 1
+
+            # 计算整体遗漏和连中
+            if hits:
+                # 有中奖
+                if current_miss > 0:
+                    miss_streaks.append(current_miss)
+                    if current_miss > max_miss:
+                        max_miss = current_miss
+                    current_miss = 0
+
+                current_streak += 1
+                total_hits += 1
+            else:
+                # 没有中奖
+                if current_streak > 0:
+                    hit_streaks.append(current_streak)
+                    if current_streak > max_streak:
+                        max_streak = current_streak
+                    current_streak = 0
+
+                current_miss += 1
+
+            total_checks += 1
+
+            # 计算该期的遗漏和连中（从最新一期开始往前计算到该期）
+            current_miss_for_record = 0
+            current_streak_for_record = 0
+
+            # 从最新一期开始往前计算到该期
+            for j in range(i + 1):
+                calc_record = all_records[j]
+                calc_numbers = [int(n.strip()) for n in calc_record['numbers'].split(',') if n.strip().isdigit()]
+                if len(calc_numbers) >= 7:
+                    calc_target_pos = position - 1
+                    if calc_target_pos < len(calc_numbers) and calc_numbers[calc_target_pos] in numbers:
+                        # 中奖了，重置遗漏，连中+1
+                        if current_streak_for_record == 0:
+                            current_streak_for_record = 1
+                        else:
+                            current_streak_for_record += 1
+                        current_miss_for_record = 0
+                    else:
+                        # 未中奖，遗漏+1，重置连中
+                        current_miss_for_record += 1
+                        current_streak_for_record = 0
+
+            analysis_results.append({
+                'period': record['period'],
+                'lottery_type': record['lottery_type'],
+                'open_time': record['open_time'],
+                'open_numbers': open_numbers[:7],
+                'hits': hits,
+                'hit_positions': hit_positions,
+                'is_hit': len(hits) > 0,
+                'current_miss': current_miss_for_record,
+                'current_streak': current_streak_for_record
+            })
+
+        # 计算历史遗漏和连中（从最新一期开始往前累加）
+        current_miss = 0
+        current_streak = 0
+
+        # 从最新一期开始往前累加
+        for i in range(len(all_records)):
+            record = all_records[i]
+            open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
+            if len(open_numbers) >= 7:
+                target_pos = position - 1
+                if target_pos < len(open_numbers) and open_numbers[target_pos] in numbers:
+                    # 中奖了，重置遗漏，连中+1
+                    if current_streak == 0:
+                        current_streak = 1
+                    else:
+                        current_streak += 1
+                    current_miss = 0
+                else:
+                    # 未中奖，遗漏+1，重置连中
+                    current_miss += 1
+                    current_streak = 0
+
+        # 处理位置统计的最后一段
+        for pos in range(1, 8):
+            if pos == position:  # 只更新指定位置
+                position_stats[pos]['current_miss'] = current_miss
+                position_stats[pos]['current_streak'] = current_streak
+
+        # 统计遗漏和连中分布
+        miss_distribution = {}
+        for miss in miss_streaks:
+            miss_distribution[miss] = miss_distribution.get(miss, 0) + 1
+
+        hit_distribution = {}
+        for hit in hit_streaks:
+            hit_distribution[hit] = hit_distribution.get(hit, 0) + 1
+
+        return {
+            "success": True,
+            "data": {
+                "favorite_group": favorite_group,
+                "numbers": numbers,
+                "analysis": analysis_results,
+                "position_stats": position_stats,
+                "stats": {
+                    "total_checks": total_checks,
+                    "total_hits": total_hits,
+                    "hit_rate": (total_hits / total_checks * 100) if total_checks > 0 else 0,
+                    "current_miss": current_miss,
+                    "max_miss": max_miss,
+                    "current_streak": current_streak,
+                    "max_streak": max_streak,
+                    "miss_streaks": miss_streaks,
+                    "hit_streaks": hit_streaks,
+                    "miss_distribution": miss_distribution,
+                    "hit_distribution": hit_distribution
+                }
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
