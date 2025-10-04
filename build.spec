@@ -58,3 +58,4 @@ exe = EXE(
     disable_windowed_traceback=False,
     icon='app.ico'
 )
+
