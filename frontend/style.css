@@ -2502,16 +2502,19 @@ h2 {
 }
 
 .place-selection-btn.selected {
-  background: #2980d9;
+  background: #e74c3c;
   color: #fff;
-  border-color: #2980d9;
-  box-shadow: 0 2px 8px rgba(41,128,217,0.3);
+  border-color: #e74c3c;
+  border-width: 3px;
+  box-shadow: 0 3px 12px rgba(231,76,60,0.5);
+  font-weight: bold;
+  transform: scale(1.05);
 }
 
 .place-selection-btn.selected:hover {
-  background: #1c5fa8;
-  border-color: #1c5fa8;
-  box-shadow: 0 4px 12px rgba(41,128,217,0.4);
+  background: #c0392b;
+  border-color: #c0392b;
+  box-shadow: 0 5px 16px rgba(231,76,60,0.6);
 }
 
 /* 为关注点输入框添加下拉箭头指示器 */

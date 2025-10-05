@@ -1988,47 +1988,7 @@ setTimeout(() => {
 }, 0);
 
 // ... existing code ...
-// 登记点分析下拉菜单按钮事件绑定
-setTimeout(() => {
-  const btnMap = [
-    { btn: 'menuRegisterFocusBtn', page: 'registerFocusPage', title: '登记关注点' },
-    { btn: 'menuRegisterBetBtn', page: 'registerBetPage', title: '投注登记点' },
-    { btn: 'menuRegisterFocusResultBtn', page: 'registerFocusResultPage', title: '关注点登记结果' },
-    { btn: 'menuRegisterFocusAnalysisBtn', page: 'registerFocusAnalysisPage', title: '关注点分析' },
-    { btn: 'menuRegisterBetReportBtn', page: 'registerBetReportPage', title: '投注点报表' },
-  ];
-  btnMap.forEach(item => {
-    const btn = document.getElementById(item.btn);
-    if (btn) {
-      btn.onclick = function() {
-        // 高亮
-        btnMap.forEach(i => {
-          const b = document.getElementById(i.btn);
-          if (b) b.classList.remove('active');
-        });
-        btn.classList.add('active');
-        // 页面切换，先隐藏所有主内容区页面
-        document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
-          div.style.display = 'none';
-        });
-        // 只显示当前页面
-        const showPage = document.getElementById(item.page);
-        if (showPage) showPage.style.display = '';
-        // 标题切换
-        const pageTitle = document.getElementById('pageTitle');
-        if (pageTitle) pageTitle.innerText = item.title;
-        // 特殊处理关注点登记结果页面
-        if (item.page === 'registerFocusResultPage') {
-          setTimeout(() => { initPlaceResults(); }, 100);
-        }
-        // 特殊处理关注点分析页面
-        if (item.page === 'registerFocusAnalysisPage') {
-          setTimeout(() => { initPlaceAnalysis(); }, 100);
-        }
-      };
-    }
-  });
-}, 0);
+// 登记点分析下拉菜单按钮事件绑定（已移除重复代码）
 // ... existing code ...
 // 关注点管理：增删改查
 (function() {
@@ -3352,52 +3312,100 @@ function downloadCSV(rows, filename) {
   }
   // 设置关注点登记结果关注点按钮选择
   function setupPlaceResultPlaceButtons() {
-    console.log('设置关注点登记结果按钮选择功能'); // 调试信息
+    console.log('设置关注点登记结果按钮选择功能');
     const buttonsContainer = document.getElementById('placeResultPlaceButtons');
     const hiddenInput = document.getElementById('placeResultPlaceInput');
-    
+
     if (!buttonsContainer || !hiddenInput) {
-      console.log('未找到按钮容器或隐藏输入框元素'); // 调试信息
-        return;
-      }
-      
+      console.log('未找到按钮容器或隐藏输入框元素');
+      return;
+    }
+
+    console.log('容器元素:', buttonsContainer);
+    console.log('容器className:', buttonsContainer.className);
+
+    // 检查所有父元素的显示状态
+    let el = buttonsContainer;
+    let level = 0;
+    while (el && level < 10) {
+      const styles = window.getComputedStyle(el);
+      console.log(`层级${level} - ${el.tagName}#${el.id || ''}.${el.className || ''} display:${styles.display} visibility:${styles.visibility} height:${styles.height}`);
+      el = el.parentElement;
+      level++;
+    }
+
+    // 强制设置容器可见
+    buttonsContainer.style.display = 'flex';
+    buttonsContainer.style.flexWrap = 'wrap';
+    buttonsContainer.style.gap = '8px';
+    buttonsContainer.style.padding = '8px';
+    buttonsContainer.style.border = '1px solid #ddd';
+    buttonsContainer.style.background = '#f8f9fa';
+    buttonsContainer.style.minHeight = '50px';
+    buttonsContainer.style.height = 'auto';
+    buttonsContainer.style.maxHeight = '200px';
+    buttonsContainer.style.overflowY = 'auto';
+
     // 清空容器
     buttonsContainer.innerHTML = '';
-    
+
     // 获取关注点数据并渲染按钮
-    fetchPlaceResultsPlaces().then(places => {
-      console.log('获取到关注点数据，数量:', places.length); // 调试信息
-      
-      if (places.length > 0) {
-          let html = '';
-        places.forEach((place, index) => {
-          html += `<button type="button" class="place-selection-btn" data-id="${place.id}" data-name="${place.name}">${place.name}</button>`;
-        });
-        buttonsContainer.innerHTML = html;
-        
-        // 绑定按钮点击事件
-        const buttons = buttonsContainer.querySelectorAll('.place-selection-btn');
-        buttons.forEach(btn => {
-          btn.addEventListener('click', function() {
-            // 移除其他按钮的选中状态
-            buttons.forEach(b => b.classList.remove('selected'));
-            // 添加当前按钮的选中状态
-            this.classList.add('selected');
-            // 设置隐藏输入框的值
-            hiddenInput.value = this.dataset.name;
-            hiddenInput.dataset.placeId = this.dataset.id;
-            console.log('选中关注点:', this.dataset.name, 'ID:', this.dataset.id); // 调试信息
+    fetchPlaceResultsPlaces()
+      .then(places => {
+        console.log('获取到关注点数据，数量:', places.length);
+        console.log('数据样本:', places.slice(0, 2));
+
+        if (!places || places.length === 0) {
+          buttonsContainer.innerHTML = '<p style="color: #999; font-size: 14px;">暂无关注点数据</p>';
+          return;
+        }
+
+        // 渲染按钮
+        const html = places.map(place =>
+          `<button type="button" class="place-selection-btn" data-id="${place.id}" data-name="${place.name}" style="display:inline-block!important;padding:6px 12px;border:2px solid #ddd;background:#fff;color:#333;border-radius:20px;cursor:pointer;font-size:13px;margin:4px;">${place.name}</button>`
+        ).join('');
+
+        console.log('准备渲染HTML，长度:', html.length);
+
+        // 重新获取容器并设置
+        const container = document.getElementById('placeResultPlaceButtons');
+        if (container) {
+          container.innerHTML = html;
+          console.log('渲染完成，容器innerHTML长度:', container.innerHTML.length);
+
+          // 绑定按钮点击事件
+          const buttons = container.querySelectorAll('.place-selection-btn');
+          console.log('查找到的按钮数量:', buttons.length);
+
+          buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+              console.log('按钮被点击:', this.dataset.name);
+              // 移除其他按钮的选中状态
+              container.querySelectorAll('.place-selection-btn').forEach(b => b.classList.remove('selected'));
+              // 添加当前按钮的选中状态
+              this.classList.add('selected');
+              // 重新获取隐藏输入框（因为表单可能被克隆替换）
+              const input = document.getElementById('placeResultPlaceInput');
+              if (input) {
+                input.value = this.dataset.name;
+                input.dataset.placeId = this.dataset.id;
+                console.log('选中关注点:', this.dataset.name, 'ID:', this.dataset.id);
+                console.log('设置后 input.value:', input.value, 'input.dataset.placeId:', input.dataset.placeId);
+              } else {
+                console.error('无法找到隐藏输入框！');
+              }
+            });
           });
-        });
-        
-        console.log('关注点按钮渲染完成，共', buttons.length, '个按钮'); // 调试信息
-      } else {
-        buttonsContainer.innerHTML = '<p style="color: #999; font-size: 14px;">暂无关注点数据</p>';
-      }
-    }).catch(error => {
-      console.error('获取关注点列表失败:', error);
-      buttonsContainer.innerHTML = '<p style="color: #e74c3c; font-size: 14px;">加载关注点失败</p>';
-    });
+
+          console.log('关注点按钮渲染完成，共', buttons.length, '个按钮');
+        } else {
+          console.error('无法找到容器元素！');
+        }
+      })
+      .catch(error => {
+        console.error('获取关注点列表失败:', error);
+        buttonsContainer.innerHTML = '<p style="color: #e74c3c; font-size: 14px;">加载关注点失败</p>';
+      });
   }
 
   // 设置查询关注点登记结果关注点输入自动完成
@@ -3615,14 +3623,18 @@ function downloadCSV(rows, filename) {
       
       newForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const placeInput = document.getElementById('placeResultPlaceInput');
         const placeId = placeInput.dataset.placeId || placeInput.value;
         const qishu = document.getElementById('placeResultQishu').value;
         const isCorrect = document.getElementById('placeResultIsCorrect').value;
-        
+
+        console.log('表单提交 - placeId:', placeId, 'qishu:', qishu, 'isCorrect:', isCorrect);
+        console.log('placeInput.dataset.placeId:', placeInput.dataset.placeId);
+        console.log('placeInput.value:', placeInput.value);
+
         if (!placeId || !qishu) {
-          alert('请填写完整信息');
+          alert('请填写完整信息（关注点ID: ' + placeId + ', 期数: ' + qishu + '）');
           return;
         }
         
@@ -3783,13 +3795,7 @@ function downloadCSV(rows, filename) {
 
 
 
-  // 页面加载完成后初始化
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPlaceResults);
-  } else {
-    // 延迟初始化，确保所有DOM元素都已加载
-    setTimeout(initPlaceResults, 100);
-  }
+  // 页面加载完成后初始化（仅在页面切换时调用）
 }
 // ... existing code ...
 
@@ -5077,13 +5083,14 @@ function downloadCSV(rows, filename) {
           <p><strong>分析位置：</strong>第${position}位</p>
           <p><strong>创建时间：</strong>${formatDateTime(favorite_group.created_at)}</p>
         </div>
+        <button class="pagination-btn" onclick="exportFavoriteAnalysis()" style="margin-top: 10px;">导出Excel</button>
       </div>
     `;
 
 
 
     // 详细记录分页
-    const pageSize = 20;
+    const pageSize = 50;
     const currentPage = 1;
     const totalRecords = analysis.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
@@ -5148,11 +5155,8 @@ function downloadCSV(rows, filename) {
             <div class="page-numbers">
     `;
     
-    // 显示页码
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-    
-    for (let i = startPage; i <= endPage; i++) {
+    // 显示所有页码
+    for (let i = 1; i <= totalPages; i++) {
       html += `<button class="page-number ${i === currentPage ? 'active' : ''}" onclick="changeAnalysisPage(${i})">${i}</button>`;
     }
       
@@ -5175,30 +5179,30 @@ function downloadCSV(rows, filename) {
   window.changeAnalysisPage = function(page) {
     const analysis = window.currentAnalysisData;
     if (!analysis) return;
-    
+
     const pageSize = 20;
     const totalRecords = analysis.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
-    
+
     if (page < 1 || page > totalPages) return;
-    
+
     const tbody = document.getElementById('analysisTableBody');
     if (!tbody) return;
-    
+
     // 清空表格内容
     tbody.innerHTML = '';
-    
+
     // 计算当前页的数据并按开奖时间从大到小排序（最新的开奖时间在前面）
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
-    
+
     // 渲染当前页数据
     currentPageData.forEach(record => {
       const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
       const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
       const isHitClass = record.is_hit ? 'hit-yes' : 'hit-no';
-      
+
       const row = document.createElement('tr');
       row.innerHTML = `
           <td>${record.period}</td>
@@ -5212,30 +5216,64 @@ function downloadCSV(rows, filename) {
       `;
       tbody.appendChild(row);
     });
-    
+
     // 更新分页信息
     const paginationInfo = document.querySelector('.pagination-info');
     if (paginationInfo) {
       paginationInfo.textContent = `第 ${page} 页，共 ${totalPages} 页，共 ${totalRecords} 条记录`;
     }
-    
+
     // 更新分页按钮状态
     const prevBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page - 1})"]');
     const nextBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page + 1})"]');
     const firstBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(1)"]');
     const lastBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${totalPages})"]');
-    
+
     if (prevBtn) prevBtn.disabled = page === 1;
     if (nextBtn) nextBtn.disabled = page === totalPages;
     if (firstBtn) firstBtn.disabled = page === 1;
     if (lastBtn) lastBtn.disabled = page === totalPages;
-    
+
     // 更新页码按钮
     const pageNumbers = document.querySelectorAll('.page-number');
     pageNumbers.forEach((btn, index) => {
       const pageNum = parseInt(btn.textContent);
       btn.classList.toggle('active', pageNum === page);
     });
+  }
+
+  // 导出关注号码分析结果
+  window.exportFavoriteAnalysis = function() {
+    const analysis = window.currentAnalysisData;
+    if (!analysis || analysis.length === 0) {
+      alert('暂无数据可导出');
+      return;
+    }
+
+    const csvRows = [
+      ['期数', '开奖时间', '开奖号码', '中奖号码', '中奖位置', '是否中奖', '当前遗漏', '当前连中']
+    ];
+
+    // 按开奖时间从大到小排序
+    const sortedData = analysis.slice().sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+
+    sortedData.forEach(record => {
+      const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
+      const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
+
+      csvRows.push([
+        record.period,
+        formatDateTime(record.open_time),
+        record.open_numbers.join(','),
+        hitNumbers,
+        hitPositions,
+        record.is_hit ? '是' : '否',
+        record.current_miss,
+        record.current_streak
+      ]);
+    });
+
+    downloadCSV(csvRows, '关注号码分析结果.csv');
   }
 
   // 当页面切换到关注号码管理时初始化

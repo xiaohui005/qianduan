@@ -17,13 +17,12 @@ app.add_middleware(
 )
 
 # 导入路由模块
-from backend.routes import collect, recommend, analysis, betting, favorites
+from backend.routes import collect, recommend, analysis, favorites
 
 # 注册路由
 app.include_router(collect.router, tags=["采集"])
 app.include_router(recommend.router, tags=["推荐"])
 app.include_router(analysis.router, tags=["分析"])
-app.include_router(betting.router, tags=["下注管理"])
 app.include_router(favorites.router, tags=["收藏号码"])
 
 @app.get("/")
