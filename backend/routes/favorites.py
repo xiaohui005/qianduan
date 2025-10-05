@@ -338,6 +338,74 @@ def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', posi
         cursor.close()
         conn.close()
 
+# 最大遗漏提醒：按阈值筛选 places 的当前遗漏与最大遗漏差距
+@router.get("/api/places_max_miss_alerts")
+def get_places_max_miss_alerts(threshold: int = Query(0, ge=0), lottery_type: str = Query('am')):
+    """返回那些 (max_miss - current_miss) <= threshold 的关注点。
+    注意：这里使用 place_results 的 is_correct=1 表示命中来统计遗漏。
+    """
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 获取所有关注点
+        cursor.execute("SELECT id, name, description FROM places ORDER BY id")
+        places = cursor.fetchall()
+
+        alerts = []
+
+        for place in places:
+            place_id = place["id"]
+
+            # 获取该关注点的所有登记结果（按时间顺序）
+            cursor.execute(
+                """
+                SELECT id, qishu, is_correct, created_at
+                FROM place_results
+                WHERE place_id = %s
+                ORDER BY created_at ASC
+                """,
+                (place_id,),
+            )
+            records = cursor.fetchall()
+
+            current_miss = 0
+            max_miss = 0
+
+            for rec in records:
+                if rec["is_correct"] == 1:
+                    # 命中则重置当前遗漏
+                    if current_miss > max_miss:
+                        max_miss = current_miss
+                    current_miss = 0
+                else:
+                    # 非命中（0 或 NULL）视为未中，累计遗漏
+                    current_miss += 1
+
+            # 结束后再比较一次，避免最后一段遗漏未计入 max
+            if current_miss > max_miss:
+                max_miss = current_miss
+
+            gap = max_miss - current_miss
+            if gap <= threshold:
+                alerts.append({
+                    "place_id": place_id,
+                    "place_name": place["name"],
+                    "description": place.get("description", ""),
+                    "current_miss": current_miss,
+                    "max_miss": max_miss,
+                    "gap": gap,
+                })
+
+        # 按 gap 升序、再按 max_miss 降序，便于优先查看接近最大遗漏的
+        alerts.sort(key=lambda x: (x["gap"], -x["max_miss"]))
+
+        return {"success": True, "data": alerts, "threshold": threshold}
+    except Exception as e:
+        return {"success": False, "message": f"查询失败: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close()
+
 # --- 关注点 places 表的增删改查 API ---
 
 @router.get("/api/places")

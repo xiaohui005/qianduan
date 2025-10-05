@@ -548,6 +548,8 @@ if (typeof pageMap === 'undefined') {
     menuRecommend16HitBtn: 'recommend16HitPage',
     // 新增前6码三中三页面
     menuFront6SzzBtn: 'front6SzzPage',
+    // 新增最大遗漏提醒页面
+    menuMaxMissAlertBtn: 'maxMissAlertPage',
   };
 }
 Object.keys(pageMap).forEach(id => {
@@ -577,6 +579,7 @@ Object.keys(pageMap).forEach(id => {
         recommendHitPage: '推荐8码的命中情况',
         recommend16HitPage: '推荐16码的命中情况',
         front6SzzPage: '前6码三中三',
+        maxMissAlertPage: '最大遗漏提醒',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据（如有需要）
@@ -667,6 +670,13 @@ Object.keys(pageMap).forEach(id => {
             initFront6Szz();
           } else {
             console.error('initFront6Szz 未定义');
+          }
+          break;
+        case 'menuMaxMissAlertBtn':
+          if (typeof loadMaxMissAlerts === 'function') {
+            const thresholdInput = document.getElementById('maxMissThreshold');
+            const t = thresholdInput ? parseInt(thresholdInput.value || '0') || 0 : 0;
+            loadMaxMissAlerts(t);
           }
           break;
       }
@@ -7081,6 +7091,66 @@ document.addEventListener('DOMContentLoaded', function(){
   initSecondFourxiaoAnalysis();
   initSixthThreexiaoAnalysis();
 });
+
+// 最大遗漏提醒
+(function() {
+  async function fetchMaxMissAlerts(threshold) {
+    try {
+      const res = await fetch(`${window.BACKEND_URL}/api/places_max_miss_alerts?threshold=${encodeURIComponent(threshold)}`);
+      return await res.json();
+    } catch (e) {
+      console.error('获取最大遗漏提醒失败:', e);
+      return { success: false, message: String(e) };
+    }
+  }
+
+  function renderMaxMissAlerts(data) {
+    const tbody = document.querySelector('#maxMissAlertTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!data || !data.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="5" style="text-align:center;color:#888;">暂无符合条件的关注点</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    data.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.place_name || '-'}</td>
+        <td>${item.description || ''}</td>
+        <td>${item.current_miss ?? '-'}</td>
+        <td>${item.max_miss ?? '-'}</td>
+        <td>${item.gap ?? '-'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  window.loadMaxMissAlerts = async function(threshold) {
+    const result = await fetchMaxMissAlerts(threshold);
+    if (!result || !result.success) {
+      console.error('最大遗漏提醒接口失败:', result && result.message);
+      renderMaxMissAlerts([]);
+      return;
+    }
+    renderMaxMissAlerts(result.data || []);
+  };
+
+  // 绑定刷新按钮
+  setTimeout(() => {
+    const refreshBtn = document.getElementById('refreshMaxMissBtn');
+    if (refreshBtn) {
+      refreshBtn.onclick = function() {
+        const thresholdInput = document.getElementById('maxMissThreshold');
+        const t = thresholdInput ? parseInt(thresholdInput.value || '0') || 0 : 0;
+        window.loadMaxMissAlerts(t);
+      };
+    }
+  }, 0);
+})();
 // 加载第7个号码区间分析数据
 async function loadSeventhRangeAnalysis(lotteryType) {
   const resultDiv = document.getElementById('seventhRangeResult');

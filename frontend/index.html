@@ -11,6 +11,7 @@
       <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">彩票分析系统</h2>
       <button class="menu-btn" id="menuCollectBtn">采集</button>
       <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
+        <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
       <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
       <div id="sidebarMenuBtns">
         <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
@@ -34,6 +35,7 @@
         <button class="menu-btn" id="menuRegisterFocusResultBtn">关注点登记结果</button>
         <button class="menu-btn" id="menuRegisterFocusAnalysisBtn">关注点分析</button>
         <button class="menu-btn" id="menuFavoriteNumbersBtn">关注号码管理</button>
+      
         <button class="menu-btn" id="menuRegisterBetBtn">投注登记点</button>
         <button class="menu-btn" id="menuRegisterBetReportBtn">投注点报表</button>
       </div>
@@ -606,6 +608,29 @@
           <div style="text-align:center;color:#888;padding:20px;">
             点击"刷新分析"按钮开始分析关注点数据
           </div>
+        </div>
+      </div>
+      <!-- 最大遗漏提醒 页面 -->
+      <div id="maxMissAlertPage" style="display:none;">
+        <h2>最大遗漏提醒</h2>
+        <div class="query-form" style="margin-bottom: 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <label for="maxMissThreshold">最大遗漏差距阈值：</label>
+          <input type="number" id="maxMissThreshold" value="0" min="0" style="width:100px;">
+          <button id="refreshMaxMissBtn" class="btn-primary">刷新</button>
+        </div>
+        <div class="table-container">
+          <table id="maxMissAlertTable" class="data-table">
+            <thead>
+              <tr>
+                <th>关注点</th>
+                <th>描述</th>
+                <th>当前遗漏</th>
+                <th>最大遗漏</th>
+                <th>差距</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
       <div id="favoriteNumbersPage" style="display:none;">
