@@ -36,7 +36,7 @@ def tens_analysis_api(lottery_type: str = Query('am'), year: str = Query(None)):
     result = []
     max_miss = []
     max_miss_period = []
-    for pos in range(6, -1, -1):  # 从第7位到第1位倒序遍历
+    for pos in range(7):  # 从第7位到第1位倒序遍历
         miss_counter = {col: 0 for col in tens_cols}
         max_counter = {col: 0 for col in tens_cols}
         max_period = {col: None for col in tens_cols}

@@ -81,3 +81,6 @@ function testPlaceButtons() {
 // 导出函数供全局使用
 window.testPlaceButtons = testPlaceButtons;
 window.setupPlaceResultPlaceButtons = setupPlaceResultPlaceButtons;
+
+
+

@@ -619,7 +619,15 @@ Object.keys(pageMap).forEach(id => {
           loadPlusMinus6Analysis();
           break;
         case 'menuEachIssueBtn':
-          loadEachIssueAnalysis(currentType, currentPage);
+          try {
+            if (typeof window.eachIssuePage === 'undefined') window.eachIssuePage = 1;
+            if (typeof window.eachIssueType === 'undefined') window.eachIssueType = 'am';
+            if (typeof loadEachIssueAnalysis === 'function') {
+              loadEachIssueAnalysis(window.eachIssueType, window.eachIssuePage);
+            }
+          } catch (e) {
+            console.error('进入每期分析失败:', e);
+          }
           break;
         case 'menuColorAnalysisBtn':
           loadColorAnalysis(currentColorType);
@@ -1386,7 +1394,7 @@ Object.keys(pageMap).forEach(id => {
           loadPlusMinus6Analysis();
           break;
         case 'menuEachIssueBtn':
-          loadEachIssueAnalysis(currentType, currentPage);
+          loadEachIssueAnalysis(window.currentEachIssueType, window.currentEachIssuePage);
           break;
       }
     });
@@ -2833,6 +2841,10 @@ setTimeout(() => {
 })();
 // ... existing code ...
 // 6. 每期分析交互与渲染
+// 定义全局变量供菜单切换使用
+window.currentEachIssueType = 'am';
+window.currentEachIssuePage = 1;
+
 (function() {
   const menuEachIssueBtn = document.getElementById('menuEachIssueBtn');
   const eachIssuePage = document.getElementById('eachIssuePage');
@@ -2852,6 +2864,8 @@ setTimeout(() => {
       });
       eachIssuePage.style.display = '';
       currentPage = 1;
+      window.currentEachIssueType = currentType;
+      window.currentEachIssuePage = currentPage;
       loadEachIssueAnalysis(currentType, currentPage);
     });
   }
@@ -2862,6 +2876,8 @@ setTimeout(() => {
         this.classList.add('active');
         currentType = this.dataset.type;
         currentPage = 1;
+        window.currentEachIssueType = currentType;
+        window.currentEachIssuePage = currentPage;
         loadEachIssueAnalysis(currentType, currentPage);
       });
     });
@@ -2875,12 +2891,14 @@ setTimeout(() => {
         this.classList.add('active');
         currentUnitGroup = this.dataset.group;
         currentPage = 1;
+        window.currentEachIssueType = currentType;
+        window.currentEachIssuePage = currentPage;
         loadEachIssueAnalysis(currentType, currentPage);
       });
     });
   }
 
-  async function loadEachIssueAnalysis(type = 'am', page = 1) {
+  window.loadEachIssueAnalysis = async function(type = 'am', page = 1) {
     eachIssueResult.innerHTML = '加载中...';
     try {
       let url = `${window.BACKEND_URL}/each_issue_analysis?lottery_type=${type}&page=${page}&page_size=${pageSize}`;
@@ -2957,8 +2975,16 @@ setTimeout(() => {
     // 事件绑定
     const prevBtn = eachIssueResult.querySelector('.eachIssuePrevPage');
     const nextBtn = eachIssueResult.querySelector('.eachIssueNextPage');
-    if (prevBtn) prevBtn.onclick = () => { currentPage -= 1; loadEachIssueAnalysis(currentType, currentPage); };
-    if (nextBtn) nextBtn.onclick = () => { currentPage += 1; loadEachIssueAnalysis(currentType, currentPage); };
+    if (prevBtn) prevBtn.onclick = () => {
+      currentPage -= 1;
+      window.currentEachIssuePage = currentPage;
+      loadEachIssueAnalysis(currentType, currentPage);
+    };
+    if (nextBtn) nextBtn.onclick = () => {
+      currentPage += 1;
+      window.currentEachIssuePage = currentPage;
+      loadEachIssueAnalysis(currentType, currentPage);
+    };
     // 导出本页
     const exportBtn = eachIssueResult.querySelector('.export-each-issue-btn');
     if (exportBtn) {
