@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>彩票分析系统（模块化版本）</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">彩票分析系统</h2>
+      <button class="menu-btn" id="menuCollectBtn">采集</button>
+      <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
+      <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
+
+      <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
+      <div id="sidebarMenuBtns">
+        <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
+        <button class="menu-btn" id="menuRecommendHitBtn">推荐8码的命中情况</button>
+        <button class="menu-btn" id="menuTensBtn">第N位十位分析</button>
+        <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
+        <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button>
+        <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
+        <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
+        <button class="menu-btn" id="menuSixthThreexiaoBtn">第6个号码3肖分析</button>
+        <button class="menu-btn" id="menuFront6SzzBtn">前6码三中三</button>
+        <button class="menu-btn" id="menuFivePeriodThreexiaoBtn">5期3肖计算</button>
+        <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
+        <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
+        <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
+      </div>
+
+      <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
+        登记点分析 <span id="registerCollapseIcon">▼</span>
+      </button>
+      <div id="registerMenuBtns" style="display:none; margin-bottom:12px;">
+        <button class="menu-btn" id="menuRegisterFocusBtn">登记关注点</button>
+        <button class="menu-btn" id="menuRegisterFocusResultBtn">关注点登记结果</button>
+        <button class="menu-btn" id="menuRegisterFocusAnalysisBtn">关注点分析</button>
+        <button class="menu-btn" id="menuFavoriteNumbersBtn">关注号码管理</button>
+        <button class="menu-btn" id="menuRegisterBetBtn">投注登记点</button>
+        <button class="menu-btn" id="menuRegisterBetReportBtn">投注点报表</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <h1 id="pageTitle">数据采集</h1>
+        <div>
+          <span id="currentTime" class="current-time"></span>
+          <button id="restartBtn" class="restart-btn">重启后端</button>
+        </div>
+      </header>
+
+      <!-- 采集页面 -->
+      <div id="collectPage">
+        <h2>采集</h2>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 10px; font-weight: bold;">选择采集源头：</label>
+          <div class="source-selection-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="source-btn active" data-source="default">默认源头</button>
+            <button class="source-btn" data-source="wenlongzhu">文龙珠源头</button>
+          </div>
+        </div>
+
+        <div id="defaultSourceButtons">
+          <button id="collectAmBtn" type="button">采集澳门开奖数据</button>
+          <button id="collectHkBtn" type="button">采集香港开奖数据</button>
+        </div>
+
+        <div id="wenlongzhuSourceButtons" style="display: none;">
+          <button id="collectAmWenlongzhuBtn" type="button">采集澳门开奖数据 (文龙珠)</button>
+          <button id="collectHkWenlongzhuBtn" type="button">采集香港开奖数据 (文龙珠)</button>
+        </div>
+
+        <div id="collectResult" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- 其他页面... (从原 index.html 复制) -->
+      <div id="recordsPage" style="display:none;">
+        <h2>开奖结果</h2>
+        <div id="recordsContent">
+          <!-- 记录内容 -->
+        </div>
+      </div>
+
+      <!-- 更多页面待添加 -->
+
+    </main>
+  </div>
+
+  <!-- ==================== 脚本引入顺序 ==================== -->
+
+  <!-- 1. 配置文件 -->
+  <script src="config.js"></script>
+
+  <!-- 2. 核心模块 -->
+  <script src="utils.js"></script>
+  <script src="api.js"></script>
+  <script src="pages.js"></script>
+
+  <!-- 3. 功能模块（按需引入，这里是示例） -->
+  <!--
+  <script src="modules/collect.js"></script>
+  <script src="modules/records.js"></script>
+  <script src="modules/recommend.js"></script>
+  <script src="modules/analysis.js"></script>
+  <script src="modules/color.js"></script>
+  <script src="modules/xiao.js"></script>
+  <script src="modules/range.js"></script>
+  <script src="modules/favorites.js"></script>
+  <script src="modules/betting.js"></script>
+  <script src="modules/alerts.js"></script>
+  -->
+
+  <!-- 4. 主入口（必须最后引入） -->
+  <script src="main.js"></script>
+
+  <!-- ==================== 说明 ==================== -->
+  <!--
+  模块化引入说明：
+
+  1. 配置文件必须最先加载（定义 window.BACKEND_URL）
+
+  2. 核心模块按顺序加载：
+     - utils.js: 提供工具函数
+     - api.js: 提供API请求（依赖 config.js）
+     - pages.js: 提供页面管理
+
+  3. 功能模块可按需加载：
+     - 如果只需要采集功能，只引入 modules/collect.js
+     - 如果需要全部功能，引入所有 modules/*.js
+
+  4. main.js 必须最后加载（依赖所有模块）
+
+  优势：
+  - 清晰的模块依赖关系
+  - 可按需加载减少初始加载时间
+  - 每个模块职责单一，易于维护
+  - 便于多人协作开发
+  -->
+
+</body>
+</html>

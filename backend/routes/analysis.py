@@ -1823,7 +1823,7 @@ def get_five_period_threexiao(
         def process_three_numbers(first_three: list[int]) -> list[int]:
             """
             处理前3个号码：
-            1. 先进行-12，直至3个号码都小于12大于0为止
+            1. 先进行-12，直至3个号码都小于等于12大于0为止
             2. 然后对这3个号码进行+0，+12，+24，+36，+48运算
             3. 如果超过了49的话，这个数就不要了
             """
