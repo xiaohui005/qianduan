@@ -23,6 +23,7 @@
         <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
         <button class="menu-btn" id="menuSixthThreexiaoBtn">第6个号码3肖分析</button>
         <button class="menu-btn" id="menuFront6SzzBtn">前6码三中三</button>
+        <button class="menu-btn" id="menuFivePeriodThreexiaoBtn">5期3肖计算</button>
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
         <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
@@ -433,6 +434,75 @@
               <div class="stats-item"><span class="stats-label">命中率：</span><span class="stats-value" id="front6SzzHitRate">0%</span></div>
               <div class="stats-item"><span class="stats-label">当前遗漏：</span><span class="stats-value" id="front6SzzCurrentMiss">0</span></div>
               <div class="stats-item"><span class="stats-label">最大遗漏：</span><span class="stats-value" id="front6SzzMaxMiss">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="fivePeriodThreexiaoPage" style="display:none;">
+        <h2>5期3肖计算</h2>
+        
+        <!-- 计算规则说明 -->
+        <div class="color-definition" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
+          <h3 style="color: #2980d9; margin-bottom: 10px;">计算规则</h3>
+          <div style="color: #495057; line-height: 1.6;">
+            <p><strong>触发条件：</strong>期号尾数为0或5（逢5和逢0尾数的期数）</p>
+            <p><strong>计算步骤：</strong></p>
+            <ol style="margin: 8px 0; padding-left: 20px;">
+              <li>取前3个号码，先进行-12，直至3个号码都小于12大于0为止</li>
+              <li>然后对这3个号码进行+0，+12，+24，+36，+48运算</li>
+              <li>如果超过了49的话，这个数就不要了</li>
+              <li>根据接下来的5期开奖的第7个号码有在这12/13个号码中间的话算命中，不在算遗漏</li>
+            </ol>
+          </div>
+        </div>
+        
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startFivePeriodThreexiaoBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="fivePeriodThreexiaoResult" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始分析"按钮开始5期3肖计算分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="fivePeriodThreexiaoStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">触发期数：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoTotal">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoHitRate">0%</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">当前遗漏：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoCurrentMiss">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">最大遗漏：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoMaxMiss">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">历史最大遗漏：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoHistoryMaxMiss">0</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1110,6 +1180,7 @@
   <script src="config.js"></script>
   <script src="upload.js"></script>
     <script src="recommend16.js"></script>
+    <script src="fivePeriodThreexiao.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');

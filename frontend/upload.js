@@ -548,6 +548,8 @@ if (typeof pageMap === 'undefined') {
     menuRecommend16HitBtn: 'recommend16HitPage',
     // 新增前6码三中三页面
     menuFront6SzzBtn: 'front6SzzPage',
+    // 新增5期3肖计算页面
+    menuFivePeriodThreexiaoBtn: 'fivePeriodThreexiaoPage',
     // 新增最大遗漏提醒页面
     menuMaxMissAlertBtn: 'maxMissAlertPage',
   };
@@ -678,6 +680,13 @@ Object.keys(pageMap).forEach(id => {
             initFront6Szz();
           } else {
             console.error('initFront6Szz 未定义');
+          }
+          break;
+        case 'menuFivePeriodThreexiaoBtn':
+          if (typeof initFivePeriodThreexiao === 'function') {
+            initFivePeriodThreexiao();
+          } else {
+            console.error('initFivePeriodThreexiao 未定义');
           }
           break;
         case 'menuMaxMissAlertBtn':

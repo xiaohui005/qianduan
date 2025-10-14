@@ -1772,3 +1772,212 @@ def get_front6_sanzhong3(
         print(f"前6码三中三分析失败: {e}")
         return {"success": False, "message": f"分析失败: {str(e)}"}
 
+@router.get("/api/five_period_threexiao")
+def get_five_period_threexiao(
+    lottery_type: str = Query('am'),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    export: str | None = Query(None)
+):
+    """
+    5期3肖计算：
+    - 触发条件：期号尾数为0或5（逢5和逢0尾数的期数）
+    - 取前3个号码，先进行-12，直至3个号码都小于12大于0为止
+    - 然后对这3个号码进行+0，+12，+24，+36，+48运算
+    - 如果超过了49的话，这个数就不要了
+    - 根据接下来的5期开奖的第7个号码有在这12/13个号码中间的话算命中，不在算遗漏
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 获取数据，按期号升序排列
+        cursor.execute(
+            """
+            SELECT period, numbers, open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period ASC
+            """,
+            (lottery_type,)
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            cursor.close()
+            conn.close()
+            return {"success": False, "message": "暂无数据"}
+
+        # 构建便捷结构
+        records = []
+        for r in rows:
+            try:
+                nums = [int(n.strip()) for n in (r['numbers'] or '').split(',') if n.strip().isdigit()]
+            except Exception:
+                nums = []
+            records.append({
+                'period': r['period'],
+                'open_time': r['open_time'],
+                'numbers': nums
+            })
+
+        def process_three_numbers(first_three: list[int]) -> list[int]:
+            """
+            处理前3个号码：
+            1. 先进行-12，直至3个号码都小于12大于0为止
+            2. 然后对这3个号码进行+0，+12，+24，+36，+48运算
+            3. 如果超过了49的话，这个数就不要了
+            """
+            # 第一步：对每个号码进行-12，直到小于12大于0
+            processed_numbers = []
+            for num in first_three:
+                while num > 12:
+                    num -= 12
+                if 0 < num <= 12:
+                    processed_numbers.append(num)
+            
+            # 第二步：对处理后的号码进行+0，+12，+24，+36，+48运算
+            offsets = [0, 12, 24, 36, 48]
+            result_numbers = set()
+            
+            for base_num in processed_numbers:
+                for offset in offsets:
+                    new_num = base_num + offset
+                    if new_num <= 49:  # 超过49的不要
+                        result_numbers.add(new_num)
+            
+            return sorted(list(result_numbers))
+
+        results = []
+        total_hit = 0
+        current_miss = 0
+        max_miss = 0
+        history_max_miss = 0
+
+        # 遍历触发期（尾号0或5）
+        for idx, rec in enumerate(records):
+            period = rec['period']
+            try:
+                if int(period) % 10 not in (0, 5):
+                    continue
+            except Exception:
+                continue
+
+            # 获取前3个号码
+            if len(rec['numbers']) < 3:
+                continue
+            
+            first_three = rec['numbers'][:3]
+            generated_numbers = process_three_numbers(first_three)
+
+            # 窗口：后续5期
+            window_periods = []
+            window_seventh_numbers = []
+            hit = False
+            hit_period = None
+            
+            for k in range(1, 6):  # 后续5期
+                j = idx + k
+                if j >= len(records):
+                    break
+                
+                window_periods.append(records[j]['period'])
+                
+                # 获取第7个号码
+                if len(records[j]['numbers']) >= 7:
+                    seventh_num = records[j]['numbers'][6]
+                    window_seventh_numbers.append(seventh_num)
+                    
+                    # 检查是否命中
+                    if not hit and seventh_num in generated_numbers:
+                        hit = True
+                        hit_period = records[j]['period']
+                else:
+                    window_seventh_numbers.append(None)
+
+            # 更新统计
+            if hit:
+                total_hit += 1
+                if current_miss > history_max_miss:
+                    history_max_miss = current_miss
+                current_miss = 0
+            else:
+                current_miss += 1
+                if current_miss > max_miss:
+                    max_miss = current_miss
+
+            results.append({
+                'trigger_period': period,
+                'open_time': rec['open_time'].strftime('%Y-%m-%d') if hasattr(rec['open_time'], 'strftime') else str(rec['open_time']),
+                'first_three_numbers': first_three,
+                'generated_numbers': generated_numbers,
+                'window_periods': window_periods,
+                'window_seventh_numbers': window_seventh_numbers,
+                'is_hit': hit,
+                'hit_period': hit_period,
+                'current_miss': current_miss,
+                'max_miss': max_miss,
+                'history_max_miss': history_max_miss
+            })
+
+        # 最新期在前
+        results.sort(key=lambda x: x['trigger_period'], reverse=True)
+        total_triggers = len(results)
+        hit_rate = round((total_hit / total_triggers * 100), 2) if total_triggers else 0.0
+
+        # 导出 CSV（导出全部）
+        if export == 'csv':
+            import io, csv
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                '触发期数', '开奖时间', '前3个号码', '生成号码', '窗口期(后5期)', '窗口第7个号码', '是否命中', '命中期', '当前遗漏', '最大遗漏', '历史最大遗漏'
+            ])
+            for item in results:
+                writer.writerow([
+                    item.get('trigger_period', ''),
+                    item.get('open_time', ''),
+                    ','.join(str(n) for n in item.get('first_three_numbers', [])),
+                    ','.join(str(n) for n in item.get('generated_numbers', [])),
+                    ','.join(item.get('window_periods', [])),
+                    ','.join('-' if n is None else str(n) for n in item.get('window_seventh_numbers', [])),
+                    '命中' if item.get('is_hit') else '遗漏',
+                    item.get('hit_period', '') or '-',
+                    item.get('current_miss', 0),
+                    item.get('max_miss', 0),
+                    item.get('history_max_miss', 0)
+                ])
+            output.seek(0)
+            filename = f"five_period_threexiao_{lottery_type}.csv"
+            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            })
+
+        # 分页
+        total_pages = (total_triggers + page_size - 1) // page_size if page_size else 1
+        page = max(1, min(page, max(total_pages, 1)))
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_results = results[start:end]
+
+        cursor.close()
+        conn.close()
+        return {
+            'success': True,
+            'data': {
+                'lottery_type': lottery_type,
+                'total_triggers': total_triggers,
+                'hit_count': total_hit,
+                'hit_rate': hit_rate,
+                'current_miss': current_miss,
+                'max_miss': max_miss,
+                'history_max_miss': history_max_miss,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'results': paged_results
+            }
+        }
+    except Exception as e:
+        print(f"5期3肖分析失败: {e}")
+        return {"success": False, "message": f"分析失败: {str(e)}"}
+
