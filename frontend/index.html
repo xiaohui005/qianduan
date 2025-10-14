@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>彩票分析系统</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="scheduler_styles.css">
 </head>
 <body>
   <div class="layout">
@@ -11,7 +12,8 @@
       <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">彩票分析系统</h2>
       <button class="menu-btn" id="menuCollectBtn">采集</button>
       <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
-        <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
+      <button class="menu-btn" id="menuSchedulerBtn">定时采集设置</button>
+      <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
       <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
       <div id="sidebarMenuBtns">
         <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
@@ -680,6 +682,9 @@
           </div>
         </div>
       </div>
+      <!-- 定时采集设置页面 -->
+      <div id="schedulerPage" style="display:none;"></div>
+
       <!-- 最大遗漏提醒 页面 -->
       <div id="maxMissAlertPage" style="display:none;">
         <h2>最大遗漏提醒</h2>
@@ -1178,9 +1183,12 @@
     </main>
   </div>
   <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="pages.js"></script>
   <script src="upload.js"></script>
-    <script src="recommend16.js"></script>
-    <script src="fivePeriodThreexiao.js"></script>
+  <script src="recommend16.js"></script>
+  <script src="fivePeriodThreexiao.js"></script>
+  <script src="modules/scheduler.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');

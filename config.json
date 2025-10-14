@@ -1,4 +1,11 @@
 {
   "backend_port": 8000,
-  "frontend_port": 8080
-} 
+  "frontend_port": 8080,
+  "AUTO_COLLECT": {
+    "enabled": true,
+    "retry_times": 3,
+    "am_time": "19:06",
+    "hk_time": "19:06",
+    "source": "default"
+  }
+}

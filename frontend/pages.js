@@ -8,6 +8,7 @@ const PAGE_CONFIG = {
   // 数据相关
   'menuCollectBtn': { pageId: 'collectPage', title: '数据采集' },
   'menuRecordsBtn': { pageId: 'recordsPage', title: '开奖结果' },
+  'menuSchedulerBtn': { pageId: 'schedulerPage', title: '定时采集设置' },
 
   // 分析推荐
   'menuRecommendBtn': { pageId: 'recommendPage', title: '推荐8码' },
@@ -53,6 +54,11 @@ function showOnlyPage(pageId) {
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
     targetPage.style.display = 'block';
+
+    // 如果是定时采集页面,初始化
+    if (pageId === 'schedulerPage' && typeof initSchedulerPage === 'function') {
+      initSchedulerPage();
+    }
   } else {
     console.warn(`页面 ${pageId} 不存在`);
   }
@@ -143,20 +149,5 @@ function initSidebarMenu() {
     collectBtn.classList.add('active');
   }
 }
-
-/**
- * 页面初始化
- */
-function initPages() {
-  // 在 DOM 加载完成后初始化
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSidebarMenu);
-  } else {
-    initSidebarMenu();
-  }
-}
-
-// 立即执行初始化
-initPages();
 
 console.log('页面管理模块已加载');

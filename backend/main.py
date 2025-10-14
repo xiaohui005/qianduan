@@ -52,3 +52,26 @@ def restart_api(background_tasks: BackgroundTasks):
                 break
     background_tasks.add_task(kill_self)
     return {"message": "重启中..."}
+
+# 应用启动时加载定时任务调度器
+@app.on_event("startup")
+async def startup_event():
+    """应用启动事件：初始化调度器"""
+    try:
+        from backend import scheduler
+        print("正在加载定时采集调度器...")
+        scheduler.load_schedules_from_config()
+        print("定时采集调度器加载完成")
+    except Exception as e:
+        print(f"加载调度器失败: {e}")
+
+# 应用关闭时停止调度器
+@app.on_event("shutdown")
+async def shutdown_event():
+    """应用关闭事件：停止调度器"""
+    try:
+        from backend import scheduler
+        scheduler.stop_scheduler()
+        print("定时采集调度器已停止")
+    except Exception as e:
+        print(f"停止调度器失败: {e}")

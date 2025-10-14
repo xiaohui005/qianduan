@@ -424,4 +424,101 @@ async function restartBackend() {
   return await response.json();
 }
 
+// ==================== 定时采集调度器 API ====================
+
+/**
+ * 获取调度器状态
+ * @returns {Promise<Object>} 调度器状态
+ */
+async function getSchedulerStatus() {
+  const url = `${API_BASE}/api/scheduler/status`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 启动调度器
+ * @returns {Promise<Object>} 启动结果
+ */
+async function startScheduler() {
+  const url = `${API_BASE}/api/scheduler/start`;
+  const response = await fetch(url, { method: 'POST' });
+  return await response.json();
+}
+
+/**
+ * 停止调度器
+ * @returns {Promise<Object>} 停止结果
+ */
+async function stopScheduler() {
+  const url = `${API_BASE}/api/scheduler/stop`;
+  const response = await fetch(url, { method: 'POST' });
+  return await response.json();
+}
+
+/**
+ * 获取采集日志
+ * @param {number} limit - 日志条数限制
+ * @returns {Promise<Object>} 日志数据
+ */
+async function getSchedulerLogs(limit = 50) {
+  const url = `${API_BASE}/api/scheduler/logs?limit=${limit}`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 清空采集日志
+ * @returns {Promise<Object>} 清空结果
+ */
+async function clearSchedulerLogs() {
+  const url = `${API_BASE}/api/scheduler/logs/clear`;
+  const response = await fetch(url, { method: 'POST' });
+  return await response.json();
+}
+
+/**
+ * 手动触发采集
+ * @param {string} lotteryType - 彩种类型
+ * @param {string} source - 数据源
+ * @returns {Promise<Object>} 触发结果
+ */
+async function triggerCollect(lotteryType, source = 'default') {
+  const url = `${API_BASE}/api/scheduler/trigger?lottery_type=${lotteryType}&source=${source}`;
+  const response = await fetch(url, { method: 'POST' });
+  return await response.json();
+}
+
+/**
+ * 重新加载调度器配置
+ * @returns {Promise<Object>} 重载结果
+ */
+async function reloadScheduler() {
+  const url = `${API_BASE}/api/scheduler/reload`;
+  const response = await fetch(url, { method: 'POST' });
+  return await response.json();
+}
+
+/**
+ * 获取调度器配置
+ * @returns {Promise<Object>} 配置数据
+ */
+async function getSchedulerConfig() {
+  const url = `${API_BASE}/api/scheduler/config`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 保存调度器配置
+ * @param {Object} config - 配置对象
+ * @returns {Promise<Object>} 保存结果
+ */
+async function saveSchedulerConfig(config) {
+  const url = `${API_BASE}/api/scheduler/config`;
+  const params = new URLSearchParams(config);
+  const response = await fetch(url + '?' + params.toString(), { method: 'POST' });
+  return await response.json();
+}
+
 console.log('API 请求模块已加载');

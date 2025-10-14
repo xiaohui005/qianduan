@@ -81,3 +81,12 @@ COLLECT_URLS = _config.get("COLLECT_URLS", DEFAULT_CONFIG["COLLECT_URLS"])
 COLLECT_HISTORY_URLS = _config.get("COLLECT_HISTORY_URLS", DEFAULT_CONFIG["COLLECT_HISTORY_URLS"])
 WENLONGZHU_URLS = _config.get("WENLONGZHU_URLS", DEFAULT_CONFIG["WENLONGZHU_URLS"])
 FALLBACK_COLLECT_URLS = WENLONGZHU_URLS
+
+# 自动采集配置（简化版：每天一次）
+AUTO_COLLECT = _config.get("AUTO_COLLECT", {
+    "enabled": False,
+    "retry_times": 3,
+    "am_time": "21:35",  # 澳门采集时间
+    "hk_time": "21:30",  # 香港采集时间
+    "source": "default"  # 数据源
+})

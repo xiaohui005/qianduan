@@ -505,6 +505,12 @@ function showOnlyPage(pageId) {
   const page = document.getElementById(pageId);
   if (page) {
     page.style.display = 'block';
+
+    // 如果是定时采集页面,初始化
+    if (pageId === 'schedulerPage' && typeof initSchedulerPage === 'function') {
+      initSchedulerPage();
+    }
+
     // 确保滚动到主内容区域顶部，避免用户视觉上看到"页面底部"
     const main = document.querySelector('.main-content');
     // 优先滚动整个窗口到主内容顶部
@@ -528,6 +534,7 @@ if (typeof pageMap === 'undefined') {
   var pageMap = {
     menuCollectBtn: 'collectPage',
     menuRecordsBtn: 'recordsPage',
+    menuSchedulerBtn: 'schedulerPage',
     menuRecommendBtn: 'recommendPage',
     menuTensBtn: 'tensPage',
     menuUnitsBtn: 'unitsPage',
@@ -567,6 +574,7 @@ Object.keys(pageMap).forEach(id => {
       const titleMap = {
         collectPage: '数据采集',
         recordsPage: '开奖记录',
+        schedulerPage: '定时采集设置',
         recommendPage: '推荐8码',
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
@@ -1361,6 +1369,7 @@ Object.keys(pageMap).forEach(id => {
       const titleMap = {
         collectPage: '数据采集',
         recordsPage: '开奖记录',
+        schedulerPage: '定时采集设置',
         recommendPage: '推荐8码',
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
@@ -1785,6 +1794,7 @@ if (typeof pageMap === 'undefined') {
   var pageMap = {
     menuCollectBtn: 'collectPage',
     menuRecordsBtn: 'recordsPage',
+    menuSchedulerBtn: 'schedulerPage',
     menuRecommendBtn: 'recommendPage',
     menuTensBtn: 'tensPage',
     menuUnitsBtn: 'unitsPage',
@@ -1813,6 +1823,7 @@ Object.keys(pageMap).forEach(id => {
       const titleMap = {
         collectPage: '数据采集',
         recordsPage: '开奖记录',
+        schedulerPage: '定时采集设置',
         recommendPage: '推荐8码',
         tensPage: '第N位十位分析',
         unitsPage: '第N个码个位分析',
