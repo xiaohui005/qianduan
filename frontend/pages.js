@@ -8,6 +8,7 @@ const PAGE_CONFIG = {
   // 数据相关
   'menuCollectBtn': { pageId: 'collectPage', title: '数据采集' },
   'menuRecordsBtn': { pageId: 'recordsPage', title: '开奖结果' },
+  'menuWebCollectBtn': { pageId: 'webCollectPage', title: '网址采集管理' },
   'menuSchedulerBtn': { pageId: 'schedulerPage', title: '定时采集设置' },
 
   // 分析推荐
@@ -151,3 +152,10 @@ function initSidebarMenu() {
 }
 
 console.log('页面管理模块已加载');
+
+// 页面加载完成后初始化菜单
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSidebarMenu);
+} else {
+  initSidebarMenu();
+}

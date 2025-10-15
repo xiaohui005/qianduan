@@ -3033,3 +3033,184 @@ h2 {
     min-width: auto;
   }
 } 
+/* ==================== 网址采集管理样式 ==================== */
+
+/* 标签切换样式 */
+.web-collect-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.web-collect-tab-btn {
+  background: #f8f9fa;
+  color: #495057;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.web-collect-tab-btn:hover {
+  background: #e9ecef;
+  color: #2980d9;
+}
+
+.web-collect-tab-btn.active {
+  background: #2980d9;
+  color: #fff;
+  box-shadow: 0 -2px 8px rgba(41, 128, 217, 0.2);
+}
+
+.web-collect-tab-content {
+  display: none;
+}
+
+.web-collect-tab-content.active {
+  display: block;
+}
+
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2980d9;
+  font-size: 20px;
+}
+
+.close-btn {
+  font-size: 28px;
+  color: #6c757d;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 28px;
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #e74c3c;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* 徽章样式 */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-primary {
+  background: #2980d9;
+  color: #fff;
+}
+
+.badge-info {
+  background: #17a2b8;
+  color: #fff;
+}
+
+.badge-success {
+  background: #27ae60;
+  color: #fff;
+}
+
+.badge-warning {
+  background: #f39c12;
+  color: #fff;
+}
+
+.badge-danger {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.badge-secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+/* 表格成功/失败行样式 */
+.table-success {
+  background: #d4edda !important;
+}
+
+.table-danger {
+  background: #f8d7da !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .web-collect-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .web-collect-tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .modal-header, .modal-body, .modal-footer {
+    padding: 16px;
+  }
+}

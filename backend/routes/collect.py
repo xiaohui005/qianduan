@@ -24,6 +24,16 @@ def collect_api(type: str = None):
         print(f"采集到{len(data)}条数据: {data[:1] if data else '[]'}")
         collect.save_results(data)
 
+        # 自动触发网址采集验证
+        if data:
+            try:
+                from backend.services.result_verifier import verify_period
+                for item in data:
+                    verify_period(item['period'], item['lottery_type'])
+                    print(f"✓ 自动验证完成: {item['lottery_type']} {item['period']}")
+            except Exception as e:
+                print(f"⚠ 自动验证失败: {e}")
+
         if data:
             new_periods = [item['period'] for item in data]
             target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
@@ -67,6 +77,16 @@ def collect_wenlongzhu_api(type: str = None):
             data = collect.fetch_lottery(wenlongzhu_urls[t], t)
             print(f"文龙珠采集到{len(data)}条数据: {data[:1]}")
             collect.save_results(data)
+
+            # 自动触发网址采集验证
+            if data:
+                try:
+                    from backend.services.result_verifier import verify_period
+                    for item in data:
+                        verify_period(item['period'], item['lottery_type'])
+                        print(f"✓ 自动验证完成: {item['lottery_type']} {item['period']}")
+                except Exception as e:
+                    print(f"⚠ 自动验证失败: {e}")
 
             if data:
                 new_periods = [item['period'] for item in data]

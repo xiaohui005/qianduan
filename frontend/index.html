@@ -12,6 +12,7 @@
       <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">彩票分析系统</h2>
       <button class="menu-btn" id="menuCollectBtn">采集</button>
       <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
+      <button class="menu-btn" id="menuWebCollectBtn">网址采集管理</button>
       <button class="menu-btn" id="menuSchedulerBtn">定时采集设置</button>
       <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
       <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
@@ -297,6 +298,275 @@
           </div>
         </div>
       </div>
+       <!-- 网址采集管理页面 -->
+      <div id="webCollectPage" style="display:none;">
+        <h2>网址采集管理</h2>
+
+        <!-- 标签切换 -->
+        <div class="web-collect-tabs" style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+          <button class="web-collect-tab-btn active" data-tab="sourcesTab">采集源管理</button>
+          <button class="web-collect-tab-btn" data-tab="resultsTab">采集结果</button>
+          <button class="web-collect-tab-btn" data-tab="statsTab">统计分析</button>
+        </div>
+
+        <!-- 采集源管理标签 -->
+        <div id="sourcesTab" class="web-collect-tab-content active">
+          <div style="margin-bottom: 16px;">
+            <button id="addSourceBtn" class="btn-primary">添加采集源</button>
+            <button id="configHelperBtn" class="btn-secondary" style="margin-left: 10px;">配置生成助手</button>
+            <button id="refreshSourcesBtn" class="btn-secondary">刷新列表</button>
+            <button id="executeAllBtn" class="btn-primary" style="margin-left: 10px;">执行所有采集</button>
+          </div>
+
+          <!-- 筛选条件 -->
+          <div class="query-form" style="margin-bottom: 16px;">
+            <label>彩种:</label>
+            <select id="filterLotteryType" style="margin-right: 10px;">
+              <option value="">全部</option>
+              <option value="am">澳门</option>
+              <option value="hk">香港</option>
+            </select>
+            <label>数据类型:</label>
+            <select id="filterDataType" style="margin-right: 10px;">
+              <option value="">全部</option>
+              <option value="numbers">号码</option>
+              <option value="animals">生肖</option>
+            </select>
+            <label>状态:</label>
+            <select id="filterIsActive" style="margin-right: 10px;">
+              <option value="">全部</option>
+              <option value="true">启用</option>
+              <option value="false">禁用</option>
+            </select>
+            <button id="applySourceFilterBtn" class="btn-secondary">筛选</button>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">ID</th>
+                  <th>名称</th>
+                  <th>网址</th>
+                  <th style="width: 80px;">彩种</th>
+                  <th style="width: 100px;">数据类型</th>
+                  <th style="width: 80px;">状态</th>
+                  <th>描述</th>
+                  <th style="width: 200px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="sourcesTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: #888; padding: 20px;">
+                    暂无数据,点击"添加采集源"开始配置
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="sourcesPagination" class="pagination-container" style="margin-top: 16px; text-align: center;">
+            <button class="pagination-btn" disabled>上一页</button>
+            <span style="margin: 0 20px;">第 1 / 1 页 (共 0 条)</span>
+            <button class="pagination-btn" disabled>下一页</button>
+          </div>
+        </div>
+
+        <!-- 采集结果标签 -->
+        <div id="resultsTab" class="web-collect-tab-content" style="display:none;">
+          <div style="margin-bottom: 16px;">
+            <button id="refreshResultsBtn" class="btn-secondary">刷新结果</button>
+            <button id="verifyAllBtn" class="btn-primary" style="margin-left: 10px;">验证所有</button>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">ID</th>
+                  <th>采集源</th>
+                  <th style="width: 80px;">彩种</th>
+                  <th style="width: 100px;">期号</th>
+                  <th style="width: 100px;">数据类型</th>
+                  <th>预测值</th>
+                  <th>开奖值</th>
+                  <th style="width: 120px;">验证结果</th>
+                  <th>采集时间</th>
+                  <th style="width: 120px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody">
+                <tr>
+                  <td colspan="10" style="text-align: center; color: #888; padding: 20px;">
+                    暂无采集结果
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="resultsPagination" class="pagination-container" style="margin-top: 16px; text-align: center;">
+            <button class="pagination-btn" disabled>上一页</button>
+            <span style="margin: 0 20px;">第 1 / 1 页 (共 0 条)</span>
+            <button class="pagination-btn" disabled>下一页</button>
+          </div>
+        </div>
+
+        <!-- 统计分析标签 -->
+        <div id="statsTab" class="web-collect-tab-content" style="display:none;">
+          <div style="margin-bottom: 16px;">
+            <button id="refreshStatsBtn" class="btn-secondary">刷新统计</button>
+          </div>
+
+          <div id="statsDisplay">
+            <div style="text-align: center; color: #888; padding: 40px;">
+              点击"刷新统计"查看采集源准确率统计
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 采集源添加/编辑模态框 -->
+      <div id="sourceModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+          <div class="modal-header">
+            <h3 id="modalTitle">添加采集源</h3>
+            <button id="closeModalBtn" class="close-btn" style="font-size: 24px; border: none; background: transparent; cursor: pointer;">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="sourceForm">
+              <div class="form-group">
+                <label for="sourceName">采集源名称：</label>
+                <input type="text" id="sourceName" name="sourceName" placeholder="请输入采集源名称" required style="width: 100%;">
+              </div>
+
+              <div class="form-group">
+                <label for="sourceUrl">网址：</label>
+                <input type="url" id="sourceUrl" name="sourceUrl" placeholder="https://example.com/predict" required style="width: 100%;">
+              </div>
+
+              <div class="form-group">
+                <label for="lotteryType">彩种类型：</label>
+                <select id="lotteryType" name="lotteryType" required style="width: 100%;">
+                  <option value="am">澳门</option>
+                  <option value="hk">香港</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="dataType">数据类型：</label>
+                <select id="dataType" name="dataType" required style="width: 100%;">
+                  <option value="numbers">号码</option>
+                  <option value="animals">生肖</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="extractConfig">提取配置 (JSON格式)：</label>
+                <textarea id="extractConfig" name="extractConfig" rows="10" placeholder='{"method": "css", "selector": "div.numbers span", "period_pattern": "(\\d{7})"' required style="width: 100%; font-family: monospace; font-size: 12px;"></textarea>
+                <div class="form-tip" style="color: #888; font-size: 12px; margin-top: 5px;">
+                  请输入JSON格式的提取配置,支持css/regex/xpath三种方式
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="isActive" name="isActive" checked>
+                  启用此采集源
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label for="description">描述：</label>
+                <textarea id="description" name="description" rows="3" placeholder="请输入描述信息(可选)" style="width: 100%;"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer" style="text-align: right; padding: 15px; border-top: 1px solid #e0e0e0;">
+            <button id="saveSourceBtn" class="btn-primary">保存</button>
+            <button id="cancelSourceBtn" class="btn-secondary" style="margin-left: 10px;">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 配置生成助手模态框 -->
+      <div id="configHelperModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px;">
+          <div class="modal-header">
+            <h3>配置生成助手</h3>
+            <button id="closeConfigHelperBtn" class="close-btn" style="font-size: 24px; border: none; background: transparent; cursor: pointer;">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="helperHtmlSample">粘贴HTML样本：</label>
+              <textarea id="helperHtmlSample" rows="15" placeholder="请粘贴目标网站的HTML代码..." style="width: 100%; font-family: monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 10px;"></textarea>
+              <div class="form-tip" style="color: #888; font-size: 12px; margin-top: 5px;">
+                请从浏览器开发者工具复制包含预测数据和期号的HTML代码段
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>提取方法：</label>
+              <div style="display: flex; gap: 15px; margin: 10px 0;">
+                <label style="cursor: pointer;">
+                  <input type="radio" name="helperMethod" value="css" checked>
+                  CSS选择器 (推荐)
+                </label>
+                <label style="cursor: pointer;">
+                  <input type="radio" name="helperMethod" value="regex">
+                  正则表达式
+                </label>
+              </div>
+            </div>
+
+            <button id="analyzeHtmlBtn" class="btn-primary" style="margin-bottom: 20px;">智能分析</button>
+
+            <div id="helperAnalysisResult" style="display: none;">
+              <h4 style="color: #2980d9; margin: 20px 0 10px;">分析结果</h4>
+
+              <div class="form-group">
+                <label for="helperDataSelector">数据选择器：</label>
+                <input type="text" id="helperDataSelector" style="width: 100%; font-family: monospace;" placeholder="将自动生成...">
+                <div class="form-tip" style="color: #888; font-size: 12px; margin-top: 5px;">
+                  提取号码或生肖数据的选择器/正则表达式,可手动修改后查看预览效果
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="helperPeriodPattern">期号正则：</label>
+                <input type="text" id="helperPeriodPattern" style="width: 100%; font-family: monospace;" placeholder="(\\d{3})期">
+                <div class="form-tip" style="color: #888; font-size: 12px; margin-top: 5px;">
+                  提取期号的正则表达式。只匹配带"期"字的内容(如"290期"),可手动修改后查看预览效果
+                </div>
+              </div>
+
+              <button id="testRegexBtn" class="btn-secondary" style="margin-bottom: 15px;">测试正则匹配</button>
+
+              <div class="form-group">
+                <label>预览提取结果：</label>
+                <div id="helperPreview" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #2980d9;">
+                  <div style="margin-bottom: 8px;">
+                    <strong>期号：</strong><span id="previewPeriod" style="color: #2980d9;">-</span>
+                  </div>
+                  <div>
+                    <strong>数据：</strong><span id="previewData" style="color: #27ae60;">-</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>生成的JSON配置：</label>
+                <textarea id="helperGeneratedConfig" rows="8" style="width: 100%; font-family: monospace; font-size: 12px; background: #f8f9fa;" readonly></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="text-align: right; padding: 15px; border-top: 1px solid #e0e0e0;">
+            <button id="applyConfigBtn" class="btn-primary" style="display: none;">应用到采集源表单</button>
+            <button id="closeConfigHelperBtn2" class="btn-secondary" style="margin-left: 10px;">关闭</button>
+          </div>
+        </div>
+      </div>
+
        <div id="seventhRangePage" style="display:none;">
         <h2>第7个号码+1~+20区间分析</h2>
         
@@ -1117,7 +1387,9 @@
       </div>
         </div>
       </div>
-      
+
+     
+
       <div id="twentyRangePage" style="display:none;">
         <h2>20区间分析</h2>
         
@@ -1189,6 +1461,7 @@
   <script src="recommend16.js"></script>
   <script src="fivePeriodThreexiao.js"></script>
   <script src="modules/scheduler.js"></script>
+  <script src="modules/web_collect.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');

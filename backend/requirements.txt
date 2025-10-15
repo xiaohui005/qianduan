@@ -3,7 +3,8 @@ uvicorn
 pandas
 mysql-connector-python
 redis
-python-dotenv 
+python-dotenv
 httpx
-beautifulsoup4 
-lunarcalendar 
+beautifulsoup4
+lunarcalendar
+APScheduler 
