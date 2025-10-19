@@ -116,10 +116,10 @@ def save_results(results):
     conn = get_connection()
     cursor = conn.cursor()
     saved_count = 0
-    
+
     # 按期号排序，确保先处理期号较小的记录
     results.sort(key=lambda x: x['period'])
-    
+
     for r in results:
         try:
             # 先检查是否已存在相同的期号记录
@@ -128,12 +128,12 @@ def save_results(results):
                 (r['lottery_type'], r['period'])
             )
             existing_record = cursor.fetchone()
-            
+
             if existing_record:
                 # 如果期号已存在，更新记录
                 cursor.execute(
                     """
-                    UPDATE lottery_result 
+                    UPDATE lottery_result
                     SET open_time=%s, lunar_date=%s, numbers=%s, animals=%s, created_at=NOW()
                     WHERE lottery_type=%s AND period=%s
                     """,
@@ -147,7 +147,7 @@ def save_results(results):
                     (r['lottery_type'], r['open_time'])
                 )
                 same_time_records = cursor.fetchall()
-                
+
                 if same_time_records:
                     # 如果存在相同开奖时间的记录，只删除期号较小的记录
                     for same_time_record in same_time_records:
@@ -158,7 +158,7 @@ def save_results(results):
                                 (r['lottery_type'], old_period)
                             )
                             print(f"删除相同开奖时间的旧记录: {r['lottery_type']} {old_period}")
-                
+
                 # 插入新记录
                 cursor.execute(
                     """
@@ -172,8 +172,8 @@ def save_results(results):
         except Exception as e:
             print(f"保存记录失败 {r['lottery_type']} {r['period']}: {e}")
             continue
-    
+
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"已保存{saved_count}条数据") 
+    print(f"已保存{saved_count}条数据")

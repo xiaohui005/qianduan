@@ -1579,28 +1579,8 @@ function loadMinusRangeAnalysis(page, type, nextPos, year) {
     });
 }
 
-// 分析推荐收放按钮事件，收起时隐藏minusRangePage，展开时显示
-setTimeout(() => {
-  const toggleBtn = document.getElementById('toggleSidebarBtn');
-  const menuDiv = document.getElementById('sidebarMenuBtns');
-  if (toggleBtn && menuDiv) {
-    toggleBtn.onclick = function() {
-      if (menuDiv.style.display === 'none') {
-        menuDiv.style.display = '';
-        toggleBtn.innerText = '分析推荐 ▼';
-        // 展开时显示minusRangePage（如果当前菜单是minusRangePage）
-        if (document.getElementById('menuMinusRangeBtn').classList.contains('active')) {
-          document.getElementById('minusRangePage').style.display = '';
-        }
-      } else {
-        menuDiv.style.display = 'none';
-        toggleBtn.innerText = '分析推荐 ▲';
-        // 收起时隐藏minusRangePage
-        document.getElementById('minusRangePage').style.display = 'none';
-      }
-    };
-  }
-}, 0);
+// 分析推荐收放按钮事件已移至 pages.js 统一管理
+// 避免重复绑定导致事件冲突
 
 // 右上角当前时间
 function updateTime() {
@@ -2007,23 +1987,8 @@ setTimeout(() => {
   }
 }, 0);
 // ... existing code ...
-// 登记点分析展开/折叠按钮事件绑定
-setTimeout(() => {
-  const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
-  const registerMenuBtns = document.getElementById('registerMenuBtns');
-  const registerCollapseIcon = document.getElementById('registerCollapseIcon');
-  if (toggleRegisterBtn && registerMenuBtns && registerCollapseIcon) {
-    toggleRegisterBtn.onclick = function() {
-      if (registerMenuBtns.style.display === 'none' || registerMenuBtns.style.display === '') {
-        registerMenuBtns.style.display = 'block';
-        registerCollapseIcon.innerText = '▲';
-      } else {
-        registerMenuBtns.style.display = 'none';
-        registerCollapseIcon.innerText = '▼';
-      }
-    };
-  }
-}, 0);
+// 登记点分析展开/折叠按钮事件已移至 pages.js 统一管理
+// 避免重复绑定导致事件冲突
 
 // ... existing code ...
 // 登记点分析下拉菜单按钮事件绑定（已移除重复代码）

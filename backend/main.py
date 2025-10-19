@@ -17,14 +17,13 @@ app.add_middleware(
 )
 
 # 导入路由模块
-from backend.routes import collect, recommend, analysis, favorites, web_collect
+from backend.routes import collect, recommend, analysis, favorites
 
 # 注册路由
 app.include_router(collect.router, tags=["采集"])
 app.include_router(recommend.router, tags=["推荐"])
 app.include_router(analysis.router, tags=["分析"])
 app.include_router(favorites.router, tags=["收藏号码"])
-app.include_router(web_collect.router, tags=["网址采集"])
 
 @app.get("/")
 def read_root():
@@ -54,25 +53,3 @@ def restart_api(background_tasks: BackgroundTasks):
     background_tasks.add_task(kill_self)
     return {"message": "重启中..."}
 
-# 应用启动时加载定时任务调度器
-@app.on_event("startup")
-async def startup_event():
-    """应用启动事件：初始化调度器"""
-    try:
-        from backend import scheduler
-        print("正在加载定时采集调度器...")
-        scheduler.load_schedules_from_config()
-        print("定时采集调度器加载完成")
-    except Exception as e:
-        print(f"加载调度器失败: {e}")
-
-# 应用关闭时停止调度器
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭事件：停止调度器"""
-    try:
-        from backend import scheduler
-        scheduler.stop_scheduler()
-        print("定时采集调度器已停止")
-    except Exception as e:
-        print(f"停止调度器失败: {e}")

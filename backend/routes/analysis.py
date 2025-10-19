@@ -2,7 +2,10 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from collections import Counter, defaultdict
 from typing import Optional
-from backend import collect, analysis
+try:
+    from backend import collect
+except ImportError:
+    import collect
 
 router = APIRouter()
 
@@ -157,12 +160,64 @@ def units_analysis_api(lottery_type: str = Query('am'), year: str = Query(None))
     conn.close()
     return {'data': result, 'desc': '1组: 0,1,2,3,4尾（不含11,22,33,44）；2组: 5,6,7,8尾', 'group1': list(group1), 'group2': list(group2), 'max_miss': max_miss, 'cur_miss': cur_miss, 'max_alt_miss': max_alt_miss, 'cur_alt_miss': cur_alt_miss}
 
+def analyze_intervals(lottery_type, period):
+    """
+    区间分析：分析当前期号码对下一期的预测区间命中情况
+    """
+    conn = collect.get_connection()
+    cursor = conn.cursor(dictionary=True)
+    # 获取当前期开奖号码
+    cursor.execute(
+        "SELECT numbers FROM lottery_result WHERE period=%s AND lottery_type=%s",
+        (period, lottery_type)
+    )
+    row = cursor.fetchone()
+    if not row:
+        return {'error': f'未找到期号{period}的数据'}
+    base_numbers = row['numbers'].split(',')
+    # 获取下一期期号和开奖号码
+    cursor.execute(
+        "SELECT period, numbers FROM lottery_result WHERE period > %s AND lottery_type=%s ORDER BY period ASC LIMIT 1",
+        (period, lottery_type)
+    )
+    row = cursor.fetchone()
+    if not row:
+        return {'error': f'未找到期号{period}的下一期数据'}
+    next_period = row['period']
+    next_numbers = row['numbers'].split(',')
+    # 区间定义
+    intervals = [('+1~+20', 1, 20), ('+5~+24', 5, 24), ('+10~+29', 10, 29), ('+15~+34', 15, 34), ('+20~+39', 20, 39), ('+25~+44', 25, 44)]
+    analysis = []
+    for num in base_numbers:
+        num_int = int(num)
+        ranges = {}
+        hit = {}
+        for label, start, end in intervals:
+            rng = [str(num_int + i).zfill(2) for i in range(start, end+1)]
+            ranges[label] = rng
+            # 判断下一期开奖号码是否在区间内
+            hit[label] = any(n in rng for n in next_numbers)
+        analysis.append({
+            'number': num,
+            'ranges': ranges,
+            'hit': hit
+        })
+    cursor.close()
+    conn.close()
+    return {
+        'base_period': period,
+        'next_period': next_period,
+        'base_numbers': base_numbers,
+        'next_numbers': next_numbers,
+        'analysis': analysis
+    }
+
 @router.get("/interval_analysis")
 def interval_analysis_api(lottery_type: str = Query(...), period: str = Query(...)):
     """
     区间分析API，返回指定期号的区间分析结果
     """
-    result = analysis.analyze_intervals(lottery_type, period)
+    result = analyze_intervals(lottery_type, period)
     return JSONResponse(content=result)
 
 @router.get("/range_analysis")
