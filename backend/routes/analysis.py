@@ -1,38 +1,54 @@
 from fastapi import APIRouter, Query
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 from collections import Counter, defaultdict
 from typing import Optional
 try:
     from backend import collect
+    from backend.utils import number_utils
+    from backend.utils.db_utils import get_db_cursor
+    from backend.utils.export_utils import create_csv_response
 except ImportError:
     import collect
+    # 兼容直接运行的情况
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from utils import number_utils
+    from utils.db_utils import get_db_cursor
+    from utils.export_utils import create_csv_response
 
 router = APIRouter()
 
-# 辅助函数
+# ============ 向后兼容层 ============
+# 以下函数保留用于向后兼容，内部调用新工具箱模块
+# 新代码请直接使用 backend.utils.number_utils 中的函数
+
 def plus49_wrap(value: int) -> int:
-    # 将大于49的值按49循环到1开始
-    while value > 49:
-        value = 1 + (value - 50)
-    if value <= 0:
-        value = ((value - 1) % 49) + 1
-    return value
+    """
+    正向循环包装（兼容性包装器）
+
+    注意：此函数保留用于向后兼容。
+    新代码请使用：from backend.utils import number_utils
+    然后调用：number_utils.plus49_wrap(value)
+    """
+    return number_utils.plus49_wrap(value)
 
 def minus49_wrap(value: int) -> int:
-    # 将小于1的值按49循环到49开始
-    while value < 1:
-        value = 49 + (value - 0)
-    if value > 49:
-        value = ((value - 1) % 49) + 1
-    return value
+    """
+    反向循环包装（兼容性包装器）
+
+    注意：此函数保留用于向后兼容。
+    新代码请使用：from backend.utils import number_utils
+    然后调用：number_utils.minus49_wrap(value)
+    """
+    return number_utils.minus49_wrap(value)
 
 @router.get("/tens_analysis")
 def tens_analysis_api(lottery_type: str = Query('am'), year: str = Query(None)):
     tens_cols = ["00","01","02","03","04","11","12","13","14","22","23","24","33","34","44"]
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT period, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC", (lottery_type,))
-    rows = cursor.fetchall()
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT period, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC", (lottery_type,))
+        rows = cursor.fetchall()
     # 按年份筛选
     if year:
         rows = [row for row in rows if row['period'].startswith(year)]
@@ -72,8 +88,6 @@ def tens_analysis_api(lottery_type: str = Query('am'), year: str = Query(None)):
         max_miss.append(max_counter)
         max_miss_period.append(max_period)
         result.append(list(reversed(pos_result)))
-    cursor.close()
-    conn.close()
     return {'data': result, 'tens_cols': tens_cols, 'max_miss': max_miss, 'max_miss_period': max_miss_period}
 
 @router.get("/units_analysis")
@@ -81,10 +95,9 @@ def units_analysis_api(lottery_type: str = Query('am'), year: str = Query(None))
     group1 = set(['0','1','2','3','4'])  # 只包含0,1,2,3,4尾
     group2 = set(['5','6','7','8'])      # 只包含5,6,7,8尾，不含9
     not_in1 = {'11','22','33','44'}      # 这些数不算1组命中
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT period, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC", (lottery_type,))
-    rows = cursor.fetchall()
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT period, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC", (lottery_type,))
+        rows = cursor.fetchall()
     if year:
         rows = [row for row in rows if row['period'].startswith(year)]
     result = []
@@ -156,35 +169,32 @@ def units_analysis_api(lottery_type: str = Query('am'), year: str = Query(None))
         max_alt_miss.append(max_alt)
         cur_alt_miss.append(alt_miss)
         result.append(list(reversed(pos_result)))
-    cursor.close()
-    conn.close()
     return {'data': result, 'desc': '1组: 0,1,2,3,4尾（不含11,22,33,44）；2组: 5,6,7,8尾', 'group1': list(group1), 'group2': list(group2), 'max_miss': max_miss, 'cur_miss': cur_miss, 'max_alt_miss': max_alt_miss, 'cur_alt_miss': cur_alt_miss}
 
 def analyze_intervals(lottery_type, period):
     """
     区间分析：分析当前期号码对下一期的预测区间命中情况
     """
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    # 获取当前期开奖号码
-    cursor.execute(
-        "SELECT numbers FROM lottery_result WHERE period=%s AND lottery_type=%s",
-        (period, lottery_type)
-    )
-    row = cursor.fetchone()
-    if not row:
-        return {'error': f'未找到期号{period}的数据'}
-    base_numbers = row['numbers'].split(',')
-    # 获取下一期期号和开奖号码
-    cursor.execute(
-        "SELECT period, numbers FROM lottery_result WHERE period > %s AND lottery_type=%s ORDER BY period ASC LIMIT 1",
-        (period, lottery_type)
-    )
-    row = cursor.fetchone()
-    if not row:
-        return {'error': f'未找到期号{period}的下一期数据'}
-    next_period = row['period']
-    next_numbers = row['numbers'].split(',')
+    with get_db_cursor() as cursor:
+        # 获取当前期开奖号码
+        cursor.execute(
+            "SELECT numbers FROM lottery_result WHERE period=%s AND lottery_type=%s",
+            (period, lottery_type)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {'error': f'未找到期号{period}的数据'}
+        base_numbers = row['numbers'].split(',')
+        # 获取下一期期号和开奖号码
+        cursor.execute(
+            "SELECT period, numbers FROM lottery_result WHERE period > %s AND lottery_type=%s ORDER BY period ASC LIMIT 1",
+            (period, lottery_type)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {'error': f'未找到期号{period}的下一期数据'}
+        next_period = row['period']
+        next_numbers = row['numbers'].split(',')
     # 区间定义
     intervals = [('+1~+20', 1, 20), ('+5~+24', 5, 24), ('+10~+29', 10, 29), ('+15~+34', 15, 34), ('+20~+39', 20, 39), ('+25~+44', 25, 44)]
     analysis = []
@@ -202,8 +212,6 @@ def analyze_intervals(lottery_type, period):
             'ranges': ranges,
             'hit': hit
         })
-    cursor.close()
-    conn.close()
     return {
         'base_period': period,
         'next_period': next_period,
@@ -237,13 +245,12 @@ def range_analysis_api(
     def plus49(n, k):
         v = (n + k - 1) % 49 + 1
         return str(v).zfill(2)
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
-        (lottery_type,)
-    )
-    all_rows = cursor.fetchall()
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
+            (lottery_type,)
+        )
+        all_rows = cursor.fetchall()
     if not all_rows or len(all_rows) < 2:
         return {"data": [], "desc": "无该彩种历史数据或数据不足"}
     # 年份过滤
@@ -350,8 +357,6 @@ def range_analysis_api(
         }
     else:
         predict_info = None
-    cursor.close()
-    conn.close()
     return {"header": header, "data": data, "total": total, "page": page, "page_size": page_size, "desc": desc, "years": years, "max_miss": max_miss, "max_miss_period": max_miss_period, "cur_miss": cur_miss, "predict": predict_info, "last_open": last_open}
 
 @router.get("/range_analysis_minus")
@@ -371,13 +376,12 @@ def range_analysis_minus_api(
     def plus49(n, k):
         v = (n + k - 1) % 49 + 1
         return str(v).zfill(2)
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
-        (lottery_type,)
-    )
-    all_rows = cursor.fetchall()
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
+            (lottery_type,)
+        )
+        all_rows = cursor.fetchall()
     if not all_rows or len(all_rows) < 2:
         return {"data": [], "desc": "无该彩种历史数据或数据不足"}
     # 年份过滤
@@ -485,8 +489,6 @@ def range_analysis_minus_api(
         }
     else:
         predict_info = None
-    cursor.close()
-    conn.close()
     return {"header": header, "data": data, "total": total, "page": page, "page_size": page_size, "desc": desc, "years": years, "max_miss": max_miss, "max_miss_period": max_miss_period, "cur_miss": cur_miss, "predict": predict_info, "last_open": last_open}
 
 @router.get("/plus_minus6_analysis")
@@ -504,13 +506,12 @@ def plus_minus6_analysis_api(
     def plus49(n, k):
         v = (n + k - 1) % 49 + 1
         return str(v).zfill(2)
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
-        (lottery_type,)
-    )
-    all_rows = cursor.fetchall()
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC",
+            (lottery_type,)
+        )
+        all_rows = cursor.fetchall()
     if not all_rows or len(all_rows) < 2:
         return {"data": [], "desc": "无该彩种历史数据或数据不足"}
     # 年份过滤
@@ -618,8 +619,6 @@ def plus_minus6_analysis_api(
             'groups': predict_groups,
             'desc': f"最新一期({str(int(last_open['period'])+1) if last_open else '-'})推算12码"
         }
-    cursor.close()
-    conn.close()
     return {
         "header": header,
         "data": data,
@@ -655,14 +654,13 @@ def each_issue_analysis_api(
     支持分页，返回时按期号从大到小排序。
     返回：{total, page, page_size, data: [{period, open_time, numbers, miss_count, stop_reason}]}
     """
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    # 先查出近300期，按期号升序
-    cursor.execute(
-        "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC LIMIT 300",
-        (lottery_type,)
-    )
-    all_rows = cursor.fetchall()[::-1]  # 逆序变为升序
+    with get_db_cursor() as cursor:
+        # 先查出近300期，按期号升序
+        cursor.execute(
+            "SELECT period, open_time, numbers FROM lottery_result WHERE lottery_type=%s ORDER BY period DESC LIMIT 300",
+            (lottery_type,)
+        )
+        all_rows = cursor.fetchall()[::-1]  # 逆序变为升序
 
     # 保存原始完整数据用于计算遗漏
     original_all_rows = all_rows.copy()
@@ -739,8 +737,6 @@ def each_issue_analysis_api(
             if item['miss_count'] > current_max_miss:
                 current_max_miss = item['miss_count']
                 current_max_miss_period = item['period']
-    cursor.close()
-    conn.close()
     return {
         'total': total,
         'page': page,
@@ -760,9 +756,6 @@ def color_analysis_api(lottery_type: str = Query('am')):
     根据当前期前6个号码的第2位波色，预测下一期第7位号码的波色
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-
         # 波色定义
         color_groups = {
             'red': [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
@@ -799,14 +792,15 @@ def color_analysis_api(lottery_type: str = Query('am')):
                 return False
 
         # 获取指定彩种的开奖记录，按时间倒序排列
-        sql = """
-        SELECT period, open_time, numbers, lottery_type
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY open_time DESC
-        """
-        cursor.execute(sql, (lottery_type,))
-        records = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            sql = """
+            SELECT period, open_time, numbers, lottery_type
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY open_time DESC
+            """
+            cursor.execute(sql, (lottery_type,))
+            records = cursor.fetchall()
 
         if not records:
             return {"success": False, "message": f"没有找到{lottery_type}彩种的开奖记录"}
@@ -923,9 +917,6 @@ def color_analysis_api(lottery_type: str = Query('am')):
 
     except Exception as e:
         return {"success": False, "message": f"波色分析失败: {str(e)}"}
-    finally:
-        cursor.close()
-        conn.close()
 
 @router.get("/api/twenty_range_analysis")
 def get_twenty_range_analysis(lottery_type: str = Query('am'), position: int = Query(1, ge=1, le=7)):
@@ -933,23 +924,19 @@ def get_twenty_range_analysis(lottery_type: str = Query('am'), position: int = Q
     获取20区间分析数据
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-
         # 获取最近的200期数据，按期数排序
-        sql = """
-        SELECT period, numbers
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period DESC
-        LIMIT 200
-        """
-        cursor.execute(sql, (lottery_type,))
-        records = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            sql = """
+            SELECT period, numbers
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period DESC
+            LIMIT 200
+            """
+            cursor.execute(sql, (lottery_type,))
+            records = cursor.fetchall()
 
         if not records:
-            cursor.close()
-            conn.close()
             return {"success": False, "message": "没有找到开奖数据"}
 
         # 按期数分组，并计算每个位置的20区间计数
@@ -985,9 +972,6 @@ def get_twenty_range_analysis(lottery_type: str = Query('am'), position: int = Q
                 except (ValueError, IndexError):
                     continue
 
-        cursor.close()
-        conn.close()
-
         return {
             "success": True,
             "data": {
@@ -1019,19 +1003,17 @@ def get_sixth_number_threexiao(
     - 统计最大遗漏和历史遗漏
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-        sql = """
-        SELECT period, numbers, open_time
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period DESC
-        LIMIT 670
-        """
-        cursor.execute(sql, (lottery_type,))
-        rows = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            sql = """
+            SELECT period, numbers, open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period DESC
+            LIMIT 670
+            """
+            cursor.execute(sql, (lottery_type,))
+            rows = cursor.fetchall()
         if not rows:
-            cursor.close(); conn.close()
             return {"success": False, "message": "暂无数据"}
 
         # 按期号升序，便于查找下一期
@@ -1131,14 +1113,10 @@ def get_sixth_number_threexiao(
 
         # 导出 CSV（导出全部结果，忽略分页）
         if export == 'csv':
-            import io, csv
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                '期号', '开奖时间', '基础位置', '基础号码', '生成号码', '下一期期号', '下一期第7个号码', '是否命中', '当前遗漏', '最大遗漏', '历史最大遗漏'
-            ])
+            headers = ['期号', '开奖时间', '基础位置', '基础号码', '生成号码', '下一期期号', '下一期第7个号码', '是否命中', '当前遗漏', '最大遗漏', '历史最大遗漏']
+            rows = []
             for item in results:
-                writer.writerow([
+                rows.append([
                     item.get('current_period', ''),
                     item.get('current_open_time', ''),
                     item.get('base_position', ''),
@@ -1151,11 +1129,8 @@ def get_sixth_number_threexiao(
                     item.get('max_miss', ''),
                     item.get('history_max_miss', '')
                 ])
-            output.seek(0)
             filename = f"sixth_sixxiao_{lottery_type}_pos{position}.csv"
-            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            })
+            return create_csv_response(headers, rows, filename)
 
         # 分页
         total_pages = (total + page_size - 1) // page_size if page_size else 1
@@ -1164,7 +1139,6 @@ def get_sixth_number_threexiao(
         end = start + page_size
         paged_results = results[start:end]
 
-        cursor.close(); conn.close()
         return {
             'success': True,
             'data': {
@@ -1202,19 +1176,17 @@ def get_second_number_fourxiao(
     返回每个触发期的窗口详情与命中情况。
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-        sql = """
-        SELECT period, numbers, open_time
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period DESC
-        LIMIT 500
-        """
-        cursor.execute(sql, (lottery_type,))
-        rows = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            sql = """
+            SELECT period, numbers, open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period DESC
+            LIMIT 500
+            """
+            cursor.execute(sql, (lottery_type,))
+            rows = cursor.fetchall()
         if not rows:
-            cursor.close(); conn.close()
             return {"success": False, "message": "暂无数据"}
 
         # 按期号升序，便于窗口查找
@@ -1308,14 +1280,10 @@ def get_second_number_fourxiao(
 
         # 导出 CSV（导出全部结果，忽略分页）
         if export == 'csv':
-            import io, csv
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                '触发期数', '开奖时间', '基础位置', '基础号码', '生成16码', '窗口期(后5期)', '窗口第7码', '是否命中', '命中期'
-            ])
+            headers = ['触发期数', '开奖时间', '基础位置', '基础号码', '生成16码', '窗口期(后5期)', '窗口第7码', '是否命中', '命中期']
+            rows = []
             for item in results:
-                writer.writerow([
+                rows.append([
                     item.get('current_period', ''),
                     item.get('current_open_time', ''),
                     item.get('base_position', ''),
@@ -1326,11 +1294,8 @@ def get_second_number_fourxiao(
                     '命中' if item.get('is_hit') else '遗漏',
                     item.get('hit_period', '') or '-'
                 ])
-            output.seek(0)
             filename = f"second_fourxiao_{lottery_type}_pos{position}.csv"
-            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            })
+            return create_csv_response(headers, rows, filename)
 
         # 分页
         total_pages = (total + page_size - 1) // page_size if page_size else 1
@@ -1339,7 +1304,6 @@ def get_second_number_fourxiao(
         end = start + page_size
         paged_results = results[start:end]
 
-        cursor.close(); conn.close()
         return {
             'success': True,
             'data': {
@@ -1369,23 +1333,19 @@ def get_seventh_number_range_analysis(
     每一期开奖的第7个号码在开奖号码+1~+20区间，下一期开奖的第7个号码在这区间为命中，不在为遗漏
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-
         # 获取最近的若干期数据，按期数升序排列（提高上限，便于观察长遗漏段）
-        sql = """
-        SELECT period, numbers, open_time
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period desc
-        LIMIT 500
-        """
-        cursor.execute(sql, (lottery_type,))
-        records = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            sql = """
+            SELECT period, numbers, open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period desc
+            LIMIT 500
+            """
+            cursor.execute(sql, (lottery_type,))
+            records = cursor.fetchall()
 
         if len(records) < 2:
-            cursor.close()
-            conn.close()
             return {"success": False, "message": "数据不足，需要至少2期数据"}
 
         results = []
@@ -1586,15 +1546,11 @@ def get_seventh_number_range_analysis(
 
         # CSV 导出（导出全部，不分页）
         if export == 'csv':
-            import io, csv
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                '当前期数', '开奖时间', '当前期第7个号码', '+1~+20区间', '下一期期数', '下一期第7个号码', '是否命中',
-                '连续命中数(自本期起)', '遗漏段长度', '最大连续遗漏', '前最近命中', '后最近命中', '双向遗漏期数合计'
-            ])
+            headers = ['当前期数', '开奖时间', '当前期第7个号码', '+1~+20区间', '下一期期数', '下一期第7个号码', '是否命中',
+                       '连续命中数(自本期起)', '遗漏段长度', '最大连续遗漏', '前最近命中', '后最近命中', '双向遗漏期数合计']
+            rows = []
             for item in results:
-                writer.writerow([
+                rows.append([
                     item.get('current_period', ''),
                     item.get('current_open_time', ''),
                     item.get('current_seventh', ''),
@@ -1609,11 +1565,8 @@ def get_seventh_number_range_analysis(
                     item.get('around_next_hit_period', '') or '-',
                     item.get('around_total_omission', '')
                 ])
-            output.seek(0)
             filename = f"seventh_plus20_{lottery_type}.csv"
-            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            })
+            return create_csv_response(headers, rows, filename)
 
         # 分页
         total_pages = (total_analysis + page_size - 1) // page_size if page_size else 1
@@ -1622,8 +1575,6 @@ def get_seventh_number_range_analysis(
         end = start + page_size
         paged_results = results[start:end]
 
-        cursor.close()
-        conn.close()
 
         return {
             "success": True,
@@ -1662,22 +1613,20 @@ def get_front6_sanzhong3(
     备注：推荐生成策略（简化且稳定）：统计触发期之前最近100期的前6码出现频次，取频次最高的6个作为推荐；不足6个时按数值补齐。
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
         # 取较多期，便于构造窗口
-        cursor.execute(
-            """
-            SELECT period, numbers, open_time
-            FROM lottery_result
-            WHERE lottery_type = %s
-            ORDER BY period ASC
-            """,
-            (lottery_type,)
-        )
-        rows = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT period, numbers, open_time
+                FROM lottery_result
+                WHERE lottery_type = %s
+                ORDER BY period ASC
+                """,
+                (lottery_type,)
+            )
+            rows = cursor.fetchall()
         if not rows:
-            cursor.close(); conn.close()
-            return {"success": False, "message": "暂无数据"}
+                        return {"success": False, "message": "暂无数据"}
 
         # 构建便捷结构
         records = []
@@ -1779,14 +1728,10 @@ def get_front6_sanzhong3(
 
         # 导出 CSV（导出全部）
         if export == 'csv':
-            import io, csv
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                '触发期数', '开奖时间', '推荐6码', '窗口期(后5期)', '窗口前6号码', '是否命中', '命中期', '命中重合号码', '连续遗漏'
-            ])
+            headers = ['触发期数', '开奖时间', '推荐6码', '窗口期(后5期)', '窗口前6号码', '是否命中', '命中期', '命中重合号码', '连续遗漏']
+            rows = []
             for item in results:
-                writer.writerow([
+                rows.append([
                     item.get('trigger_period', ''),
                     item.get('open_time', ''),
                     ','.join(str(n) for n in item.get('recommend6', [])),
@@ -1797,11 +1742,8 @@ def get_front6_sanzhong3(
                     ','.join(str(n) for n in (item.get('hit_detail') or {}).get('hit_common_numbers', [])),
                     item.get('omission_streak', 0)
                 ])
-            output.seek(0)
             filename = f"front6_sanzhong3_{lottery_type}.csv"
-            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            })
+            return create_csv_response(headers, rows, filename)
 
         # 分页
         total_pages = (total_triggers + page_size - 1) // page_size if page_size else 1
@@ -1810,7 +1752,6 @@ def get_front6_sanzhong3(
         end = start + page_size
         paged_results = results[start:end]
 
-        cursor.close(); conn.close()
         return {
             'success': True,
             'data': {
@@ -1846,23 +1787,19 @@ def get_five_period_threexiao(
     - 根据接下来的5期开奖的第7个号码有在这12/13个号码中间的话算命中，不在算遗漏
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
-        
         # 获取数据，按期号升序排列
-        cursor.execute(
-            """
-            SELECT period, numbers, open_time
-            FROM lottery_result
-            WHERE lottery_type = %s
-            ORDER BY period ASC
-            """,
-            (lottery_type,)
-        )
-        rows = cursor.fetchall()
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT period, numbers, open_time
+                FROM lottery_result
+                WHERE lottery_type = %s
+                ORDER BY period ASC
+                """,
+                (lottery_type,)
+            )
+            rows = cursor.fetchall()
         if not rows:
-            cursor.close()
-            conn.close()
             return {"success": False, "message": "暂无数据"}
 
         # 构建便捷结构
@@ -1984,14 +1921,10 @@ def get_five_period_threexiao(
 
         # 导出 CSV（导出全部）
         if export == 'csv':
-            import io, csv
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
-                '触发期数', '开奖时间', '前3个号码', '生成号码', '窗口期(后5期)', '窗口第7个号码', '是否命中', '命中期', '当前遗漏', '最大遗漏', '历史最大遗漏'
-            ])
+            headers = ['触发期数', '开奖时间', '前3个号码', '生成号码', '窗口期(后5期)', '窗口第7个号码', '是否命中', '命中期', '当前遗漏', '最大遗漏', '历史最大遗漏']
+            rows = []
             for item in results:
-                writer.writerow([
+                rows.append([
                     item.get('trigger_period', ''),
                     item.get('open_time', ''),
                     ','.join(str(n) for n in item.get('first_three_numbers', [])),
@@ -2004,11 +1937,8 @@ def get_five_period_threexiao(
                     item.get('max_miss', 0),
                     item.get('history_max_miss', 0)
                 ])
-            output.seek(0)
             filename = f"five_period_threexiao_{lottery_type}.csv"
-            return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            })
+            return create_csv_response(headers, rows, filename)
 
         # 分页
         total_pages = (total_triggers + page_size - 1) // page_size if page_size else 1
@@ -2017,8 +1947,6 @@ def get_five_period_threexiao(
         end = start + page_size
         paged_results = results[start:end]
 
-        cursor.close()
-        conn.close()
         return {
             'success': True,
             'data': {

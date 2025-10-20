@@ -286,7 +286,6 @@ def get_seventh_smart_recommend20(
                 'hit_count': hit_count,
                 'hit_rate': hit_rate,
                 'final_current_miss': period_details[0]['current_miss'] if period_details else 0,
-                'final_max_miss': period_details[0]['max_miss'] if period_details else 0,
                 'final_history_max_miss': period_details[0]['history_max_miss'] if period_details else 0
             }
 

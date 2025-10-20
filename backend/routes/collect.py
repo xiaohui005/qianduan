@@ -114,31 +114,34 @@ def get_records(
     page_size: int = Query(20, ge=1, le=10000)
 ):
     """获取开奖记录,支持分页,最大page_size=10000"""
-    conn = collect.get_connection()
-    cursor = conn.cursor(dictionary=True)
-    sql = "SELECT * FROM lottery_result WHERE 1=1"
-    params = []
-    if lottery_type:
-        sql += " AND lottery_type=%s"
-        params.append(lottery_type)
-    if start_time:
-        sql += " AND open_time >= %s"
-        params.append(start_time)
-    if end_time:
-        sql += " AND open_time <= %s"
-        params.append(end_time)
-    if period:
-        sql += " AND period=%s"
-        params.append(period)
-    sql_count = f"SELECT COUNT(*) as total FROM ({sql}) t"
-    cursor.execute(sql_count, params)
-    total = cursor.fetchone()['total']
-    sql += " ORDER BY open_time DESC, period DESC LIMIT %s OFFSET %s"
-    params += [page_size, (page-1)*page_size]
-    cursor.execute(sql, params)
-    records = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        from backend.utils import get_db_cursor
+    except ImportError:
+        from utils import get_db_cursor
+
+    with get_db_cursor() as cursor:
+        sql = "SELECT * FROM lottery_result WHERE 1=1"
+        params = []
+        if lottery_type:
+            sql += " AND lottery_type=%s"
+            params.append(lottery_type)
+        if start_time:
+            sql += " AND open_time >= %s"
+            params.append(start_time)
+        if end_time:
+            sql += " AND open_time <= %s"
+            params.append(end_time)
+        if period:
+            sql += " AND period=%s"
+            params.append(period)
+        sql_count = f"SELECT COUNT(*) as total FROM ({sql}) t"
+        cursor.execute(sql_count, params)
+        total = cursor.fetchone()['total']
+        sql += " ORDER BY open_time DESC, period DESC LIMIT %s OFFSET %s"
+        params += [page_size, (page-1)*page_size]
+        cursor.execute(sql, params)
+        records = cursor.fetchall()
+
     return {
         "total": total,
         "page": page,
