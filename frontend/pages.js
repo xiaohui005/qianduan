@@ -19,7 +19,7 @@ const PAGE_CONFIG = {
   'menuRangeBtn': { pageId: 'rangePage', title: '+1~+20区间分析' },
   'menuSeventhRangeBtn': { pageId: 'seventhRangePage', title: '第7个号码+1~+20区间分析' },
   'menuSecondFourxiaoBtn': { pageId: 'secondFourxiaoPage', title: '第二个号码四肖分析' },
-  'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码3肖分析' },
+  'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码6肖分析' },
   'menuFront6SzzBtn': { pageId: 'front6SzzPage', title: '前6码三中三' },
   'menuFivePeriodThreexiaoBtn': { pageId: 'fivePeriodThreexiaoPage', title: '5期3肖计算' },
   'menuPlusMinus6Btn': { pageId: 'plusMinus6Page', title: '加减前6码分析' },

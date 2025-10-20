@@ -6932,7 +6932,7 @@ function renderSecondFourxiao(data) {
   }
 }
 
-// 初始化第6个号码3肖分析
+// 初始化第6个号码6肖分析
 function initSixthThreexiaoAnalysis() {
   // 彩种选择
   const typeBtns = document.querySelectorAll('#sixthThreexiaoPage .seventh-range-type-btn');
@@ -6972,7 +6972,7 @@ function initSixthThreexiaoAnalysis() {
   window.sixthThreexiaoPos = 6;
 }
 
-// 加载第6个号码3肖分析数据
+// 加载第6个号码6肖分析数据
 async function loadSixthThreexiaoAnalysis(lotteryType, position, page = 1, pageSize = 30) {
   const resultDiv = document.getElementById('sixthThreexiaoResult');
   const statsDiv = document.getElementById('sixthThreexiaoStats');
@@ -6994,11 +6994,11 @@ async function loadSixthThreexiaoAnalysis(lotteryType, position, page = 1, pageS
       resultDiv.innerHTML = `<p style="color: red;">加载失败: ${result.message}</p>`;
     }
   } catch (error) {
-    console.error('加载第6个号码3肖分析失败:', error);
+    console.error('加载第6个号码6肖分析失败:', error);
     resultDiv.innerHTML = '<p style="color: red;">加载失败，请检查网络连接</p>';
   }
 }
-// 渲染第6个号码3肖分析结果
+// 渲染第6个号码6肖分析结果
 function renderSixthThreexiao(data, resultDiv, statsDiv) {
   const { results, total_analysis, hit_count, hit_rate, current_miss, max_miss, history_max_miss, base_position, page, total_pages, page_size } = data;
   const pagerHtml = `

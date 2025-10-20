@@ -1010,11 +1010,12 @@ def get_sixth_number_threexiao(
     export: str | None = Query(None)
 ):
     """
-    第6个号码3肖分析：
+    第6个号码6肖分析：
     - 取该期第 position 个开奖号码，先循环减12直到小于12停止
-    - 对结果进行-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37运算
+    - 对结果进行原有偏移：-1,+0,+1,+11,+12,+13,+23,+24,+25,+35,+36,+37运算
+    - 再额外添加新偏移：+5,+6,+7,+18,+19,+20,+31,+32,+33,+41,+42,+43
     - 超过49按1起算继续加，小于1按49起算继续减
-    - 判定下一期第7个号码是否在这12/13个号码中，命中/遗漏
+    - 判定下一期第7个号码是否在这些号码中，命中/遗漏
     - 统计最大遗漏和历史遗漏
     """
     try:
@@ -1044,11 +1045,13 @@ def get_sixth_number_threexiao(
                 reduced_num -= 12
             # 根据reduced_num的值选择偏移量
             if reduced_num in [1, 2, 12]:
-                # 1、2、12的情况：使用完整偏移量
-                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37, 47]
+                # 1、2、12的情况：使用完整偏移量（原有+新增）
+                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37, 47,
+                          5, 6, 7, 18, 19, 20, 31, 32, 33, 41, 42, 43]
             else:
-                # 其他情况：使用基础偏移量
-                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36,37]
+                # 其他情况：使用基础偏移量（原有+新增）
+                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37,
+                          5, 6, 7, 18, 19, 20, 31, 32, 33, 41, 42, 43]
 
             nums = []
             for off in offsets:
@@ -1149,7 +1152,7 @@ def get_sixth_number_threexiao(
                     item.get('history_max_miss', '')
                 ])
             output.seek(0)
-            filename = f"sixth_threexiao_{lottery_type}_pos{position}.csv"
+            filename = f"sixth_sixxiao_{lottery_type}_pos{position}.csv"
             return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
                 'Content-Disposition': f'attachment; filename="{filename}"'
             })
@@ -1180,7 +1183,7 @@ def get_sixth_number_threexiao(
             }
         }
     except Exception as e:
-        print(f"第6个号码3肖分析失败: {e}")
+        print(f"第6个号码6肖分析失败: {e}")
         return {"success": False, "message": f"分析失败: {str(e)}"}
 
 @router.get("/api/second_number_fourxiao")
