@@ -30,6 +30,15 @@ function initSeventhSmart20() {
     });
   }
 
+  // 查看逐期记录按钮
+  const detailsBtn = document.getElementById('showSeventhSmart20DetailsBtn');
+  if (detailsBtn) {
+    detailsBtn.addEventListener('click', function() {
+      const lotteryType = window.currentSeventhSmart20Type || 'am';
+      loadSeventhSmart20Details(lotteryType);
+    });
+  }
+
   // 导出CSV按钮
   const exportBtn = document.getElementById('exportSeventhSmart20Btn');
   if (exportBtn) {
@@ -192,6 +201,153 @@ function renderSeventhSmart20(data, resultDiv, summaryDiv) {
           <li>趋势分析基于近30期与整体频率对比</li>
           <li>遗漏适中的号码更有可能在近期出现</li>
           <li style="color: #e74c3c; font-weight: bold;">⚠️ 彩票具有随机性，推荐仅供参考，不保证命中率</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  resultDiv.innerHTML = html;
+}
+
+// 加载逐期详细记录
+async function loadSeventhSmart20Details(lotteryType) {
+  const resultDiv = document.getElementById('seventhSmart20Result');
+  const summaryDiv = document.getElementById('seventhSmart20Summary');
+
+  if (!resultDiv) return;
+
+  try {
+    resultDiv.innerHTML = '<p style="text-align: center; padding: 20px;">正在加载逐期详细记录，请稍候...</p>';
+
+    const response = await fetch(`${window.BACKEND_URL}/api/seventh_smart_recommend20?lottery_type=${lotteryType}&show_details=true`);
+    const result = await response.json();
+
+    if (result.success) {
+      renderSeventhSmart20Details(result.data, resultDiv, summaryDiv);
+    } else {
+      resultDiv.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">加载失败: ${result.message}</p>`;
+    }
+  } catch (error) {
+    console.error('加载逐期详细记录失败:', error);
+    resultDiv.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">加载失败，请检查网络连接</p>';
+  }
+}
+
+// 渲染逐期详细记录
+function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
+  const { period_details, hit_stats, recommend_top20, generated_at } = data;
+
+  // 隐藏摘要
+  summaryDiv.style.display = 'none';
+
+  let html = `
+    <div style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">逐期详细记录（每期独立推荐Top20）</h3>
+        <span style="color: #666; font-size: 14px;">生成时间: ${generated_at}</span>
+      </div>
+
+      <!-- 统计摘要 -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+        <div style="text-align: center;">
+          <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${hit_stats.hit_rate}%</div>
+          <div style="color: #666; font-size: 14px;">总体命中率</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 24px; font-weight: bold; color: #3498db;">${hit_stats.hit_count}</div>
+          <div style="color: #666; font-size: 14px;">命中次数 / ${hit_stats.total_records}</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${hit_stats.final_current_miss}</div>
+          <div style="color: #666; font-size: 14px;">当前遗漏</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 24px; font-weight: bold; color: #f39c12;">${hit_stats.final_history_max_miss}</div>
+          <div style="color: #666; font-size: 14px;">历史最大遗漏</div>
+        </div>
+      </div>
+
+      <!-- 详细记录表格 -->
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+              <th style="padding: 10px 8px; text-align: center; width: 90px;">当前期号</th>
+              <th style="padding: 10px 8px; text-align: center; min-width: 400px;">该期推荐的Top20号码</th>
+              <th style="padding: 10px 8px; text-align: center; width: 90px;">下一期期号</th>
+              <th style="padding: 10px 8px; text-align: center; width: 70px;">下期第7号</th>
+              <th style="padding: 10px 8px; text-align: center; width: 70px;">是否命中</th>
+              <th style="padding: 10px 8px; text-align: center; width: 80px;">当前遗漏</th>
+              <th style="padding: 10px 8px; text-align: center; width: 100px;">历史最大遗漏</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  period_details.forEach((detail, index) => {
+    // 跳过没有下一期数据的记录
+    if (!detail.next_period || detail.next_seventh === null) {
+      return;
+    }
+
+    // 根据是否命中设置不同的样式
+    const bgColor = detail.is_hit ? '#e8f5e9' : '#fff';
+    const hitText = detail.is_hit ? '✓ 命中' : '✗ 遗漏';
+    const hitColor = detail.is_hit ? '#27ae60' : '#e74c3c';
+
+    // 格式化该期的推荐号码，命中的号码高亮显示
+    const recommendNumbers = detail.recommend_numbers || [];
+    const formattedNumbers = recommendNumbers.map(num => {
+      const isHitNumber = detail.is_hit && num === detail.next_seventh;
+      if (isHitNumber) {
+        return `<span style="display: inline-block; background: #27ae60; color: white;
+                       padding: 2px 6px; margin: 2px; border-radius: 3px; font-weight: bold;">
+                  ${num.toString().padStart(2, '0')}
+                </span>`;
+      } else {
+        return `<span style="display: inline-block; background: #e0e0e0; color: #333;
+                       padding: 2px 6px; margin: 2px; border-radius: 3px;">
+                  ${num.toString().padStart(2, '0')}
+                </span>`;
+      }
+    }).join('');
+
+    html += `
+      <tr style="background: ${bgColor}; border-bottom: 1px solid #dee2e6;">
+        <td style="padding: 8px; text-align: center; font-weight: bold;">${detail.current_period}</td>
+        <td style="padding: 8px; text-align: left; line-height: 1.8;">
+          ${formattedNumbers}
+        </td>
+        <td style="padding: 8px; text-align: center;">${detail.next_period}</td>
+        <td style="padding: 8px; text-align: center;">
+          <span style="display: inline-block; background: ${detail.is_hit ? '#27ae60' : '#e74c3c'};
+                       color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+            ${detail.next_seventh.toString().padStart(2, '0')}
+          </span>
+        </td>
+        <td style="padding: 8px; text-align: center; font-weight: bold; color: ${hitColor};">
+          ${hitText}
+        </td>
+        <td style="padding: 8px; text-align: center;">${detail.current_miss}</td>
+        <td style="padding: 8px; text-align: center;">${detail.history_max_miss}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; font-size: 13px; color: #856404;">
+        <p style="margin: 0 0 8px 0;"><strong>说明：</strong></p>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><strong>每一期都独立计算推荐Top20</strong>：基于该期往前100期的历史数据生成推荐号码</li>
+          <li>推荐号码中<span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px;">绿色</span>表示命中了下期第7号</li>
+          <li>绿色行表示命中（下期第7号在该期推荐Top20中）</li>
+          <li>白色行表示遗漏（下期第7号不在该期推荐Top20中）</li>
+          <li><strong>当前遗漏</strong>：从该期往前计算，当前正在累积的连续未命中期数</li>
+          <li><strong>历史最大遗漏</strong>：从统计开始到该期为止，曾经出现过的最大连续遗漏期数（已结束的遗漏周期）</li>
         </ul>
       </div>
     </div>

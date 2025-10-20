@@ -2,13 +2,18 @@
 第7个号码智能推荐20码分析模块
 
 基于pattern-master-analyst的深度分析结果，实现智能推荐算法
+
+核心逻辑：
+1. 每一期基于该期往前100期的历史数据独立计算Top20
+2. 推荐数据保存到数据库表 seventh_smart20_history
+3. API从数据库读取历史推荐数据
 """
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from collections import Counter, defaultdict
 from typing import Optional
-import io, csv
+import io, csv, json
 from datetime import datetime
 
 try:
@@ -21,7 +26,8 @@ router = APIRouter()
 @router.get("/api/seventh_smart_recommend20")
 def get_seventh_smart_recommend20(
     lottery_type: str = Query('am'),
-    export: str | None = Query(None)
+    export: str | None = Query(None),
+    show_details: bool = Query(False)
 ):
     """
     第7个号码智能推荐20码分析
@@ -34,6 +40,9 @@ def get_seventh_smart_recommend20(
     5. 稳定性分析（权重10%）
 
     返回综合评分最高的20个号码
+
+    参数:
+    - show_details: 是否显示每期详细记录（默认False，仅显示Top20）
     """
     try:
         conn = collect.get_connection()
@@ -173,6 +182,74 @@ def get_seventh_smart_recommend20(
             'analysis_period_range': f"{periods[0]}-{periods[-1]}"
         }
 
+        # 从数据库读取历史推荐数据
+        period_details = []
+        if show_details:
+            cursor.execute("""
+                SELECT
+                    period,
+                    recommend_numbers,
+                    recommend_details,
+                    next_period,
+                    next_seventh,
+                    is_hit,
+                    hit_number,
+                    confidence_level
+                FROM seventh_smart20_history
+                WHERE lottery_type = %s
+                ORDER BY period DESC
+                LIMIT 200
+            """, (lottery_type,))
+
+            history_records = cursor.fetchall()
+
+            if not history_records:
+                # 如果没有历史数据，提示用户先生成
+                cursor.close()
+                conn.close()
+                return {
+                    "success": False,
+                    "message": "暂无历史推荐数据，请先调用 POST /api/seventh_smart_generate_history 生成历史数据"
+                }
+
+            # 转换数据格式
+            for rec in history_records:
+                recommend_numbers = list(map(int, rec['recommend_numbers'].split(',')))
+
+                period_details.append({
+                    'current_period': rec['period'],
+                    'recommend_numbers': recommend_numbers,
+                    'next_period': rec['next_period'],
+                    'next_seventh': rec['next_seventh'],
+                    'is_hit': rec['is_hit'],
+                    'hit_number': rec['hit_number'],
+                    'confidence_level': rec['confidence_level']
+                })
+
+            # 计算遗漏统计（从旧到新遍历，因为period_details是倒序的）
+            # 先反转数组，从最旧期开始计算
+            reversed_details = list(reversed(period_details))
+
+            current_miss = 0
+            history_max_miss = 0
+
+            for detail in reversed_details:
+                if detail['is_hit']:
+                    # 命中时，更新历史最大遗漏
+                    if current_miss > history_max_miss:
+                        history_max_miss = current_miss
+                    # 重置当前遗漏
+                    current_miss = 0
+                else:
+                    # 未命中时，当前遗漏+1
+                    current_miss += 1
+
+                detail['current_miss'] = current_miss
+                detail['history_max_miss'] = history_max_miss
+
+            # 反转回来，保持最新期在前
+            period_details = list(reversed(reversed_details))
+
         # CSV导出
         if export == 'csv':
             output = io.StringIO()
@@ -208,6 +285,22 @@ def get_seventh_smart_recommend20(
         cursor.close()
         conn.close()
 
+        # 计算逐期命中率
+        hit_stats = {}
+        if show_details and period_details:
+            total_records = len(period_details)
+            hit_count = sum(1 for d in period_details if d['is_hit'])
+            hit_rate = round((hit_count / total_records * 100), 2) if total_records > 0 else 0
+
+            hit_stats = {
+                'total_records': total_records,
+                'hit_count': hit_count,
+                'hit_rate': hit_rate,
+                'final_current_miss': period_details[0]['current_miss'] if period_details else 0,
+                'final_max_miss': period_details[0]['max_miss'] if period_details else 0,
+                'final_history_max_miss': period_details[0]['history_max_miss'] if period_details else 0
+            }
+
         return {
             'success': True,
             'data': {
@@ -215,6 +308,8 @@ def get_seventh_smart_recommend20(
                 'recommend_top20': top20,
                 'analysis_summary': analysis_summary,
                 'confidence_level': calculate_confidence_level(top20),
+                'period_details': period_details if show_details else [],
+                'hit_stats': hit_stats if show_details else {},
                 'algorithm_version': '1.0',
                 'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -350,3 +445,223 @@ def calculate_confidence_level(top20):
         return "中"
     else:
         return "低"
+
+
+def calculate_period_top20(seventh_numbers, lottery_type):
+    """
+    基于给定的历史数据计算该期的Top20推荐号码
+
+    参数:
+    - seventh_numbers: 历史第7个号码列表（从旧到新）
+    - lottery_type: 彩种类型（'am' 或 'hk'）
+
+    返回:
+    - Top20推荐号码列表（包含评分等详细信息）
+    """
+    total_periods = len(seventh_numbers)
+    recent_30 = seventh_numbers[-30:] if len(seventh_numbers) >= 30 else seventh_numbers
+
+    # 1. 频率分析
+    overall_freq = Counter(seventh_numbers)
+    recent_freq = Counter(recent_30)
+
+    # 2. 遗漏分析
+    miss_stats = calculate_miss_stats(seventh_numbers)
+
+    # 3. 趋势分析
+    trend_scores = calculate_trend_scores(overall_freq, recent_freq, total_periods)
+
+    # 4. 连号分析（仅香港彩）
+    consecutive_scores = {}
+    if lottery_type == 'hk':
+        consecutive_scores = calculate_consecutive_scores(seventh_numbers)
+
+    # 5. 综合评分
+    scores = {}
+    for num in range(1, 50):
+        # 频率分 (30%)
+        freq_score = (overall_freq.get(num, 0) / total_periods) * 100 * 0.3
+
+        # 遗漏分 (25%)
+        miss_info = miss_stats.get(num, {})
+        current_miss = miss_info.get('current_miss', 0)
+        max_miss = miss_info.get('max_miss', 1)
+        avg_miss = miss_info.get('avg_miss', 1)
+
+        # 遗漏评分：当前遗漏接近平均遗漏时得分最高
+        if avg_miss > 0:
+            miss_ratio = current_miss / avg_miss
+            if 0.5 <= miss_ratio <= 1.5:
+                miss_score = 100 * 0.25
+            elif miss_ratio < 0.5:
+                miss_score = (1 - (0.5 - miss_ratio)) * 100 * 0.25
+            else:
+                miss_score = (1 / (miss_ratio - 0.5)) * 100 * 0.25
+        else:
+            miss_score = 0
+
+        # 趋势分 (25%)
+        trend_score = trend_scores.get(num, 0) * 0.25
+
+        # 连号分 (10%) - 仅香港彩
+        consecutive_score = consecutive_scores.get(num, 0) * 0.1 if lottery_type == 'hk' else 0
+
+        # 稳定性分 (10%) - 出现次数在合理范围内
+        appearance_count = overall_freq.get(num, 0)
+        expected = total_periods / 49
+        stability_ratio = appearance_count / expected if expected > 0 else 0
+        if 0.5 <= stability_ratio <= 2.0:
+            stability_score = 100 * 0.1
+        else:
+            stability_score = max(0, (1 - abs(stability_ratio - 1)) * 100 * 0.1)
+
+        # 总分
+        total_score = freq_score + miss_score + trend_score + consecutive_score + stability_score
+
+        scores[num] = {
+            'number': num,
+            'total_score': round(total_score, 2),
+            'frequency': overall_freq.get(num, 0),
+            'frequency_rate': round((overall_freq.get(num, 0) / total_periods) * 100, 2),
+            'recent_frequency': recent_freq.get(num, 0),
+            'recent_rate': round((recent_freq.get(num, 0) / len(recent_30)) * 100, 2) if recent_30 else 0,
+            'current_miss': current_miss,
+            'avg_miss': round(avg_miss, 1),
+            'max_miss': max_miss,
+            'trend': get_trend_label(trend_scores.get(num, 0)),
+            'is_hot': recent_freq.get(num, 0) >= 3,
+            'is_cold': current_miss > avg_miss * 1.5,
+            'consecutive_bonus': consecutive_scores.get(num, 0) if lottery_type == 'hk' else 0
+        }
+
+    # 排序获取Top20
+    sorted_numbers = sorted(scores.values(), key=lambda x: x['total_score'], reverse=True)
+    top20 = sorted_numbers[:20]
+
+    # 添加推荐理由
+    for item in top20:
+        reasons = []
+        if item['is_hot']:
+            reasons.append("近期高频")
+        if item['trend'] == "强烈上升":
+            reasons.append("趋势强劲")
+        elif item['trend'] == "上升":
+            reasons.append("趋势向好")
+        if 0.5 <= item['current_miss'] / max(item['avg_miss'], 1) <= 1.5:
+            reasons.append("遗漏适中")
+        if item['consecutive_bonus'] > 50 and lottery_type == 'hk':
+            reasons.append("连号优势")
+        if not reasons:
+            reasons.append("综合评分高")
+        item['reason'] = "+".join(reasons)
+
+    return top20
+
+
+@router.post("/api/seventh_smart_generate_history")
+def generate_seventh_smart_history(lottery_type: str = Query('am')):
+    """
+    批量生成历史推荐数据
+
+    遍历每一期开奖数据，基于该期往前100期的历史独立计算Top20并保存到数据库
+    """
+    try:
+        conn = collect.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 获取所有历史数据
+        sql = """
+        SELECT
+            period,
+            CAST(SUBSTRING_INDEX(numbers, ',', -1) AS UNSIGNED) as seventh_number,
+            open_time
+        FROM lottery_result
+        WHERE lottery_type = %s
+        ORDER BY period ASC
+        """
+        cursor.execute(sql, (lottery_type,))
+        all_records = cursor.fetchall()
+
+        if len(all_records) < 100:
+            cursor.close()
+            conn.close()
+            return {"success": False, "message": f"数据不足，至少需要100期数据，当前只有{len(all_records)}期"}
+
+        generated_count = 0
+        skipped_count = 0
+
+        # 从第100期开始，每期基于往前100期计算Top20
+        for idx in range(100, len(all_records)):
+            current_period = all_records[idx]['period']
+
+            # 检查是否已存在
+            cursor.execute("""
+                SELECT COUNT(*) as cnt FROM seventh_smart20_history
+                WHERE period = %s AND lottery_type = %s
+            """, (current_period, lottery_type))
+            exists = cursor.fetchone()['cnt'] > 0
+
+            if exists:
+                skipped_count += 1
+                continue
+
+            # 获取往前100期数据（不包括当前期）
+            historical_data = [all_records[i]['seventh_number'] for i in range(idx - 100, idx)]
+
+            # 计算Top20
+            top20 = calculate_period_top20(historical_data, lottery_type)
+            top20_numbers = [item['number'] for item in top20]
+
+            # 获取下一期信息（如果存在）
+            next_period = None
+            next_seventh = None
+            is_hit = None
+            hit_number = None
+
+            if idx + 1 < len(all_records):
+                next_period = all_records[idx + 1]['period']
+                next_seventh = all_records[idx + 1]['seventh_number']
+                is_hit = next_seventh in top20_numbers
+                hit_number = next_seventh if is_hit else None
+
+            # 计算置信度
+            confidence = calculate_confidence_level(top20)
+
+            # 保存到数据库
+            cursor.execute("""
+                INSERT INTO seventh_smart20_history
+                (period, lottery_type, recommend_numbers, recommend_details,
+                 next_period, next_seventh, is_hit, hit_number, confidence_level, analysis_periods)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                current_period,
+                lottery_type,
+                ','.join(map(str, top20_numbers)),
+                json.dumps(top20, ensure_ascii=False),
+                next_period,
+                next_seventh,
+                is_hit,
+                hit_number,
+                confidence,
+                100
+            ))
+
+            generated_count += 1
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"成功生成 {generated_count} 期推荐数据，跳过 {skipped_count} 期已存在数据",
+            "generated_count": generated_count,
+            "skipped_count": skipped_count,
+            "total_periods": len(all_records)
+        }
+
+    except Exception as e:
+        print(f"生成历史推荐数据失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": f"生成失败: {str(e)}"}
