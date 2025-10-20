@@ -20,6 +20,7 @@
         <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
         <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button> 
         <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
+        <button class="menu-btn" id="menuSeventhSmart20Btn">第7个号码智能推荐20码</button>
         <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
         <button class="menu-btn" id="menuSixthThreexiaoBtn">第6个号码6肖分析</button>
         <button class="menu-btn" id="menuFront6SzzBtn">前6码三中三</button>
@@ -341,6 +342,62 @@
                 <span class="stats-value" id="seventhRangeMaxMiss">0</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第7个号码智能推荐20码页面 -->
+      <div id="seventhSmart20Page" style="display:none;">
+        <h2>第7个号码智能推荐20码</h2>
+
+        <!-- 彩种选择 -->
+        <div style="margin-bottom: 16px;">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="seventh-range-type-group">
+            <button class="seventh-range-type-btn active" data-type="am">澳门</button>
+            <button class="seventh-range-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startSeventhSmart20Btn" class="btn-primary" style="margin-top: 10px;">开始智能分析</button>
+          <button id="exportSeventhSmart20Btn" class="btn-secondary" style="margin-top: 10px; margin-left: 10px;">导出CSV</button>
+        </div>
+
+        <!-- 分析摘要 -->
+        <div id="seventhSmart20Summary" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+          <h3 style="margin-top: 0;">分析摘要</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <div>
+              <strong>分析期数范围：</strong><br>
+              <span id="smart20PeriodRange">-</span>
+            </div>
+            <div>
+              <strong>分析期数：</strong><br>
+              <span id="smart20TotalPeriods">0</span> 期
+            </div>
+            <div>
+              <strong>置信度：</strong><br>
+              <span id="smart20Confidence" style="font-weight: bold; color: #e74c3c;">-</span>
+            </div>
+          </div>
+          <div style="margin-top: 15px;">
+            <div style="margin-bottom: 8px;">
+              <strong>当前热号TOP10：</strong><br>
+              <span id="smart20HotNumbers" style="color: #e74c3c;">-</span>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <strong>当前冷号TOP10：</strong><br>
+              <span id="smart20ColdNumbers" style="color: #3498db;">-</span>
+            </div>
+            <div>
+              <strong>遗漏适中号码TOP10：</strong><br>
+              <span id="smart20DueNumbers" style="color: #27ae60;">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 推荐Top20 -->
+        <div id="seventhSmart20Result" style="margin-top: 16px;">
+          <div style="text-align: center; color: #888; padding: 20px;">
+            点击"开始智能分析"按钮获取第7个号码的智能推荐20码
           </div>
         </div>
       </div>
@@ -1185,6 +1242,7 @@
   <script src="upload.js"></script>
   <script src="recommend16.js"></script>
   <script src="fivePeriodThreexiao.js"></script>
+  <script src="seventhSmart20.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');

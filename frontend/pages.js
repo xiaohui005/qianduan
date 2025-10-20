@@ -18,6 +18,7 @@ const PAGE_CONFIG = {
   'menuUnitsBtn': { pageId: 'unitsPage', title: '第N个码个位分析' },
   'menuRangeBtn': { pageId: 'rangePage', title: '+1~+20区间分析' },
   'menuSeventhRangeBtn': { pageId: 'seventhRangePage', title: '第7个号码+1~+20区间分析' },
+  'menuSeventhSmart20Btn': { pageId: 'seventhSmart20Page', title: '第7个号码智能推荐20码' },
   'menuSecondFourxiaoBtn': { pageId: 'secondFourxiaoPage', title: '第二个号码四肖分析' },
   'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码6肖分析' },
   'menuFront6SzzBtn': { pageId: 'front6SzzPage', title: '前6码三中三' },
