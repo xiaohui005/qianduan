@@ -285,7 +285,7 @@ document.querySelectorAll('.recommend-type-btn').forEach(btn => {
 
 let tensAnalysisCache = {am: null, hk: null};
 let currentTensType = 'am';
-let currentTensPos = 1;
+let currentTensPos = 7;
 let tensPageNum = 1;
 const TENS_PAGE_SIZE = 20;
 
@@ -482,13 +482,13 @@ if (!document.getElementById('unitsPage')) {
       </div>
       <label class="records-query-label" style="margin-left:24px;">选择位数：</label>
       <div class="units-pos-group" style="display:inline-block;">
-        <button class="units-pos-btn active" data-pos="1">第1位</button>
+        <button class="units-pos-btn" data-pos="1">第1位</button>
         <button class="units-pos-btn" data-pos="2">第2位</button>
         <button class="units-pos-btn" data-pos="3">第3位</button>
         <button class="units-pos-btn" data-pos="4">第4位</button>
         <button class="units-pos-btn" data-pos="5">第5位</button>
         <button class="units-pos-btn" data-pos="6">第6位</button>
-        <button class="units-pos-btn" data-pos="7">第7位</button>
+        <button class="units-pos-btn active" data-pos="7">第7位</button>
       </div>
     </div>
     <div id="unitsResult" style="margin-top:16px;"></div>
@@ -945,7 +945,7 @@ if (typeof initRecommend16HitAnalysis === 'undefined') {
 
 // 5. 个位分析交互与渲染
 let currentUnitsType = 'am';
-let currentUnitsPos = 1;
+let currentUnitsPos = 7;
 let currentUnitsYear = '';
 function loadUnitsAnalysis(type, pos, year) {
   if (type) currentUnitsType = type;
@@ -1750,13 +1750,13 @@ if (!document.getElementById('plusMinus6Page')) {
       <div>
         <label class="records-query-label">位数：</label>
         <div id="pm6PosBtns" style="display:inline-block;">
-          <button class="pm6-pos-btn active" data-pos="1">第1位</button>
+          <button class="pm6-pos-btn" data-pos="1">第1位</button>
           <button class="pm6-pos-btn" data-pos="2">第2位</button>
           <button class="pm6-pos-btn" data-pos="3">第3位</button>
           <button class="pm6-pos-btn" data-pos="4">第4位</button>
           <button class="pm6-pos-btn" data-pos="5">第5位</button>
           <button class="pm6-pos-btn" data-pos="6">第6位</button>
-          <button class="pm6-pos-btn" data-pos="7">第7位</button>
+          <button class="pm6-pos-btn active" data-pos="7">第7位</button>
         </div>
       </div>
       <button id="pm6QueryBtn" style="padding:6px 18px;font-size:15px;">查询</button>
@@ -1825,7 +1825,7 @@ Object.keys(pageMap).forEach(id => {
 });
 // 4. 查询与渲染逻辑
 let currentPm6Type = 'am';
-let currentPm6Pos = 1;
+let currentPm6Pos = 7;
 let currentPm6Page = 1;
 let currentPm6Year = '';
 function loadPlusMinus6Analysis(type, pos, page, year) {
@@ -3044,22 +3044,32 @@ function downloadCSV(rows, filename) {
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    
+
     if (!results || results.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">暂无数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;">暂无数据</td></tr>';
       return;
     }
-    
+
     results.forEach(result => {
       const row = document.createElement('tr');
       row.setAttribute('data-id', result.id); // 添加data-id属性
       const isCorrectText = result.is_correct === 1 ? '正确' : (result.is_correct === 0 ? '错误' : '未判断');
       const isCorrectClass = result.is_correct === 1 ? 'correct' : (result.is_correct === 0 ? 'wrong' : 'unjudged');
-      
+
+      // 遗漏数据显示
+      const currentMiss = result.current_miss !== undefined ? result.current_miss : '-';
+      const maxMiss = result.max_miss !== undefined ? result.max_miss : '-';
+
+      // 遗漏数据样式(当前遗漏较高时标红)
+      const currentMissStyle = (result.current_miss && result.current_miss >= 5) ? 'color:#e74c3c;font-weight:bold;' : '';
+      const maxMissStyle = (result.max_miss && result.max_miss >= 10) ? 'color:#e67e22;font-weight:bold;' : '';
+
       row.innerHTML = `
         <td>${result.place_name || '-'}</td>
         <td>${result.qishu}</td>
         <td class="${isCorrectClass}">${isCorrectText}</td>
+        <td style="${currentMissStyle}">${currentMiss}</td>
+        <td style="${maxMissStyle}">${maxMiss}</td>
         <td>${result.created_at}</td>
         <td>
           <button class="btn-edit" data-id="${result.id}">编辑</button>
@@ -5108,11 +5118,12 @@ function downloadCSV(rows, filename) {
       </div>
     `;
 
-
+    // 重置页码为第1页(每次加载新分析时)
+    window.currentAnalysisPage = 1;
 
     // 详细记录分页
-    const pageSize = 50;
-    const currentPage = 1;
+    const pageSize = 20;
+    const currentPage = window.currentAnalysisPage;
     const totalRecords = analysis.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
     
@@ -5130,7 +5141,7 @@ function downloadCSV(rows, filename) {
                 <th>中奖位置</th>
                 <th>是否中奖</th>
                 <th>当前遗漏</th>
-                <th>当前连中</th>
+                <th>历史最大遗漏</th>
               </tr>
             </thead>
             <tbody id="analysisTableBody">
@@ -5155,7 +5166,7 @@ function downloadCSV(rows, filename) {
           <td>${hitPositions}</td>
           <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
           <td>${record.current_miss}</td>
-          <td>${record.current_streak}</td>
+          <td>${record.max_miss || 0}</td>
             </tr>
           `;
         });
@@ -5164,61 +5175,82 @@ function downloadCSV(rows, filename) {
               </tbody>
             </table>
           </div>
-        
+
         <!-- 分页控件 -->
-        <div class="pagination-container" style="margin-top: 20px;">
-          <div class="pagination-info">
-            第 ${currentPage} 页，共 ${totalPages} 页，共 ${totalRecords} 条记录
-        </div>
-          <div class="pagination-controls">
-            <button class="pagination-btn" onclick="changeAnalysisPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>
-            <button class="pagination-btn" onclick="changeAnalysisPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
-            <div class="page-numbers">
-    `;
-    
-    // 显示所有页码
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button class="page-number ${i === currentPage ? 'active' : ''}" onclick="changeAnalysisPage(${i})">${i}</button>`;
-    }
-      
-      html += `
-            </div>
-            <button class="pagination-btn" onclick="changeAnalysisPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
-            <button class="pagination-btn" onclick="changeAnalysisPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>
+        <div class="pagination-container" style="margin-top: 20px; text-align: center;">
+          <div class="pagination-info" style="margin-bottom: 10px;">
+            第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条记录
           </div>
+          <div class="pagination-controls" style="display: flex; justify-content: center; gap: 10px;">
+            <button class="pagination-btn" id="analysisPrevPageBtn">上一页</button>
+            <button class="pagination-btn" id="analysisNextPageBtn">下一页</button>
           </div>
         </div>
       `;
 
     analysisResult.innerHTML = html;
     analysisResult.style.display = 'block';
-    
+
     // 保存分析数据到全局变量，供分页使用
     window.currentAnalysisData = analysis;
+
+    // 简单直接的事件绑定
+    const prevBtn = document.getElementById('analysisPrevPageBtn');
+    const nextBtn = document.getElementById('analysisNextPageBtn');
+
+    console.log('analysisPrevBtn:', prevBtn);
+    console.log('analysisNextBtn:', nextBtn);
+
+    if (prevBtn) {
+      prevBtn.disabled = (currentPage === 1);
+      prevBtn.onclick = function() {
+        if (window.currentAnalysisPage > 1) {
+          window.currentAnalysisPage--;
+          refreshAnalysisPage();
+        }
+      };
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = (currentPage === totalPages);
+      nextBtn.onclick = function() {
+        const totalPages = Math.ceil(window.currentAnalysisData.length / 20);
+        if (window.currentAnalysisPage < totalPages) {
+          window.currentAnalysisPage++;
+          refreshAnalysisPage();
+        }
+      };
+    }
   }
-  // 分页切换函数
-  window.changeAnalysisPage = function(page) {
+  // 刷新分页显示
+  function refreshAnalysisPage() {
+    console.log('refreshAnalysisPage 被调用');
     const analysis = window.currentAnalysisData;
-    if (!analysis) return;
+    if (!analysis) {
+      console.log('错误: currentAnalysisData 不存在');
+      return;
+    }
 
     const pageSize = 20;
+    const currentPage = window.currentAnalysisPage || 1;
     const totalRecords = analysis.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
 
-    if (page < 1 || page > totalPages) return;
+    console.log('currentPage:', currentPage, 'totalPages:', totalPages, 'totalRecords:', totalRecords);
 
+    // 更新表格数据
     const tbody = document.getElementById('analysisTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+      console.log('错误: analysisTableBody 不存在');
+      return;
+    }
 
-    // 清空表格内容
     tbody.innerHTML = '';
 
-    // 计算当前页的数据并按开奖时间从大到小排序（最新的开奖时间在前面）
-    const startIndex = (page - 1) * pageSize;
+    const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
 
-    // 渲染当前页数据
     currentPageData.forEach(record => {
       const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
       const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
@@ -5226,41 +5258,40 @@ function downloadCSV(rows, filename) {
 
       const row = document.createElement('tr');
       row.innerHTML = `
-          <td>${record.period}</td>
-          <td>${formatDateTime(record.open_time)}</td>
-          <td>${record.open_numbers.join(',')}</td>
-          <td>${hitNumbers}</td>
-          <td>${hitPositions}</td>
-          <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
-          <td>${record.current_miss}</td>
-          <td>${record.current_streak}</td>
+        <td>${record.period}</td>
+        <td>${formatDateTime(record.open_time)}</td>
+        <td>${record.open_numbers.join(',')}</td>
+        <td>${hitNumbers}</td>
+        <td>${hitPositions}</td>
+        <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
+        <td>${record.current_miss}</td>
+        <td>${record.max_miss || 0}</td>
       `;
       tbody.appendChild(row);
     });
 
+    console.log('表格数据已渲染，共', currentPageData.length, '条记录');
+
     // 更新分页信息
     const paginationInfo = document.querySelector('.pagination-info');
     if (paginationInfo) {
-      paginationInfo.textContent = `第 ${page} 页，共 ${totalPages} 页，共 ${totalRecords} 条记录`;
+      paginationInfo.textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条记录`;
+      console.log('分页信息已更新');
+    } else {
+      console.log('错误: pagination-info 不存在');
     }
 
-    // 更新分页按钮状态
-    const prevBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page - 1})"]');
-    const nextBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${page + 1})"]');
-    const firstBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(1)"]');
-    const lastBtn = document.querySelector('.pagination-btn[onclick*="changeAnalysisPage(${totalPages})"]');
+    // 更新按钮状态
+    const prevBtn = document.getElementById('analysisPrevPageBtn');
+    const nextBtn = document.getElementById('analysisNextPageBtn');
 
-    if (prevBtn) prevBtn.disabled = page === 1;
-    if (nextBtn) nextBtn.disabled = page === totalPages;
-    if (firstBtn) firstBtn.disabled = page === 1;
-    if (lastBtn) lastBtn.disabled = page === totalPages;
+    if (prevBtn) {
+      prevBtn.disabled = currentPage === 1;
+    }
 
-    // 更新页码按钮
-    const pageNumbers = document.querySelectorAll('.page-number');
-    pageNumbers.forEach((btn, index) => {
-      const pageNum = parseInt(btn.textContent);
-      btn.classList.toggle('active', pageNum === page);
-    });
+    if (nextBtn) {
+      nextBtn.disabled = currentPage === totalPages;
+    }
   }
 
   // 导出关注号码分析结果
@@ -5272,7 +5303,7 @@ function downloadCSV(rows, filename) {
     }
 
     const csvRows = [
-      ['期数', '开奖时间', '开奖号码', '中奖号码', '中奖位置', '是否中奖', '当前遗漏', '当前连中']
+      ['期数', '开奖时间', '开奖号码', '中奖号码', '中奖位置', '是否中奖', '当前遗漏', '历史最大遗漏']
     ];
 
     // 按开奖时间从大到小排序
@@ -5290,7 +5321,7 @@ function downloadCSV(rows, filename) {
         hitPositions,
         record.is_hit ? '是' : '否',
         record.current_miss,
-        record.current_streak
+        record.max_miss || 0
       ]);
     });
 

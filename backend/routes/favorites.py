@@ -170,7 +170,42 @@ def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', posi
                     target_pos = position - 1  # 转换为0基索引
                     latest_hit = target_pos < len(latest_open_numbers) and latest_open_numbers[target_pos] in numbers
 
-            # 遍历所有记录计算遗漏和连中
+            # 先按时间正序(从旧到新)处理,计算每一期的当前遗漏和历史最大遗漏
+            reversed_records = list(reversed(all_records))  # 反转为从旧到新
+            temp_current_miss = 0  # 临时累加当前遗漏
+            temp_max_miss = 0      # 临时记录历史最大遗漏
+
+            # 先从旧到新遍历一遍,计算每期的当前遗漏和历史最大遗漏
+            period_miss_map = {}  # 存储每期的遗漏信息
+
+            for record in reversed_records:
+                open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
+                if len(open_numbers) < 7:
+                    continue
+
+                target_pos = position - 1
+                is_hit = target_pos < len(open_numbers) and open_numbers[target_pos] in numbers
+
+                if is_hit:
+                    # 命中,更新历史最大遗漏,然后清零当前遗漏
+                    if temp_current_miss > temp_max_miss:
+                        temp_max_miss = temp_current_miss
+                    temp_current_miss = 0
+                else:
+                    # 遗漏,累加
+                    temp_current_miss += 1
+
+                # 记录该期的当前遗漏和历史最大遗漏
+                period_miss_map[record['period']] = {
+                    'current_miss': temp_current_miss,
+                    'max_miss': temp_max_miss
+                }
+
+            # 最后还要检查一次,看最后的遗漏是否是最大的
+            if temp_current_miss > temp_max_miss:
+                temp_max_miss = temp_current_miss
+
+            # 遍历所有记录生成分析结果(仍按从新到旧的顺序显示)
             for i, record in enumerate(all_records):
                 # 解析开奖号码
                 open_numbers = [int(n.strip()) for n in record['numbers'].split(',') if n.strip().isdigit()]
@@ -224,27 +259,8 @@ def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', posi
 
                 total_checks += 1
 
-                # 计算该期的遗漏和连中（从最新一期开始往前计算到该期）
-                current_miss_for_record = 0
-                current_streak_for_record = 0
-
-                # 从最新一期开始往前计算到该期
-                for j in range(i + 1):
-                    calc_record = all_records[j]
-                    calc_numbers = [int(n.strip()) for n in calc_record['numbers'].split(',') if n.strip().isdigit()]
-                    if len(calc_numbers) >= 7:
-                        calc_target_pos = position - 1
-                        if calc_target_pos < len(calc_numbers) and calc_numbers[calc_target_pos] in numbers:
-                            # 中奖了，重置遗漏，连中+1
-                            if current_streak_for_record == 0:
-                                current_streak_for_record = 1
-                            else:
-                                current_streak_for_record += 1
-                            current_miss_for_record = 0
-                        else:
-                            # 未中奖，遗漏+1，重置连中
-                            current_miss_for_record += 1
-                            current_streak_for_record = 0
+                # 从预计算的map中获取该期的遗漏信息
+                miss_info = period_miss_map.get(record['period'], {'current_miss': 0, 'max_miss': 0})
 
                 analysis_results.append({
                     'period': record['period'],
@@ -254,8 +270,8 @@ def get_favorite_numbers_analysis(number_id: int, lottery_type: str = 'am', posi
                     'hits': hits,
                     'hit_positions': hit_positions,
                     'is_hit': len(hits) > 0,
-                    'current_miss': current_miss_for_record,
-                    'current_streak': current_streak_for_record
+                    'current_miss': miss_info['current_miss'],
+                    'max_miss': miss_info['max_miss']
                 })
 
             # 计算历史遗漏和连中（从最新一期开始往前累加）
@@ -511,6 +527,49 @@ def get_place_results(
 
             cursor.execute(sql, params)
             rows = cursor.fetchall()
+
+            # 计算每个place_id的遗漏统计
+            miss_stats = {}
+            for row in rows:
+                pid = row['place_id']
+                if pid not in miss_stats:
+                    # 获取该place_id的所有记录(按创建时间正序)
+                    cursor.execute("""
+                        SELECT is_correct, created_at
+                        FROM place_results
+                        WHERE place_id = %s
+                        ORDER BY created_at ASC
+                    """, (pid,))
+                    all_records = cursor.fetchall()
+
+                    # 计算当前遗漏和历史最大遗漏
+                    current_miss = 0
+                    max_miss = 0
+                    temp_miss = 0
+
+                    for record in all_records:
+                        if record['is_correct'] == 1:
+                            # 命中,重置当前遗漏
+                            if temp_miss > max_miss:
+                                max_miss = temp_miss
+                            temp_miss = 0
+                        elif record['is_correct'] == 0:
+                            # 遗漏,累加
+                            temp_miss += 1
+
+                    # 最后的连续遗漏就是当前遗漏
+                    current_miss = temp_miss
+                    if temp_miss > max_miss:
+                        max_miss = temp_miss
+
+                    miss_stats[pid] = {
+                        'current_miss': current_miss,
+                        'max_miss': max_miss
+                    }
+
+                # 添加遗漏信息到当前行
+                row['current_miss'] = miss_stats[pid]['current_miss']
+                row['max_miss'] = miss_stats[pid]['max_miss']
 
             return {
                 "success": True,
