@@ -13,13 +13,15 @@ from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from collections import Counter, defaultdict
 from typing import Optional
-import io, csv, json
+import json
 from datetime import datetime
 
 try:
     from backend import collect
+    from backend.utils import get_db_cursor, create_csv_response
 except ImportError:
     import collect
+    from utils import get_db_cursor, create_csv_response
 
 router = APIRouter()
 
@@ -45,31 +47,27 @@ def get_seventh_smart_recommend20(
     - show_details: 是否显示每期详细记录（默认False，仅显示Top20）
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        with get_db_cursor() as cursor:
+            # 获取最近100期的第7个号码数据
+            sql = """
+            SELECT
+                period,
+                CAST(SUBSTRING_INDEX(numbers, ',', -1) AS UNSIGNED) as seventh_number,
+                open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period DESC
+            LIMIT 100
+            """
+            cursor.execute(sql, (lottery_type,))
+            records = cursor.fetchall()
 
-        # 获取最近100期的第7个号码数据
-        sql = """
-        SELECT
-            period,
-            CAST(SUBSTRING_INDEX(numbers, ',', -1) AS UNSIGNED) as seventh_number,
-            open_time
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period DESC
-        LIMIT 100
-        """
-        cursor.execute(sql, (lottery_type,))
-        records = cursor.fetchall()
+            if not records or len(records) < 30:
+                return {"success": False, "message": "数据不足，至少需要30期数据"}
 
-        if not records or len(records) < 30:
-            cursor.close()
-            conn.close()
-            return {"success": False, "message": "数据不足，至少需要30期数据"}
-
-        # 提取第7个号码列表（按时间从旧到新）
-        seventh_numbers = [rec['seventh_number'] for rec in reversed(records)]
-        periods = [rec['period'] for rec in reversed(records)]
+            # 提取第7个号码列表（按时间从旧到新）
+            seventh_numbers = [rec['seventh_number'] for rec in reversed(records)]
+            periods = [rec['period'] for rec in reversed(records)]
 
         # 统计分析
         total_periods = len(seventh_numbers)
@@ -185,32 +183,31 @@ def get_seventh_smart_recommend20(
         # 从数据库读取历史推荐数据
         period_details = []
         if show_details:
-            cursor.execute("""
-                SELECT
-                    period,
-                    recommend_numbers,
-                    recommend_details,
-                    next_period,
-                    next_seventh,
-                    is_hit,
-                    hit_number,
-                    confidence_level
-                FROM seventh_smart20_history
-                WHERE lottery_type = %s
-                ORDER BY period DESC
-                LIMIT 200
-            """, (lottery_type,))
+            with get_db_cursor() as cursor:
+                cursor.execute("""
+                    SELECT
+                        period,
+                        recommend_numbers,
+                        recommend_details,
+                        next_period,
+                        next_seventh,
+                        is_hit,
+                        hit_number,
+                        confidence_level
+                    FROM seventh_smart20_history
+                    WHERE lottery_type = %s
+                    ORDER BY period DESC
+                    LIMIT 200
+                """, (lottery_type,))
 
-            history_records = cursor.fetchall()
+                history_records = cursor.fetchall()
 
-            if not history_records:
-                # 如果没有历史数据，提示用户先生成
-                cursor.close()
-                conn.close()
-                return {
-                    "success": False,
-                    "message": "暂无历史推荐数据，请先调用 POST /api/seventh_smart_generate_history 生成历史数据"
-                }
+                if not history_records:
+                    # 如果没有历史数据，提示用户先生成
+                    return {
+                        "success": False,
+                        "message": "暂无历史推荐数据，请先调用 POST /api/seventh_smart_generate_history 生成历史数据"
+                    }
 
             # 转换数据格式
             for rec in history_records:
@@ -252,14 +249,13 @@ def get_seventh_smart_recommend20(
 
         # CSV导出
         if export == 'csv':
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow([
+            headers = [
                 '排名', '号码', '综合评分', '总频率', '总频率%', '近30期频率', '近30期%',
                 '当前遗漏', '平均遗漏', '最大遗漏', '趋势', '是否热号', '推荐理由'
-            ])
+            ]
+            rows = []
             for idx, item in enumerate(top20, 1):
-                writer.writerow([
+                rows.append([
                     idx,
                     item['number'],
                     item['total_score'],
@@ -274,16 +270,9 @@ def get_seventh_smart_recommend20(
                     '是' if item['is_hot'] else '否',
                     item['reason']
                 ])
-            output.seek(0)
-            filename = f"seventh_smart20_{lottery_type}_{datetime.now().strftime('%Y%m%d')}.csv"
-            return StreamingResponse(
-                iter([output.getvalue()]),
-                media_type="text/csv",
-                headers={'Content-Disposition': f'attachment; filename="{filename}"'}
-            )
 
-        cursor.close()
-        conn.close()
+            filename = f"seventh_smart20_{lottery_type}_{datetime.now().strftime('%Y%m%d')}.csv"
+            return create_csv_response(headers, rows, filename)
 
         # 计算逐期命中率
         hit_stats = {}
@@ -566,91 +555,83 @@ def generate_seventh_smart_history(lottery_type: str = Query('am')):
     遍历每一期开奖数据，基于该期往前100期的历史独立计算Top20并保存到数据库
     """
     try:
-        conn = collect.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        with get_db_cursor(commit=True) as cursor:
+            # 获取所有历史数据
+            sql = """
+            SELECT
+                period,
+                CAST(SUBSTRING_INDEX(numbers, ',', -1) AS UNSIGNED) as seventh_number,
+                open_time
+            FROM lottery_result
+            WHERE lottery_type = %s
+            ORDER BY period ASC
+            """
+            cursor.execute(sql, (lottery_type,))
+            all_records = cursor.fetchall()
 
-        # 获取所有历史数据
-        sql = """
-        SELECT
-            period,
-            CAST(SUBSTRING_INDEX(numbers, ',', -1) AS UNSIGNED) as seventh_number,
-            open_time
-        FROM lottery_result
-        WHERE lottery_type = %s
-        ORDER BY period ASC
-        """
-        cursor.execute(sql, (lottery_type,))
-        all_records = cursor.fetchall()
+            if len(all_records) < 100:
+                return {"success": False, "message": f"数据不足，至少需要100期数据，当前只有{len(all_records)}期"}
 
-        if len(all_records) < 100:
-            cursor.close()
-            conn.close()
-            return {"success": False, "message": f"数据不足，至少需要100期数据，当前只有{len(all_records)}期"}
+            generated_count = 0
+            skipped_count = 0
 
-        generated_count = 0
-        skipped_count = 0
+            # 从第100期开始，每期基于往前100期计算Top20
+            for idx in range(100, len(all_records)):
+                current_period = all_records[idx]['period']
 
-        # 从第100期开始，每期基于往前100期计算Top20
-        for idx in range(100, len(all_records)):
-            current_period = all_records[idx]['period']
+                # 检查是否已存在
+                cursor.execute("""
+                    SELECT COUNT(*) as cnt FROM seventh_smart20_history
+                    WHERE period = %s AND lottery_type = %s
+                """, (current_period, lottery_type))
+                exists = cursor.fetchone()['cnt'] > 0
 
-            # 检查是否已存在
-            cursor.execute("""
-                SELECT COUNT(*) as cnt FROM seventh_smart20_history
-                WHERE period = %s AND lottery_type = %s
-            """, (current_period, lottery_type))
-            exists = cursor.fetchone()['cnt'] > 0
+                if exists:
+                    skipped_count += 1
+                    continue
 
-            if exists:
-                skipped_count += 1
-                continue
+                # 获取往前100期数据（不包括当前期）
+                historical_data = [all_records[i]['seventh_number'] for i in range(idx - 100, idx)]
 
-            # 获取往前100期数据（不包括当前期）
-            historical_data = [all_records[i]['seventh_number'] for i in range(idx - 100, idx)]
+                # 计算Top20
+                top20 = calculate_period_top20(historical_data, lottery_type)
+                top20_numbers = [item['number'] for item in top20]
 
-            # 计算Top20
-            top20 = calculate_period_top20(historical_data, lottery_type)
-            top20_numbers = [item['number'] for item in top20]
+                # 获取下一期信息（如果存在）
+                next_period = None
+                next_seventh = None
+                is_hit = None
+                hit_number = None
 
-            # 获取下一期信息（如果存在）
-            next_period = None
-            next_seventh = None
-            is_hit = None
-            hit_number = None
+                if idx + 1 < len(all_records):
+                    next_period = all_records[idx + 1]['period']
+                    next_seventh = all_records[idx + 1]['seventh_number']
+                    is_hit = next_seventh in top20_numbers
+                    hit_number = next_seventh if is_hit else None
 
-            if idx + 1 < len(all_records):
-                next_period = all_records[idx + 1]['period']
-                next_seventh = all_records[idx + 1]['seventh_number']
-                is_hit = next_seventh in top20_numbers
-                hit_number = next_seventh if is_hit else None
+                # 计算置信度
+                confidence = calculate_confidence_level(top20)
 
-            # 计算置信度
-            confidence = calculate_confidence_level(top20)
+                # 保存到数据库
+                cursor.execute("""
+                    INSERT INTO seventh_smart20_history
+                    (period, lottery_type, recommend_numbers, recommend_details,
+                     next_period, next_seventh, is_hit, hit_number, confidence_level, analysis_periods)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    current_period,
+                    lottery_type,
+                    ','.join(map(str, top20_numbers)),
+                    json.dumps(top20, ensure_ascii=False),
+                    next_period,
+                    next_seventh,
+                    is_hit,
+                    hit_number,
+                    confidence,
+                    100
+                ))
 
-            # 保存到数据库
-            cursor.execute("""
-                INSERT INTO seventh_smart20_history
-                (period, lottery_type, recommend_numbers, recommend_details,
-                 next_period, next_seventh, is_hit, hit_number, confidence_level, analysis_periods)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                current_period,
-                lottery_type,
-                ','.join(map(str, top20_numbers)),
-                json.dumps(top20, ensure_ascii=False),
-                next_period,
-                next_seventh,
-                is_hit,
-                hit_number,
-                confidence,
-                100
-            ))
-
-            generated_count += 1
-
-        conn.commit()
-        cursor.close()
-        conn.close()
+                generated_count += 1
 
         return {
             "success": True,
