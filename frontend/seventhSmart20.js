@@ -285,20 +285,32 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
   `;
 
   period_details.forEach((detail, index) => {
-    // 跳过没有下一期数据的记录
-    if (!detail.next_period || detail.next_seventh === null) {
-      return;
-    }
+    // 检查是否有下一期数据
+    const hasNextPeriod = detail.next_period && detail.next_seventh !== null;
 
     // 根据是否命中设置不同的样式
-    const bgColor = detail.is_hit ? '#e8f5e9' : '#fff';
-    const hitText = detail.is_hit ? '✓ 命中' : '✗ 遗漏';
-    const hitColor = detail.is_hit ? '#27ae60' : '#e74c3c';
+    let bgColor, hitText, hitColor;
+    if (!hasNextPeriod) {
+      // 没有下一期数据：待开奖
+      bgColor = '#fff9e6';  // 淡黄色
+      hitText = '待开奖';
+      hitColor = '#f39c12';  // 橙色
+    } else if (detail.is_hit) {
+      // 命中
+      bgColor = '#e8f5e9';  // 淡绿色
+      hitText = '✓ 命中';
+      hitColor = '#27ae60';  // 绿色
+    } else {
+      // 未命中
+      bgColor = '#fff';
+      hitText = '✗ 遗漏';
+      hitColor = '#e74c3c';  // 红色
+    }
 
     // 格式化该期的推荐号码，命中的号码高亮显示
     const recommendNumbers = detail.recommend_numbers || [];
     const formattedNumbers = recommendNumbers.map(num => {
-      const isHitNumber = detail.is_hit && num === detail.next_seventh;
+      const isHitNumber = hasNextPeriod && detail.is_hit && num === detail.next_seventh;
       if (isHitNumber) {
         return `<span style="display: inline-block; background: #27ae60; color: white;
                        padding: 2px 6px; margin: 2px; border-radius: 3px; font-weight: bold;">
@@ -312,24 +324,29 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
       }
     }).join('');
 
+    // 下一期号码显示
+    const nextSeventhDisplay = hasNextPeriod
+      ? `<span style="display: inline-block; background: ${detail.is_hit ? '#27ae60' : '#e74c3c'};
+                     color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+          ${detail.next_seventh.toString().padStart(2, '0')}
+        </span>`
+      : '<span style="color: #999;">-</span>';
+
     html += `
       <tr style="background: ${bgColor}; border-bottom: 1px solid #dee2e6;">
         <td style="padding: 8px; text-align: center; font-weight: bold;">${detail.current_period}</td>
         <td style="padding: 8px; text-align: left; line-height: 1.8;">
           ${formattedNumbers}
         </td>
-        <td style="padding: 8px; text-align: center;">${detail.next_period}</td>
+        <td style="padding: 8px; text-align: center;">${detail.next_period || '<span style="color: #999;">-</span>'}</td>
         <td style="padding: 8px; text-align: center;">
-          <span style="display: inline-block; background: ${detail.is_hit ? '#27ae60' : '#e74c3c'};
-                       color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
-            ${detail.next_seventh.toString().padStart(2, '0')}
-          </span>
+          ${nextSeventhDisplay}
         </td>
         <td style="padding: 8px; text-align: center; font-weight: bold; color: ${hitColor};">
           ${hitText}
         </td>
-        <td style="padding: 8px; text-align: center;">${detail.current_miss}</td>
-        <td style="padding: 8px; text-align: center;">${detail.history_max_miss}</td>
+        <td style="padding: 8px; text-align: center;">${detail.current_miss || 0}</td>
+        <td style="padding: 8px; text-align: center;">${detail.history_max_miss || 0}</td>
       </tr>
     `;
   });
