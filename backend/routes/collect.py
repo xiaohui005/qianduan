@@ -48,6 +48,14 @@ def collect_api(type: str = None):
                 except Exception as e:
                     print(f"生成推荐16码时出错: {e}")
 
+                try:
+                    from .analysis_seventh_smart import _generate_seventh_smart_history_internal
+                    seventh_result = _generate_seventh_smart_history_internal(t)
+                    if seventh_result.get('success'):
+                        print(f"第7个号码智能推荐20码生成成功: 新增{seventh_result.get('generated_count')}期")
+                except Exception as e:
+                    print(f"生成第7个号码智能推荐20码时出错: {e}")
+
                 result[t] = f"采集{len(data)}条,自动生成推荐号码"
             else:
                 result[t] = f"采集{len(data)}条"
@@ -91,6 +99,14 @@ def collect_wenlongzhu_api(type: str = None):
                             print(f"推荐16码生成成功,基于期号: {recommend16_result.get('latest_period')}")
                     except Exception as e:
                         print(f"生成推荐16码时出错: {e}")
+
+                    try:
+                        from .analysis_seventh_smart import _generate_seventh_smart_history_internal
+                        seventh_result = _generate_seventh_smart_history_internal(t)
+                        if seventh_result.get('success'):
+                            print(f"第7个号码智能推荐20码生成成功: 新增{seventh_result.get('generated_count')}期")
+                    except Exception as e:
+                        print(f"生成第7个号码智能推荐20码时出错: {e}")
 
                     result[t] = f"文龙珠采集{len(data)}条,自动生成推荐号码"
                 else:

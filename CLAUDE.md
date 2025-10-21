@@ -20,11 +20,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 后端采用 FastAPI Router 模块化设计，主要模块：
 - `collect.py`: 数据采集（主源 + 备用源双重保障）
 - `recommend.py`: 推荐号码生成（8码/16码）
-- `analysis.py`: 多维度分析（区间、位置、波色等）
-- `favorites.py`: 关注点管理和统计
+- `analysis.py`: 多维度分析（区间、位置、波色等）~1969行
+- `analysis_seventh_smart.py`: 第7个号码智能推荐20码（基于多维度评分）
+- `favorites.py`: 关注号码管理和统计 ~753行
 - `betting.py`: 投注点管理和报表
 
 所有路由在 `backend/main.py` 中注册。
+
+### 工具箱模块（重要）
+项目在 `backend/utils/` 目录下提供了通用工具模块，用于消除代码重复：
+
+**核心工具模块**：
+- `number_utils.py`: 号码循环处理（1-49范围）
+  - `wrap_in_range(value, min, max)`: 通用循环函数（推荐使用）
+  - `plus49_wrap(value)`: 正向循环（>49→1）
+  - `minus49_wrap(value)`: 反向循环（<1→49）
+  - `apply_offsets(base, offsets)`: 批量偏移计算
+
+- `db_utils.py`: 数据库操作封装
+  - `get_db_cursor(commit=False)`: 上下文管理器（自动管理连接）
+  - `query_records(sql, params)`: 简化查询
+  - `find_next_period(lottery_type, period)`: 查找下一期
+  - `get_latest_period(lottery_type, ending_digit)`: 获取最新期号
+
+- `export_utils.py`: CSV导出
+  - `create_csv_response(data, headers, filename)`: 生成CSV响应
+
+- `pagination_utils.py`: 分页工具
+  - `paginate(items, page, page_size)`: 列表分页
+  - `calculate_pagination(total, page, page_size)`: 分页计算
+
+**使用方式**：
+```python
+# 推荐方式：从 backend.utils 统一导入
+from backend.utils import get_db_cursor, wrap_in_range, create_csv_response
+
+# 或者导入子模块
+from backend.utils import number_utils, db_utils
+```
+
+**重要提示**：
+- 新功能优先使用工具箱函数，避免重复造轮子
+- 工具箱已在 `analysis.py` 和其他模块中广泛使用
+- 详细文档见 `backend/utils/README.md`
 
 ### 托盘服务（Windows）
 项目提供了后台托盘服务，方便在 Windows 系统上运行：
@@ -97,11 +135,19 @@ pyinstaller build.spec
 ### 自动推荐生成机制
 **触发条件**: 当采集到期号以 `0` 或 `5` 结尾的开奖数据时，系统自动生成推荐号码。
 
-实现位置: `backend/routes/collect.py`
+实现位置: `backend/routes/collect.py:30-57`
+
+系统会自动执行三个推荐算法：
+1. **推荐8码**: 基于前50期数据的频率和间隔分析
+2. **推荐16码**: 基于前100期数据的频率和间隔分析
+3. **第7个号码智能推荐20码**: 基于多维度评分（频率、遗漏、趋势、连号、稳定性）
 
 ```python
 if period.endswith(('0', '5')):
-    # 自动调用 recommend_api() 和 recommend16_api()
+    # 自动调用三个推荐算法
+    recommend_api(type)  # 推荐8码
+    recommend16_api(type)  # 推荐16码
+    _generate_seventh_smart_history_internal(type)  # 第7个号码智能推荐20码
 ```
 
 ### 推荐算法核心
@@ -185,8 +231,17 @@ if period.endswith(('0', '5')):
 ### recommend16_result (推荐16码表)
 结构同 recommend_result，但包含 16 个号码。
 
-### places (关注点表)
-用户自定义的关注点位置和号码。
+### seventh_smart20_history (第7个号码智能推荐20码表)
+- `period`: 推荐基于的期号
+- `lottery_type`: 彩种
+- `top20_numbers`: Top20推荐号码（逗号分隔）
+- `scores`: 各号码的评分数据（JSON格式）
+- `created_at`: 生成时间
+
+每期推荐基于该期往前100期的历史数据独立计算。
+
+### places (关注号码表)
+用户自定义的关注点位置和号码，支持遗漏统计。
 
 ### betting_places (投注点表)
 投注登记和统计数据。
@@ -212,11 +267,14 @@ if period.endswith(('0', '5')):
 - `main.js`: 主入口和全局初始化 ~100行
 
 **功能模块**：
-- `upload.js`: 主要功能模块（约7500行，包含大部分分析功能）
+- `upload.js`: 主要功能模块（~7744行，包含大部分分析功能）
 - `recommend16.js`: 推荐16码专用模块
 - `fivePeriodThreexiao.js`: 五期三肖分析模块
+- `seventhSmart20.js`: 第7个号码智能推荐20码模块
 
-**注意**: 前端文件较大时应考虑拆分成更小的模块，每个模块控制在 300-800 行
+**注意**:
+- `upload.js` 过大（7744行），需要拆分成更小的模块
+- 前端新功能应创建独立模块，每个模块控制在 300-800 行
 
 ## 重要 API 端点
 
@@ -226,12 +284,14 @@ if period.endswith(('0', '5')):
 - `GET /records`: 获取开奖记录（支持分页和筛选）
 
 ### 推荐生成
-- `GET /recommend?type={am|hk}`: 生成推荐8码
-- `GET /recommend16?type={am|hk}`: 生成推荐16码
+- `GET /recommend?type={am|hk}`: 生成推荐8码（基于前50期）
+- `GET /recommend16?type={am|hk}`: 生成推荐16码（基于前100期）
+- `GET /api/seventh_smart_recommend20?lottery_type={am|hk}`: 第7个号码智能推荐20码
 
 ### 分析功能
 - 多维度分析端点位于 `backend/routes/analysis.py`
-- 关注点管理端点位于 `backend/routes/favorites.py`
+- 第7个号码智能推荐分析位于 `backend/routes/analysis_seventh_smart.py`
+- 关注号码管理端点位于 `backend/routes/favorites.py`
 - 投注管理端点位于 `backend/routes/betting.py`
 
 ## 数据流程图
@@ -239,24 +299,40 @@ if period.endswith(('0', '5')):
 ### 采集 → 推荐流程
 ```
 1. 数据采集 (手动/定时)
+   主源失败 → 自动切换到备用源（WENLONGZHU_URLS）
    ↓
 2. 保存到 lottery_result 表
    ↓
-3. 如果期号以0或5结尾
+3. 检查期号是否以0或5结尾
    ↓
-4. 自动生成推荐8码和16码
+4. 自动生成三种推荐
+   - 推荐8码（前50期分析）
+   - 推荐16码（前100期分析）
+   - 第7个号码智能推荐20码（100期多维度评分）
    ↓
-5. 保存到 recommend_result 和 recommend16_result 表
+5. 保存到对应的推荐表
+   - recommend_result
+   - recommend16_result
+   - seventh_smart20_history
 ```
 
 ## 常见任务
 
 ### 添加新的分析功能
-1. 在 `backend/routes/analysis.py` 添加路由和分析逻辑（控制在800行内）
-2. 在 `frontend/api.js` 添加 API 请求函数
-3. 在 `frontend/upload.js` 或创建新的独立模块文件添加功能
-4. 在 `frontend/index.html` 添加 UI 元素和引入模块
-5. **注意**: 新功能尽量创建独立模块文件
+1. **后端开发**：
+   - 如果 `analysis.py` 接近2000行，考虑创建新的路由模块（如 `analysis_xxx.py`）
+   - 优先使用工具箱函数：`from backend.utils import get_db_cursor, wrap_in_range`
+   - 在 `backend/main.py` 中注册新路由
+
+2. **前端开发**：
+   - 在 `frontend/api.js` 添加 API 请求函数
+   - 创建新的独立模块文件（不要添加到 `upload.js`）
+   - 在 `frontend/index.html` 添加菜单项和引入新模块
+
+3. **注意事项**：
+   - Python文件控制在800行内
+   - JavaScript模块控制在300-800行内
+   - 使用工具箱避免重复代码
 
 ### 修改推荐算法
 核心文件: `backend/routes/recommend.py`
@@ -265,10 +341,28 @@ if period.endswith(('0', '5')):
 
 修改后测试：采集以0或5结尾的期号数据，触发自动生成。
 
-### 调试数据采集
-1. 检查 `config.json` 中的 `COLLECT_URLS`
-2. 查看控制台输出的采集日志
-3. 备用源在主源失败时自动启用
+### 调试数据采集问题
+当某个彩种采集失败时：
+
+1. **检查配置**：
+   - 打开 `config.json`，确认 `COLLECT_URLS` 和 `WENLONGZHU_URLS` 配置正确
+   - 澳门：`COLLECT_URLS.am` 和 `WENLONGZHU_URLS.am`
+   - 香港：`COLLECT_URLS.hk` 和 `WENLONGZHU_URLS.hk`
+
+2. **查看日志**：
+   - 查看控制台输出的采集日志
+   - 主源失败会自动尝试备用源（WENLONGZHU_URLS）
+
+3. **手动测试**：
+   - 访问 `http://localhost:8000/collect?type=am` 测试澳门采集
+   - 访问 `http://localhost:8000/collect_wenlongzhu?type=am` 测试备用源
+
+4. **常见问题**：
+   - 网页编码问题：`collect.py` 使用 `apparent_encoding` 自动检测
+   - HTML结构变化：检查 `collect.py:61-100` 的 BeautifulSoup 解析逻辑
+   - 网络超时：调整 `httpx.get(timeout=15)`
+
+实现位置：`backend/collect.py:45-100`
 
 ### 数据库连接问题
 - 连接配置在 `config.json` 中
@@ -280,3 +374,93 @@ if period.endswith(('0', '5')):
 2. 启动托盘服务：运行 `启动托盘服务.bat` 或 `启动托盘服务.vbs`
 3. 配置开机自启：参考 `开机自启动配置.md`
 4. 查看日志：`logs/tray_app.log`
+
+## 重要约定和最佳实践
+
+### 代码复用原则
+**强制要求**：所有新功能必须优先检查 `backend/utils/` 工具箱是否有可用函数
+
+示例：
+```python
+# ❌ 错误：重复定义循环函数
+def my_plus49(n):
+    return n if n <= 49 else n - 49
+
+# ✓ 正确：使用工具箱
+from backend.utils import wrap_in_range
+result = wrap_in_range(n, 1, 49)
+```
+
+### 数据库操作规范
+**强制要求**：使用 `get_db_cursor()` 上下文管理器，避免连接泄漏
+
+```python
+# ❌ 错误：手动管理连接
+from backend.db import get_connection
+conn = get_connection()
+cursor = conn.cursor(dictionary=True)
+# ... 可能忘记关闭
+
+# ✓ 正确：使用上下文管理器
+from backend.utils import get_db_cursor
+with get_db_cursor() as cursor:
+    cursor.execute("SELECT * FROM lottery_result WHERE lottery_type=%s", ('am',))
+    rows = cursor.fetchall()
+# 自动关闭
+```
+
+### 文件大小管理
+- **Python文件**: 目标 800 行，最大不超过 1500 行
+- **JavaScript模块**: 目标 300-800 行
+- **超过限制时**: 必须拆分成独立模块
+
+当前超标文件（需重构）：
+- `backend/routes/analysis.py`: 1969 行 → 建议拆分成多个专题分析模块
+- `frontend/upload.js`: 7744 行 → 建议按功能拆分成10+个独立模块
+
+### Git提交规范
+项目使用中文提交信息，最近的提交示例：
+```
+- "优化关注号码管理功能：添加遗漏统计和修复分页问题"
+- "refactor: 全项目重构 - 使用工具箱统一数据库和CSV操作"
+- "feat: 第7个号码智能推荐20码 - 每期独立计算并持久化"
+```
+
+建议格式：`<type>: <描述>`
+- `feat`: 新功能
+- `fix`: 修复bug
+- `refactor`: 重构
+- `docs`: 文档更新
+
+## 快速参考
+
+### 最常用的工具函数
+```python
+# 数据库查询
+from backend.utils import get_db_cursor, query_records
+with get_db_cursor() as cursor:
+    cursor.execute(sql, params)
+
+# 号码循环
+from backend.utils import wrap_in_range
+result = wrap_in_range(value, 1, 49)
+
+# CSV导出
+from backend.utils import create_csv_response
+return create_csv_response(data, headers, "filename.csv")
+```
+
+### 最常用的开发命令
+```bash
+# 启动开发环境
+python launcher.py
+
+# 初始化/更新数据库
+python backend/init_database.py
+
+# 安装托盘服务依赖（Windows）
+安装依赖.bat
+
+# 打包EXE
+pyinstaller build.spec
+```

@@ -49,11 +49,18 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
     resp = httpx.get(url, timeout=15, headers={
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
     }, verify=False)
-    # 尝试自动检测编码，如果失败则使用gb2312
+    # 设置编码（必须在访问resp.text之前设置）
+    # 注意：httpx使用charset_encoding而不是apparent_encoding（后者是requests库的属性）
+    # 现代网页大多使用UTF-8，如果charset_encoding为None，默认使用UTF-8
     try:
-        resp.encoding = resp.apparent_encoding or 'gb2312'
+        detected_encoding = resp.charset_encoding
+        if not detected_encoding:
+            # 没有检测到编码，尝试UTF-8（现代网页标准）
+            resp.encoding = 'utf-8'
+        else:
+            resp.encoding = detected_encoding
     except:
-        resp.encoding = 'gb2312'
+        resp.encoding = 'utf-8'
     soup = BeautifulSoup(resp.text, 'html.parser')
     results = []
     max_db_period = get_max_period(lottery_type) if check_max_period else None
@@ -65,6 +72,8 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         dt_text = dt.get_text(strip=True)
         # 修复正则表达式，支持<b>标签和不同的日期格式
         # 兼容不同页面样式（可能有空格、冒号变体等）
+        # 新版HTML: <b>294</b>期(开奖时间:2025-10-21)
+        # 旧版HTML: 294期(开奖时间:2025-10-21)
         m = re.match(r'(\d+)期\(\s*开奖时间\s*[:：]\s*(\d{4}-\d{1,2}-\d{1,2})\s*\)', dt_text)
         if not m:
             continue
@@ -85,9 +94,19 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         balls = []
         animals = []
         # ball结构兼容：class可能不同或span/b标签层级不同
+        # 新版HTML: div.ball > p > span + b
+        # 旧版HTML: div.ball > span + b
         for div in li.find_all('div', class_=re.compile('ball')):
-            num_span = div.find('span')
-            animal_b = div.find('b')
+            # 尝试新版结构：先找p标签
+            p_tag = div.find('p')
+            if p_tag:
+                num_span = p_tag.find('span')
+                animal_b = p_tag.find('b')
+            else:
+                # 旧版结构：直接在div下找
+                num_span = div.find('span')
+                animal_b = div.find('b')
+
             if num_span and animal_b:
                 balls.append(num_span.get_text(strip=True))
                 animals.append(animal_b.get_text(strip=True))
