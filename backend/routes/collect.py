@@ -31,8 +31,20 @@ def collect_api(type: str = None):
             new_periods = [item['period'] for item in data]
             target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
 
+            # 第7个号码智能推荐20码：每次有新数据都生成（不限期号）
+            try:
+                from .analysis_seventh_smart import _generate_seventh_smart_history_internal
+                seventh_result = _generate_seventh_smart_history_internal(t)
+                if seventh_result.get('success'):
+                    generated = seventh_result.get('generated_count', 0)
+                    if generated > 0:
+                        print(f"第7个号码智能推荐20码生成成功: 新增{generated}期")
+            except Exception as e:
+                print(f"生成第7个号码智能推荐20码时出错: {e}")
+
+            # 推荐8码和16码：仅在0或5结尾期号时生成
             if target_periods:
-                print(f"发现0或5结尾的期数: {target_periods},自动生成推荐号码")
+                print(f"发现0或5结尾的期数: {target_periods},自动生成推荐8码和16码")
                 from .recommend import recommend_api, recommend16_api
                 try:
                     recommend_result = recommend_api(t)
@@ -48,17 +60,9 @@ def collect_api(type: str = None):
                 except Exception as e:
                     print(f"生成推荐16码时出错: {e}")
 
-                try:
-                    from .analysis_seventh_smart import _generate_seventh_smart_history_internal
-                    seventh_result = _generate_seventh_smart_history_internal(t)
-                    if seventh_result.get('success'):
-                        print(f"第7个号码智能推荐20码生成成功: 新增{seventh_result.get('generated_count')}期")
-                except Exception as e:
-                    print(f"生成第7个号码智能推荐20码时出错: {e}")
-
-                result[t] = f"采集{len(data)}条,自动生成推荐号码"
+                result[t] = f"采集{len(data)}条,自动生成所有推荐"
             else:
-                result[t] = f"采集{len(data)}条"
+                result[t] = f"采集{len(data)}条,生成第7码推荐"
         else:
             result[t] = "无新数据"
     print(f"采集结果: {result}")
@@ -83,8 +87,20 @@ def collect_wenlongzhu_api(type: str = None):
                 new_periods = [item['period'] for item in data]
                 target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
 
+                # 第7个号码智能推荐20码：每次有新数据都生成（不限期号）
+                try:
+                    from .analysis_seventh_smart import _generate_seventh_smart_history_internal
+                    seventh_result = _generate_seventh_smart_history_internal(t)
+                    if seventh_result.get('success'):
+                        generated = seventh_result.get('generated_count', 0)
+                        if generated > 0:
+                            print(f"第7个号码智能推荐20码生成成功: 新增{generated}期")
+                except Exception as e:
+                    print(f"生成第7个号码智能推荐20码时出错: {e}")
+
+                # 推荐8码和16码：仅在0或5结尾期号时生成
                 if target_periods:
-                    print(f"发现0或5结尾的期数: {target_periods},自动生成推荐号码")
+                    print(f"发现0或5结尾的期数: {target_periods},自动生成推荐8码和16码")
                     from .recommend import recommend_api, recommend16_api
                     try:
                         recommend_result = recommend_api(t)
@@ -100,15 +116,7 @@ def collect_wenlongzhu_api(type: str = None):
                     except Exception as e:
                         print(f"生成推荐16码时出错: {e}")
 
-                    try:
-                        from .analysis_seventh_smart import _generate_seventh_smart_history_internal
-                        seventh_result = _generate_seventh_smart_history_internal(t)
-                        if seventh_result.get('success'):
-                            print(f"第7个号码智能推荐20码生成成功: 新增{seventh_result.get('generated_count')}期")
-                    except Exception as e:
-                        print(f"生成第7个号码智能推荐20码时出错: {e}")
-
-                    result[t] = f"文龙珠采集{len(data)}条,自动生成推荐号码"
+                    result[t] = f"文龙珠采集{len(data)}条,自动生成所有推荐"
                 else:
                     result[t] = f"文龙珠采集{len(data)}条"
             else:
