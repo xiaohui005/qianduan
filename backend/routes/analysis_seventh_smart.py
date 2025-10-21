@@ -546,10 +546,9 @@ def calculate_period_top20(seventh_numbers, lottery_type):
     return top20
 
 
-@router.post("/api/seventh_smart_generate_history")
-def generate_seventh_smart_history(lottery_type: str = Query('am')):
+def _generate_seventh_smart_history_internal(lottery_type: str):
     """
-    批量生成历史推荐数据
+    内部函数：批量生成历史推荐数据
 
     遍历每一期开奖数据，基于该期往前100期的历史独立计算Top20并保存到数据库
     """
@@ -573,6 +572,7 @@ def generate_seventh_smart_history(lottery_type: str = Query('am')):
 
             generated_count = 0
             skipped_count = 0
+            updated_count = 0
 
             # 从第100期开始，每期基于往前100期计算Top20
             for idx in range(100, len(all_records)):
@@ -587,6 +587,31 @@ def generate_seventh_smart_history(lottery_type: str = Query('am')):
 
                 if exists:
                     skipped_count += 1
+                    # 虽然当前期已存在，但仍需检查并更新上一期的next_period信息
+                    if idx > 100:  # 确保上一期存在
+                        prev_period = all_records[idx - 1]['period']
+                        current_seventh = all_records[idx]['seventh_number']
+
+                        # 检查上一期是否已有next_period数据
+                        cursor.execute("""
+                            SELECT recommend_numbers, next_period FROM seventh_smart20_history
+                            WHERE period = %s AND lottery_type = %s
+                        """, (prev_period, lottery_type))
+                        prev_record = cursor.fetchone()
+
+                        # 如果上一期存在且没有next_period数据，则更新
+                        if prev_record and not prev_record['next_period']:
+                            prev_top20_numbers = list(map(int, prev_record['recommend_numbers'].split(',')))
+                            prev_is_hit = current_seventh in prev_top20_numbers
+                            prev_hit_number = current_seventh if prev_is_hit else None
+
+                            cursor.execute("""
+                                UPDATE seventh_smart20_history
+                                SET next_period = %s, next_seventh = %s, is_hit = %s, hit_number = %s
+                                WHERE period = %s AND lottery_type = %s
+                            """, (current_period, current_seventh, prev_is_hit, prev_hit_number, prev_period, lottery_type))
+                            updated_count += 1
+
                     continue
 
                 # 获取往前100期数据（不包括当前期）
@@ -632,10 +657,35 @@ def generate_seventh_smart_history(lottery_type: str = Query('am')):
 
                 generated_count += 1
 
+                # 同时更新上一期的next_period信息（如果上一期存在）
+                if idx > 100:  # 确保上一期存在
+                    prev_period = all_records[idx - 1]['period']
+                    current_seventh = all_records[idx]['seventh_number']
+
+                    # 获取上一期的推荐号码
+                    cursor.execute("""
+                        SELECT recommend_numbers FROM seventh_smart20_history
+                        WHERE period = %s AND lottery_type = %s
+                    """, (prev_period, lottery_type))
+                    prev_record = cursor.fetchone()
+
+                    if prev_record:
+                        prev_top20_numbers = list(map(int, prev_record['recommend_numbers'].split(',')))
+                        prev_is_hit = current_seventh in prev_top20_numbers
+                        prev_hit_number = current_seventh if prev_is_hit else None
+
+                        cursor.execute("""
+                            UPDATE seventh_smart20_history
+                            SET next_period = %s, next_seventh = %s, is_hit = %s, hit_number = %s
+                            WHERE period = %s AND lottery_type = %s
+                        """, (current_period, current_seventh, prev_is_hit, prev_hit_number, prev_period, lottery_type))
+                        updated_count += 1
+
         return {
             "success": True,
-            "message": f"成功生成 {generated_count} 期推荐数据，跳过 {skipped_count} 期已存在数据",
+            "message": f"成功生成 {generated_count} 期推荐数据，更新 {updated_count} 期历史数据，跳过 {skipped_count} 期已存在数据",
             "generated_count": generated_count,
+            "updated_count": updated_count,
             "skipped_count": skipped_count,
             "total_periods": len(all_records)
         }
@@ -645,3 +695,12 @@ def generate_seventh_smart_history(lottery_type: str = Query('am')):
         import traceback
         traceback.print_exc()
         return {"success": False, "message": f"生成失败: {str(e)}"}
+
+@router.post("/api/seventh_smart_generate_history")
+def generate_seventh_smart_history(lottery_type: str = Query('am')):
+    """
+    批量生成历史推荐数据
+
+    遍历每一期开奖数据，基于该期往前100期的历史独立计算Top20并保存到数据库
+    """
+    return _generate_seventh_smart_history_internal(lottery_type)
