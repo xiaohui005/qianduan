@@ -1909,10 +1909,10 @@ function loadPlusMinus6Analysis(type, pos, page, year) {
       });
       // 最大遗漏和当前遗漏
       let statsHtml = '';
-      if (Array.isArray(data.max_miss) && Array.isArray(data.cur_miss) && data.max_miss.length === 6 && data.cur_miss.length === 6) {
+      if (Array.isArray(data.max_miss) && Array.isArray(data.cur_miss) && data.max_miss.length === 7 && data.cur_miss.length === 7) {
         statsHtml = '<div style="margin-bottom:8px;">';
-        for (let i = 0; i < 6; i++) {
-          statsHtml += `<div style="margin-bottom:2px;">加减${i+1} 最大遗漏：<b>${data.max_miss[i] ?? '-'}</b>，当前遗漏：<b>${data.cur_miss[i] ?? '-'}</b></div>`;
+        for (let i = 0; i < 7; i++) {
+          statsHtml += `<div style="margin-bottom:2px;">加减${i} 最大遗漏：<b>${data.max_miss[i] ?? '-'}</b>，当前遗漏：<b>${data.cur_miss[i] ?? '-'}</b></div>`;
         }
         statsHtml += '</div>';
       } else {
@@ -1940,7 +1940,7 @@ function loadPlusMinus6Analysis(type, pos, page, year) {
           html += '<tr>';
           row.forEach((cell, idx) => {
             if (idx === 2 && Array.isArray(cell)) {
-              // 加减1~6组详情
+              // 加减0~6组详情
               let groupHtml = '';
               cell.forEach(g => {
                 groupHtml += `<div>加减${g.n}: ${g.numbers.join(',')} ｜ <span style='color:${g.hit?'#27ae60':'#c0392b'}'>${g.hit?'命中':'未中'}</span> ｜ 当前遗漏: <b>${g.miss}</b></div>`;
@@ -6990,17 +6990,163 @@ function initSixthThreexiaoAnalysis() {
   // 开始分析按钮
   const startBtn = document.getElementById('startSixthThreexiaoAnalysisBtn');
   if (startBtn) {
-    startBtn.addEventListener('click', function() {
+    startBtn.addEventListener('click', async function() {
       const lotteryType = window.currentSixthThreexiaoType || 'am';
       const position = window.sixthThreexiaoPos || 6;
       window.sixthThreexiaoPage = 1;
-      loadSixthThreexiaoAnalysis(lotteryType, position, window.sixthThreexiaoPage || 1, 30);
+      await loadSixthThreexiaoAnalysis(lotteryType, position, window.sixthThreexiaoPage || 1, 30);
+
+      // 检测跨位置交替命中模式
+      await detectCrossPositionAlternate(lotteryType, position);
     });
   }
 
   // 设置默认值
   window.currentSixthThreexiaoType = 'am';
   window.sixthThreexiaoPos = 6;
+}
+
+// 检测跨位置交替命中模式
+async function detectCrossPositionAlternate(lotteryType, currentPosition) {
+  try {
+    // 获取所有位置(1-7)的数据，但排除当前位置
+    const positions = [1, 2, 3, 4, 5, 6, 7].filter(p => p !== currentPosition);
+    const allData = {};
+
+    // 获取当前位置的完整数据
+    const currentResponse = await fetch(`${window.BACKEND_URL}/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${currentPosition}&page=1&page_size=200`);
+    const currentResult = await currentResponse.json();
+    if (!currentResult.success) return;
+    allData[currentPosition] = currentResult.data.results;
+
+    // 获取其他位置的数据
+    for (const pos of positions) {
+      const response = await fetch(`${window.BACKEND_URL}/api/sixth_number_threexiao?lottery_type=${lotteryType}&position=${pos}&page=1&page_size=200`);
+      const result = await response.json();
+      if (result.success) {
+        allData[pos] = result.data.results;
+      }
+    }
+
+    // 检测每对位置之间的交替模式
+    let alternateWarnings = [];
+    for (const otherPos of positions) {
+      const warning = checkAlternateBetweenPositions(allData[currentPosition], allData[otherPos], currentPosition, otherPos);
+      if (warning) {
+        alternateWarnings.push(warning);
+      }
+    }
+
+    // 显示警告信息
+    const warningDiv = document.getElementById('sixthThreexiaoWarning');
+    if (warningDiv) {
+      if (alternateWarnings.length > 0) {
+        console.log('检测到交替命中模式:', alternateWarnings);
+        warningDiv.innerHTML = `<strong style="color: #e67e22;">⚠️ ${alternateWarnings.join('<br>')}</strong>`;
+        warningDiv.style.display = 'block';
+      } else {
+        console.log('未检测到交替命中模式');
+        warningDiv.style.display = 'none';
+      }
+    }
+  } catch (error) {
+    console.error('检测跨位置交替命中失败:', error);
+  }
+}
+
+// 检查两个位置之间的交替命中模式
+function checkAlternateBetweenPositions(posData1, posData2, pos1, pos2) {
+  if (!posData1 || !posData2 || posData1.length < 6 || posData2.length < 6) {
+    console.log(`位置${pos1}与${pos2}数据不足，跳过检测`);
+    return null;
+  }
+
+  // 按期号对齐两个位置的数据（排除预测期）
+  const periodMap1 = {};
+  const periodMap2 = {};
+
+  posData1.forEach(item => {
+    if (item.next_seventh !== null) { // 只统计有下一期开奖的
+      periodMap1[item.current_period] = item.is_hit;
+    }
+  });
+
+  posData2.forEach(item => {
+    if (item.next_seventh !== null) { // 只统计有下一期开奖的
+      periodMap2[item.current_period] = item.is_hit;
+    }
+  });
+
+  // 找出共同的期号
+  const commonPeriods = Object.keys(periodMap1).filter(p => periodMap2.hasOwnProperty(p));
+  commonPeriods.sort((a, b) => b - a); // 降序排列，最新的在前
+
+  if (commonPeriods.length < 3) {
+    console.log(`位置${pos1}与${pos2}共同期数不足3期，跳过检测`);
+    return null;
+  }
+
+  // 检查最近3期的交替模式
+  const checkPeriods = commonPeriods.slice(0, Math.min(3, commonPeriods.length));
+  let isAlternatingBetween = true;  // 两个位置之间是否交替
+  let isPos1SelfAlternating = true; // 位置1自身是否交替
+  let isPos2SelfAlternating = true; // 位置2自身是否交替
+  const hitPattern = [];
+
+  for (let i = 0; i < checkPeriods.length; i++) {
+    const period = checkPeriods[i];
+    const hit1 = periodMap1[period];
+    const hit2 = periodMap2[period];
+    hitPattern.push({
+      period,
+      [`位置${pos1}`]: hit1 ? '命中' : '遗漏',
+      [`位置${pos2}`]: hit2 ? '命中' : '遗漏',
+      位置间交替: hit1 !== hit2 ? '✓' : '✗'
+    });
+
+    // 检查两个位置之间是否交替：一个命中时另一个不中
+    if (hit1 === hit2) {
+      isAlternatingBetween = false;
+      console.log(`期号${period}: 位置${pos1}=${hit1}, 位置${pos2}=${hit2}, 两者相同，不是交替`);
+    }
+
+    // 检查位置1自身是否交替
+    if (i > 0) {
+      const prevPeriod = checkPeriods[i - 1];
+      const prevHit1 = periodMap1[prevPeriod];
+      if (hit1 === prevHit1) {
+        isPos1SelfAlternating = false;
+        console.log(`位置${pos1}自身不交替: 期号${prevPeriod}=${prevHit1}, 期号${period}=${hit1}`);
+      }
+    }
+
+    // 检查位置2自身是否交替
+    if (i > 0) {
+      const prevPeriod = checkPeriods[i - 1];
+      const prevHit2 = periodMap2[prevPeriod];
+      if (hit2 === prevHit2) {
+        isPos2SelfAlternating = false;
+        console.log(`位置${pos2}自身不交替: 期号${prevPeriod}=${prevHit2}, 期号${period}=${hit2}`);
+      }
+    }
+  }
+
+  console.log(`位置${pos1}与${pos2}最近${checkPeriods.length}期命中模式:`);
+  console.table(hitPattern);
+  console.log(`位置间是否交替: ${isAlternatingBetween}`);
+  console.log(`位置${pos1}自身是否交替: ${isPos1SelfAlternating}`);
+  console.log(`位置${pos2}自身是否交替: ${isPos2SelfAlternating}`);
+
+  // 必须同时满足：两个位置之间交替 + 每个位置自身也交替
+  if (isAlternatingBetween && isPos1SelfAlternating && isPos2SelfAlternating && checkPeriods.length === 3) {
+    const latestPeriod = checkPeriods[0];
+    const nextShouldHit1 = !periodMap1[latestPeriod];
+    const nextShouldHit2 = !periodMap2[latestPeriod];
+
+    return `检测到最近3期第${pos1}位与第${pos2}位出现交替命中模式（双方自身也交替）！预测下一期第${pos1}位可能${nextShouldHit1 ? '命中' : '遗漏'}，第${pos2}位可能${nextShouldHit2 ? '命中' : '遗漏'}`;
+  }
+
+  return null;
 }
 
 // 加载第6个号码6肖分析数据
