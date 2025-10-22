@@ -1021,31 +1021,54 @@ def get_sixth_number_threexiao(
         period_to_idx = {r['period']: idx for idx, r in enumerate(records)}
 
         def gen_threexiao_nums(base_num: int) -> list[int]:
-            # 先循环减12直到小于12停止
+            """
+            生成三肖号码
+            逻辑：
+            1. 先对base_num循环减12，直到 <= 12
+            2. 对得到的数进行 -1, 0, +1 操作（在1-12范围内循环）
+            3. 再对这个数进行 +5, +6, +7 操作（在1-12范围内循环）
+            4. 最后将1-12范围的数转换为1-49范围（每个数对应4个生肖号码）
+            """
+            # 辅助函数：在1-12范围内循环
+            def wrap_12(value: int) -> int:
+                while value > 12:
+                    value -= 12
+                while value < 1:
+                    value += 12
+                return value
+
+            # 第一步：循环减12，直到 <= 12
             reduced_num = base_num
-            while reduced_num >= 12:
+            while reduced_num > 12:
                 reduced_num -= 12
-            # 根据reduced_num的值选择偏移量
-            if reduced_num in [1, 2, 12]:
-                # 1、2、12的情况：使用完整偏移量（原有+新增）
-                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37, 47,
-                          5, 6, 7, 18, 19, 20, 31, 32, 33, 41, 42, 43]
-            else:
-                # 其他情况：使用基础偏移量（原有+新增）
-                offsets = [-1, 0, 1, 11, 12, 13, 23, 24, 25, 35, 36, 37,
-                          5, 6, 7, 18, 19, 20, 31, 32, 33, 41, 42, 43]
 
-            nums = []
-            for off in offsets:
-                if off >= 0:
-                    n = plus49_wrap(reduced_num + off)
-                else:
-                    n = minus49_wrap(reduced_num + off)
-                nums.append(n)
+            # 第二步：生成基础偏移集合（-1, 0, +1）和扩展偏移集合（+5, +6, +7）
+            base_offsets = [-1, 0, 1]
+            extended_offsets = [5, 6, 7]
 
+            # 第三步：在1-12范围内生成所有候选数
+            xiao_nums_12 = set()
+            for off in base_offsets + extended_offsets:
+                xiao_nums_12.add(wrap_12(reduced_num + off))
 
+            # 第四步：将1-12的生肖号码转换为1-49范围的所有对应号码
+            # 每个生肖对应4个号码：n, n+12, n+24, n+36
+            result_nums = []
+            for xiao in xiao_nums_12:
+                for i in range(4):  # 0, 12, 24, 36
+                    num = xiao + i * 12
+                    if num <= 49:
+                        result_nums.append(num)
+
+            # 特殊处理：如果结果中包含49，同时加入1（49和1在循环中相邻）
+            if 49 in result_nums and 1 not in result_nums:
+                result_nums.append(1)
+            # 特殊处理：如果结果中包含1，同时加入49（49和1在循环中相邻）
+            if 1 in result_nums and 49 not in result_nums:
+                result_nums.append(49)
+                
             # 去重并排序
-            return sorted(list(dict.fromkeys(nums)))
+            return sorted(list(set(result_nums)))
 
         results = []
         total_hit = 0
