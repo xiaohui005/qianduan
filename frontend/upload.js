@@ -1909,10 +1909,10 @@ function loadPlusMinus6Analysis(type, pos, page, year) {
       });
       // 最大遗漏和当前遗漏
       let statsHtml = '';
-      if (Array.isArray(data.max_miss) && Array.isArray(data.cur_miss) && data.max_miss.length === 7 && data.cur_miss.length === 7) {
+      if (Array.isArray(data.max_miss) && Array.isArray(data.cur_miss) && data.max_miss.length === 6 && data.cur_miss.length === 6) {
         statsHtml = '<div style="margin-bottom:8px;">';
-        for (let i = 0; i < 7; i++) {
-          statsHtml += `<div style="margin-bottom:2px;">加减${i} 最大遗漏：<b>${data.max_miss[i] ?? '-'}</b>，当前遗漏：<b>${data.cur_miss[i] ?? '-'}</b></div>`;
+        for (let i = 0; i < 6; i++) {
+          statsHtml += `<div style="margin-bottom:2px;">加减${i+1} 最大遗漏：<b>${data.max_miss[i] ?? '-'}</b>，当前遗漏：<b>${data.cur_miss[i] ?? '-'}</b></div>`;
         }
         statsHtml += '</div>';
       } else {
