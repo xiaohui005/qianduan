@@ -26,6 +26,7 @@ const PAGE_CONFIG = {
   'menuPlusMinus6Btn': { pageId: 'plusMinus6Page', title: '加减前6码分析' },
   'menuEachIssueBtn': { pageId: 'eachIssuePage', title: '每期分析' },
   'menuColorAnalysisBtn': { pageId: 'colorAnalysisPage', title: '波色分析' },
+  'menuTwoGroupsBtn': { pageId: 'twoGroupsPage', title: '2组观察分析' },
 
   // 登记点分析
   'menuRegisterFocusBtn': { pageId: 'registerFocusPage', title: '登记关注点' },
@@ -44,6 +45,8 @@ const PAGE_CONFIG = {
  * @param {string} pageId - 要显示的页面ID
  */
 function showOnlyPage(pageId) {
+  console.log(`[页面管理] 切换到页面: ${pageId}`);
+
   // 获取所有页面元素
   const allPages = document.querySelectorAll('[id$="Page"]');
 
@@ -55,14 +58,27 @@ function showOnlyPage(pageId) {
   // 显示指定页面
   const targetPage = document.getElementById(pageId);
   if (targetPage) {
+    console.log(`[页面管理] ✓ 找到页面容器: ${pageId}`);
     targetPage.style.display = 'block';
 
     // 如果是定时采集页面,初始化
     if (pageId === 'schedulerPage' && typeof initSchedulerPage === 'function') {
+      console.log('[页面管理] 初始化定时采集页面');
       initSchedulerPage();
     }
+
+    // 如果是2组观察页面,初始化
+    if (pageId === 'twoGroupsPage') {
+      console.log('[页面管理] 检测到2组观察页面');
+      if (typeof initTwoGroupsPage === 'function') {
+        console.log('[页面管理] 调用 initTwoGroupsPage()');
+        initTwoGroupsPage();
+      } else {
+        console.error('[页面管理] ✗ initTwoGroupsPage 函数不存在');
+      }
+    }
   } else {
-    console.warn(`页面 ${pageId} 不存在`);
+    console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }
 }
 
@@ -81,23 +97,41 @@ function updatePageTitle(title) {
  * 初始化侧边栏菜单
  */
 function initSidebarMenu() {
+  console.log('[页面管理] 开始初始化侧边栏菜单...');
+
   // 绑定菜单按钮点击事件
   Object.keys(PAGE_CONFIG).forEach(buttonId => {
     const btn = document.getElementById(buttonId);
     if (btn) {
       btn.addEventListener('click', function() {
-        const config = PAGE_CONFIG[buttonId];
-        showOnlyPage(config.pageId);
-        updatePageTitle(config.title);
+        try {
+          const config = PAGE_CONFIG[buttonId];
+          console.log(`[页面管理] 按钮 ${buttonId} 被点击，切换到页面: ${config.pageId}`);
 
-        // 移除所有菜单按钮的激活状态
-        document.querySelectorAll('.menu-btn').forEach(b => {
-          b.classList.remove('active');
-        });
+          console.log(`[页面管理] 准备调用 showOnlyPage("${config.pageId}")`);
+          showOnlyPage(config.pageId);
+          console.log(`[页面管理] showOnlyPage 调用完成`);
 
-        // 添加当前按钮的激活状态
-        this.classList.add('active');
+          updatePageTitle(config.title);
+
+          // 移除所有菜单按钮的激活状态
+          document.querySelectorAll('.menu-btn').forEach(b => {
+            b.classList.remove('active');
+          });
+
+          // 添加当前按钮的激活状态
+          this.classList.add('active');
+        } catch (error) {
+          console.error(`[页面管理] ✗ 按钮点击处理出错:`, error);
+        }
       });
+
+      // 调试：确认按钮绑定成功
+      if (buttonId === 'menuTwoGroupsBtn') {
+        console.log('[页面管理] ✓ 2组观察按钮事件已绑定');
+      }
+    } else {
+      console.warn(`[页面管理] ✗ 按钮 ${buttonId} 不存在`);
     }
   });
 

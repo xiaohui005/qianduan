@@ -521,4 +521,33 @@ async function saveSchedulerConfig(config) {
   return await response.json();
 }
 
+// ==================== 2组观察相关 API ====================
+
+/**
+ * 获取2组分析结果
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} period - 期号
+ * @param {number} historyCount - 历史期数
+ * @returns {Promise<Object>} 分析结果
+ */
+async function fetchTwoGroupsAnalysis(lotteryType, period, historyCount = 100) {
+  const url = `${API_BASE}/api/two_groups/analyze?lottery_type=${lotteryType}&period=${period}&history_count=${historyCount}`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 获取2组验证结果
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} period - 期号
+ * @param {number} historyCount - 历史期数
+ * @param {number} verifyCount - 验证期数
+ * @returns {Promise<Object>} 验证结果
+ */
+async function fetchTwoGroupsVerification(lotteryType, period, historyCount = 100, verifyCount = 30) {
+  const url = `${API_BASE}/api/two_groups/verify?lottery_type=${lotteryType}&period=${period}&history_count=${historyCount}&verify_count=${verifyCount}`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
 console.log('API 请求模块已加载');

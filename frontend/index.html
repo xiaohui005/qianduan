@@ -28,6 +28,7 @@
         <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
         <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
         <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
+        <button class="menu-btn" id="menuTwoGroupsBtn">2组观察分析</button>
       </div>
       <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
         登记点分析 <span id="registerCollapseIcon">▼</span>
@@ -498,7 +499,10 @@
           </div>
         </div>
       </div>
-
+ <!-- 2组观察分析页面 -->
+      <div id="twoGroupsPage" style="display:none;">
+        <!-- 页面内容由 twoGroups.js 动态生成 -->
+      </div>
       <div id="fivePeriodThreexiaoPage" style="display:none;">
         <h2>5期3肖计算</h2>
         
@@ -1236,9 +1240,9 @@
           </div>
         </div>
       </div>
-      
+
      
-      
+
     </main>
   </div>
   <script src="config.js"></script>
@@ -1248,6 +1252,7 @@
   <script src="recommend16.js"></script>
   <script src="fivePeriodThreexiao.js"></script>
   <script src="seventhSmart20.js"></script>
+  <script src="twoGroups.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');
