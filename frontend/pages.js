@@ -8,8 +8,6 @@ const PAGE_CONFIG = {
   // 数据相关
   'menuCollectBtn': { pageId: 'collectPage', title: '数据采集' },
   'menuRecordsBtn': { pageId: 'recordsPage', title: '开奖结果' },
-  'menuWebCollectBtn': { pageId: 'webCollectPage', title: '网址采集管理' },
-  'menuSchedulerBtn': { pageId: 'schedulerPage', title: '定时采集设置' },
 
   // 分析推荐
   'menuRecommendBtn': { pageId: 'recommendPage', title: '推荐8码' },
@@ -60,12 +58,6 @@ function showOnlyPage(pageId) {
   if (targetPage) {
     console.log(`[页面管理] ✓ 找到页面容器: ${pageId}`);
     targetPage.style.display = 'block';
-
-    // 如果是定时采集页面,初始化
-    if (pageId === 'schedulerPage' && typeof initSchedulerPage === 'function') {
-      console.log('[页面管理] 初始化定时采集页面');
-      initSchedulerPage();
-    }
 
     // 如果是2组观察页面,初始化
     if (pageId === 'twoGroupsPage') {
@@ -153,6 +145,37 @@ function initSidebarMenu() {
       }
     });
   }
+
+  // 子分组折叠功能
+  const subgroups = [
+    { btnId: 'toggleRecommendGroup', contentId: 'recommendGroupBtns', iconId: 'recommendGroupIcon' },
+    { btnId: 'toggleRangeGroup', contentId: 'rangeGroupBtns', iconId: 'rangeGroupIcon' },
+    { btnId: 'togglePositionGroup', contentId: 'positionGroupBtns', iconId: 'positionGroupIcon' },
+    { btnId: 'toggleXiaoGroup', contentId: 'xiaoGroupBtns', iconId: 'xiaoGroupIcon' },
+    { btnId: 'toggleOtherGroup', contentId: 'otherGroupBtns', iconId: 'otherGroupIcon' }
+  ];
+
+  subgroups.forEach(group => {
+    const btn = document.getElementById(group.btnId);
+    const content = document.getElementById(group.contentId);
+    const icon = document.getElementById(group.iconId);
+
+    if (btn && content && icon) {
+      // 默认展开
+      content.style.display = 'block';
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation(); // 防止触发父级折叠
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          icon.textContent = '▼';
+        } else {
+          content.style.display = 'none';
+          icon.textContent = '▶';
+        }
+      });
+    }
+  });
 
   // 登记点分析折叠按钮
   const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');

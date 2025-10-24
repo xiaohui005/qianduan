@@ -2311,52 +2311,134 @@ h2 {
   font-weight: bold;
 }
 
-/* 关注号码表单样式 */
+/* 关注号码表单样式 - 美化升级版 */
 #favoriteNumbersForm {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+#favoriteNumbersForm:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #d1dae6;
 }
 
 #favoriteNumbersForm .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  position: relative;
 }
 
 #favoriteNumbersForm label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-weight: 600;
-  color: #495057;
+  color: #2c3e50;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  position: relative;
+  padding-left: 24px;
+}
+
+/* 为 label 添加图标 */
+#favoriteNumbersForm label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.7;
+}
+
+#favoriteNumbersForm label[for="favoriteNumberName"]::before {
+  content: "📝";
+  font-size: 16px;
+}
+
+#favoriteNumbersForm label[for="favoriteNumbers"]::before {
+  content: "🎯";
+  font-size: 16px;
 }
 
 #favoriteNumbersForm input[type="text"] {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 12px 16px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 15px;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff;
+  color: #2d3a4b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#favoriteNumbersForm input[type="text"]:hover {
+  border-color: #c4d1df;
+  background: #f9fbfd;
 }
 
 #favoriteNumbersForm input[type="text"]:focus {
   outline: none;
   border-color: #2980d9;
-  box-shadow: 0 0 0 2px rgba(41, 128, 217, 0.2);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(41, 128, 217, 0.15), 0 2px 8px rgba(41, 128, 217, 0.1);
+  transform: translateY(-1px);
+}
+
+#favoriteNumbersForm input[type="text"]::placeholder {
+  color: #a8b5c7;
+  font-style: normal;
+  opacity: 0.8;
+}
+
+/* 输入框验证状态 */
+#favoriteNumbersForm input[type="text"]:valid {
+  border-color: #27ae60;
+}
+
+#favoriteNumbersForm input[type="text"]:invalid:not(:placeholder-shown) {
+  border-color: #e74c3c;
+}
+
+/* 特殊样式：号码组名称输入框 */
+#favoriteNumberName {
+  background: linear-gradient(to right, #ffffff 0%, #f8fbff 100%);
+  font-weight: 500;
+}
+
+/* 特殊样式：关注号码输入框 */
+#favoriteNumbers {
+  background: linear-gradient(to right, #ffffff 0%, #fffbf8 100%);
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 #favoriteNumbersForm .form-tip {
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 5px;
+  font-size: 13px;
+  color: #6c8299;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f0f4f8;
+  border-left: 3px solid #2980d9;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 #favoriteNumbersForm .form-actions {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #e8edf3;
 }
 
 /* 分析结果表格样式 */
@@ -2486,6 +2568,58 @@ h2 {
   box-shadow: 0 6px 16px rgba(231,76,60,0.4);
 }
 
+/* 彩种选择按钮样式 (第N个号码肖分析页面) */
+.seventh-range-type-group {
+  display: inline-flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.seventh-range-type-btn {
+  padding: 10px 20px;
+  border: 2px solid #ddd;
+  background: #f8f9fa;
+  color: #333;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 80px;
+  text-align: center;
+}
+
+.seventh-range-type-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.seventh-range-type-btn.active {
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  border-color: #c0392b !important;
+  border-width: 3px !important;
+  box-shadow: 0 6px 20px rgba(231,76,60,0.6) !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  font-weight: 700 !important;
+  position: relative;
+}
+
+.seventh-range-type-btn.active::before {
+  content: "✓ ";
+  font-weight: bold;
+  margin-right: 3px;
+  font-size: 16px;
+}
+
+.seventh-range-type-btn.active:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226) !important;
+  border-color: #a93226 !important;
+  box-shadow: 0 8px 24px rgba(231,76,60,0.7) !important;
+  transform: translateY(-3px) scale(1.07) !important;
+}
+
 /* 位置选择按钮样式 */
 .position-buttons {
   display: flex;
@@ -2515,17 +2649,28 @@ h2 {
 }
 
 .position-btn.active {
-  background: linear-gradient(135deg, #2980d9, #1c5fa8);
-  color: white;
-  border-color: #2980d9;
-  box-shadow: 0 4px 12px rgba(41,128,217,0.3);
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  border-color: #c0392b !important;
+  border-width: 3px !important;
+  box-shadow: 0 6px 20px rgba(231,76,60,0.6) !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  font-weight: 700 !important;
+  position: relative;
+}
+
+.position-btn.active::before {
+  content: "✓ ";
+  font-weight: bold;
+  margin-right: 3px;
+  font-size: 16px;
 }
 
 .position-btn.active:hover {
-  background: linear-gradient(135deg, #1c5fa8, #134d7a);
-  border-color: #1c5fa8;
-  box-shadow: 0 6px 16px rgba(41,128,217,0.4);
+  background: linear-gradient(135deg, #c0392b, #a93226) !important;
+  border-color: #a93226 !important;
+  box-shadow: 0 8px 24px rgba(231,76,60,0.7) !important;
+  transform: translateY(-3px) scale(1.07) !important;
 }
 
 @media (max-width: 768px) {
@@ -3287,5 +3432,76 @@ h2 {
   
   .modal-header, .modal-body, .modal-footer {
     padding: 16px;
+  }
+}
+
+/* 菜单子分组样式 */
+.menu-subgroup {
+  margin-bottom: 8px;
+}
+
+.menu-subgroup-btn {
+  display: block;
+  width: 90%;
+  border: 1px solid #d0e4f2;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-weight: 600;
+}
+
+.menu-subgroup-btn:hover {
+  background: #d4e9f7 !important;
+}
+
+.subgroup-btns {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.menu-btn-sub {
+  font-size: 14px !important;
+  padding: 8px 0 !important;
+  margin-bottom: 8px !important;
+  background: #3498db !important;
+  letter-spacing: 1px !important;
+}
+
+.menu-btn-sub:hover {
+  background: #2980d9 !important;
+}
+
+.menu-btn-sub.active {
+  background: #1c5fa8 !important;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -180px;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transition: left 0.3s;
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .menu-btn {
+    font-size: 15px;
+    padding: 10px 0;
+  }
+
+  .menu-btn-sub {
+    font-size: 13px !important;
+    padding: 7px 0 !important;
   }
 }

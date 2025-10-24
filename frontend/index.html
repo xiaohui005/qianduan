@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>彩票分析系统</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎰</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,21 +16,65 @@
       <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
       <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
       <div id="sidebarMenuBtns">
-        <button class="menu-btn" id="menuRecommendBtn">推荐8码</button>
-        <button class="menu-btn" id="menuRecommendHitBtn">推荐8码的命中情况</button>
-        <button class="menu-btn" id="menuTensBtn">第N位十位分析</button>
-        <button class="menu-btn" id="menuUnitsBtn">第N个码个位分析</button>
-        <button class="menu-btn" id="menuRangeBtn">+1~+20区间分析</button> 
-        <button class="menu-btn" id="menuSeventhRangeBtn">第7个号码+1~+20区间分析</button>
-        <button class="menu-btn" id="menuSeventhSmart20Btn">第7个号码智能推荐20码</button>
-        <button class="menu-btn" id="menuSecondFourxiaoBtn">第二个号码四肖分析</button>
-        <button class="menu-btn" id="menuSixthThreexiaoBtn">第6个号码6肖分析</button>
-        <button class="menu-btn" id="menuFront6SzzBtn">前6码三中三</button>
-        <button class="menu-btn" id="menuFivePeriodThreexiaoBtn">5期3肖计算</button>
-        <button class="menu-btn" id="menuPlusMinus6Btn">加减前6码分析</button>
-        <button class="menu-btn" id="menuEachIssueBtn">每期分析</button>
-        <button class="menu-btn" id="menuColorAnalysisBtn">波色分析</button>
-        <button class="menu-btn" id="menuTwoGroupsBtn">2组观察分析</button>
+        <!-- 推荐功能 -->
+        <div class="menu-subgroup">
+          <button class="menu-subgroup-btn" id="toggleRecommendGroup" style="background:#e8f4f8;color:#2980d9;font-size:13px;padding:6px 8px;margin:4px 8px;">
+            <span style="margin-right:4px;">📊</span>推荐功能 <span id="recommendGroupIcon">▼</span>
+          </button>
+          <div id="recommendGroupBtns" class="subgroup-btns">
+            <button class="menu-btn menu-btn-sub" id="menuRecommendBtn">推荐8码</button>
+            <button class="menu-btn menu-btn-sub" id="menuRecommendHitBtn">推荐8码命中情况</button>
+            <button class="menu-btn menu-btn-sub" id="menuSeventhSmart20Btn">第7码智能推荐20码</button>
+          </div>
+        </div>
+
+        <!-- 区间分析 -->
+        <div class="menu-subgroup">
+          <button class="menu-subgroup-btn" id="toggleRangeGroup" style="background:#e8f4f8;color:#2980d9;font-size:13px;padding:6px 8px;margin:4px 8px;">
+            <span style="margin-right:4px;">📏</span>区间分析 <span id="rangeGroupIcon">▼</span>
+          </button>
+          <div id="rangeGroupBtns" class="subgroup-btns">
+            <button class="menu-btn menu-btn-sub" id="menuRangeBtn">+1~+20区间分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuSeventhRangeBtn">第7码+1~+20区间</button>
+          </div>
+        </div>
+
+        <!-- 位置分析 -->
+        <div class="menu-subgroup">
+          <button class="menu-subgroup-btn" id="togglePositionGroup" style="background:#e8f4f8;color:#2980d9;font-size:13px;padding:6px 8px;margin:4px 8px;">
+            <span style="margin-right:4px;">🎯</span>位置分析 <span id="positionGroupIcon">▼</span>
+          </button>
+          <div id="positionGroupBtns" class="subgroup-btns">
+            <button class="menu-btn menu-btn-sub" id="menuTensBtn">第N位十位分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuUnitsBtn">第N个码个位分析</button>
+          </div>
+        </div>
+
+        <!-- 肖分析 -->
+        <div class="menu-subgroup">
+          <button class="menu-subgroup-btn" id="toggleXiaoGroup" style="background:#e8f4f8;color:#2980d9;font-size:13px;padding:6px 8px;margin:4px 8px;">
+            <span style="margin-right:4px;">🐉</span>肖分析 <span id="xiaoGroupIcon">▼</span>
+          </button>
+          <div id="xiaoGroupBtns" class="subgroup-btns">
+            <button class="menu-btn menu-btn-sub" id="menuSecondFourxiaoBtn">第2码四肖分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuSixthThreexiaoBtn">第6码6肖分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuFivePeriodThreexiaoBtn">5期3肖计算</button>
+          </div>
+        </div>
+
+        <!-- 其他分析 -->
+        <div class="menu-subgroup">
+          <button class="menu-subgroup-btn" id="toggleOtherGroup" style="background:#e8f4f8;color:#2980d9;font-size:13px;padding:6px 8px;margin:4px 8px;">
+            <span style="margin-right:4px;">📈</span>其他分析 <span id="otherGroupIcon">▼</span>
+          </button>
+          <div id="otherGroupBtns" class="subgroup-btns">
+            <button class="menu-btn menu-btn-sub" id="menuFront6SzzBtn">前6码三中三</button>
+            <button class="menu-btn menu-btn-sub" id="menuPlusMinus6Btn">加减前6码分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuEachIssueBtn">每期分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuColorAnalysisBtn">波色分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuTwoGroupsBtn">2组观察分析</button>
+          </div>
+        </div>
       </div>
       <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
         登记点分析 <span id="registerCollapseIcon">▼</span>
@@ -1245,6 +1291,7 @@
 
     </main>
   </div>
+  <script src="utils.js"></script>
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script src="pages.js"></script>
