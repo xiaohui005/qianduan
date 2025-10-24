@@ -25,6 +25,7 @@ const PAGE_CONFIG = {
   'menuEachIssueBtn': { pageId: 'eachIssuePage', title: '每期分析' },
   'menuColorAnalysisBtn': { pageId: 'colorAnalysisPage', title: '波色分析' },
   'menuTwoGroupsBtn': { pageId: 'twoGroupsPage', title: '2组观察分析' },
+  'menuNumberGapBtn': { pageId: 'numberGapAnalysisPage', title: '号码间隔期数分析' },
 
   // 登记点分析
   'menuRegisterFocusBtn': { pageId: 'registerFocusPage', title: '登记关注点' },
@@ -67,6 +68,17 @@ function showOnlyPage(pageId) {
         initTwoGroupsPage();
       } else {
         console.error('[页面管理] ✗ initTwoGroupsPage 函数不存在');
+      }
+    }
+
+    // 如果是号码间隔期数分析页面,初始化
+    if (pageId === 'numberGapAnalysisPage') {
+      console.log('[页面管理] 检测到号码间隔期数分析页面');
+      if (typeof initNumberGapAnalysisPage === 'function') {
+        console.log('[页面管理] 调用 initNumberGapAnalysisPage()');
+        initNumberGapAnalysisPage();
+      } else {
+        console.error('[页面管理] ✗ initNumberGapAnalysisPage 函数不存在');
       }
     }
   } else {

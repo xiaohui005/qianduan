@@ -550,4 +550,49 @@ async function fetchTwoGroupsVerification(lotteryType, period, historyCount = 10
   return await response.json();
 }
 
+// ==================== 号码间隔期数分析相关 API ====================
+
+/**
+ * 获取号码间隔期数分析数据
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {number} page - 页码
+ * @param {number} pageSize - 每页数量
+ * @param {string} year - 年份筛选（可选）
+ * @returns {Promise<Object>} 分析数据
+ */
+async function getNumberGapAnalysis(lotteryType, page = 1, pageSize = 50, year = null) {
+  let url = `${API_BASE}/api/number_gap_analysis?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 导出号码间隔期数分析CSV
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} year - 年份筛选（可选）
+ * @returns {Promise<Blob>} CSV文件
+ */
+async function exportNumberGapAnalysisCsv(lotteryType, year = null) {
+  let url = `${API_BASE}/api/number_gap_analysis/export?lottery_type=${lotteryType}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.blob();
+}
+
+/**
+ * 获取号码间隔统计信息
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @returns {Promise<Object>} 统计数据
+ */
+async function getNumberGapStats(lotteryType) {
+  const url = `${API_BASE}/api/number_gap_analysis/stats?lottery_type=${lotteryType}`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
 console.log('API 请求模块已加载');

@@ -73,6 +73,7 @@
             <button class="menu-btn menu-btn-sub" id="menuEachIssueBtn">每期分析</button>
             <button class="menu-btn menu-btn-sub" id="menuColorAnalysisBtn">波色分析</button>
             <button class="menu-btn menu-btn-sub" id="menuTwoGroupsBtn">2组观察分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuNumberGapBtn">号码间隔期数分析</button>
           </div>
         </div>
       </div>
@@ -549,6 +550,44 @@
       <div id="twoGroupsPage" style="display:none;">
         <!-- 页面内容由 twoGroups.js 动态生成 -->
       </div>
+
+      <!-- 号码间隔期数分析页面 -->
+      <div id="numberGapAnalysisPage" style="display:none;">
+        <h2>号码间隔期数分析</h2>
+
+        <!-- 控制栏 -->
+        <div class="control-bar" style="margin-bottom:20px;padding:15px;background:#f8f9fa;border-radius:8px;">
+          <!-- 彩种选择 -->
+          <div style="margin-bottom:15px;">
+            <label style="font-weight:600;margin-right:10px;color:#2c3e50;">选择彩种：</label>
+            <button class="gap-type-btn active" data-type="am" style="padding:10px 20px;border:2px solid #ddd;background:#f8f9fa;color:#333;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;margin-right:10px;">澳门</button>
+            <button class="gap-type-btn" data-type="hk" style="padding:10px 20px;border:2px solid #ddd;background:#f8f9fa;color:#333;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;">香港</button>
+          </div>
+
+          <!-- 年份筛选 -->
+          <div style="margin-bottom:15px;">
+            <label style="font-weight:600;margin-right:10px;color:#2c3e50;">年份筛选：</label>
+            <select id="gapYearSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
+              <option value="">全部年份</option>
+            </select>
+          </div>
+
+          <!-- 导出按钮 -->
+          <div>
+            <button id="exportGapCsvBtn" style="padding:10px 20px;background:linear-gradient(135deg, #27ae60, #229954);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(39,174,96,0.3);">
+              📥 导出CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- 结果显示区 -->
+        <div id="numberGapResult">
+          <div style="text-align:center;color:#888;padding:40px;">
+            正在加载数据...
+          </div>
+        </div>
+      </div>
+
       <div id="fivePeriodThreexiaoPage" style="display:none;">
         <h2>5期3肖计算</h2>
         
@@ -1300,6 +1339,7 @@
   <script src="fivePeriodThreexiao.js"></script>
   <script src="seventhSmart20.js"></script>
   <script src="twoGroups.js"></script>
+  <script src="numberGapAnalysis.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');
