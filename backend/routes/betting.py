@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Request
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
+from pydantic import BaseModel
 try:
     from backend import collect
     from backend.utils import get_db_cursor
@@ -9,6 +10,23 @@ except ImportError:
     from utils import get_db_cursor
 
 router = APIRouter()
+
+# Pydantic 模型定义
+class PlaceData(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+class BetData(BaseModel):
+    place_id: int
+    qishu: str
+    bet_amount: float
+    win_amount: float
+    is_correct: Optional[int] = None
+
+class PlaceResultData(BaseModel):
+    place_id: int
+    qishu: str
+    is_correct: Optional[int] = None
 
 # --- 关注点 places 表的增删改查 API ---
 
@@ -20,34 +38,22 @@ def get_places():
     return jsonable_encoder(rows)
 
 @router.post("/api/places")
-def add_place(req: Request):
-    import asyncio
-    async def inner():
-        data = await req.json()
-        name = data.get("name")
-        description = data.get("description")
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(
-                "INSERT INTO places (name, description) VALUES (%s, %s)",
-                (name, description)
-            )
-        return {"success": True}
-    return asyncio.run(inner())
+def add_place(data: PlaceData):
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(
+            "INSERT INTO places (name, description) VALUES (%s, %s)",
+            (data.name, data.description)
+        )
+    return {"success": True}
 
 @router.put("/api/places/{place_id}")
-def update_place(place_id: int, req: Request):
-    import asyncio
-    async def inner():
-        data = await req.json()
-        name = data.get("name")
-        description = data.get("description")
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(
-                "UPDATE places SET name=%s, description=%s WHERE id=%s",
-                (name, description, place_id)
-            )
-        return {"success": True}
-    return asyncio.run(inner())
+def update_place(place_id: int, data: PlaceData):
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(
+            "UPDATE places SET name=%s, description=%s WHERE id=%s",
+            (data.name, data.description, place_id)
+        )
+    return {"success": True}
 
 @router.delete("/api/places/{place_id}")
 def delete_place(place_id: int):
@@ -68,40 +74,22 @@ def get_bets(place_id: int = None):
     return jsonable_encoder(rows)
 
 @router.post("/api/bets")
-def add_bet(req: Request):
-    import asyncio
-    async def inner():
-        data = await req.json()
-        place_id = data.get("place_id")
-        qishu = data.get("qishu")
-        bet_amount = data.get("bet_amount")
-        win_amount = data.get("win_amount")
-        is_correct = data.get("is_correct")
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(
-                "INSERT INTO bets (place_id, qishu, bet_amount, win_amount, is_correct) VALUES (%s, %s, %s, %s, %s)",
-                (place_id, qishu, bet_amount, win_amount, is_correct if is_correct != '' else None)
-            )
-        return {"success": True}
-    return asyncio.run(inner())
+def add_bet(data: BetData):
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(
+            "INSERT INTO bets (place_id, qishu, bet_amount, win_amount, is_correct) VALUES (%s, %s, %s, %s, %s)",
+            (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct)
+        )
+    return {"success": True}
 
 @router.put("/api/bets/{bet_id}")
-def update_bet(bet_id: int, req: Request):
-    import asyncio
-    async def inner():
-        data = await req.json()
-        place_id = data.get("place_id")
-        qishu = data.get("qishu")
-        bet_amount = data.get("bet_amount")
-        win_amount = data.get("win_amount")
-        is_correct = data.get("is_correct")
-        with get_db_cursor(commit=True) as cursor:
-            cursor.execute(
-                "UPDATE bets SET place_id=%s, qishu=%s, bet_amount=%s, win_amount=%s, is_correct=%s WHERE id=%s",
-                (place_id, qishu, bet_amount, win_amount, is_correct if is_correct != '' else None, bet_id)
-            )
-        return {"success": True}
-    return asyncio.run(inner())
+def update_bet(bet_id: int, data: BetData):
+    with get_db_cursor(commit=True) as cursor:
+        cursor.execute(
+            "UPDATE bets SET place_id=%s, qishu=%s, bet_amount=%s, win_amount=%s, is_correct=%s WHERE id=%s",
+            (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct, bet_id)
+        )
+    return {"success": True}
 
 @router.delete("/api/bets/{bet_id}")
 def delete_bet(bet_id: int):
@@ -187,54 +175,36 @@ def get_place_results(
         return {"success": False, "message": f"查询失败: {str(e)}"}
 
 @router.post("/api/place_results")
-def add_place_result(req: Request):
+def add_place_result(data: PlaceResultData):
     """添加关注点登记结果"""
-    import asyncio
-    async def inner():
-        try:
-            data = await req.json()
-            place_id = data.get('place_id')
-            qishu = data.get('qishu')
-            is_correct = data.get('is_correct')
+    try:
+        if not data.place_id or not data.qishu:
+            return {"success": False, "message": "关注点ID和期数不能为空"}
 
-            if not place_id or not qishu:
-                return {"success": False, "message": "关注点ID和期数不能为空"}
-
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(
-                    "INSERT INTO place_results (place_id, qishu, is_correct) VALUES (%s, %s, %s)",
-                    (place_id, qishu, is_correct)
-                )
-            return {"success": True, "message": "添加成功"}
-        except Exception as e:
-            return {"success": False, "message": f"请求解析失败: {str(e)}"}
-
-    return asyncio.run(inner())
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "INSERT INTO place_results (place_id, qishu, is_correct) VALUES (%s, %s, %s)",
+                (data.place_id, data.qishu, data.is_correct)
+            )
+        return {"success": True, "message": "添加成功"}
+    except Exception as e:
+        return {"success": False, "message": f"请求解析失败: {str(e)}"}
 
 @router.put("/api/place_results/{result_id}")
-def update_place_result(result_id: int, req: Request):
+def update_place_result(result_id: int, data: PlaceResultData):
     """更新关注点登记结果"""
-    import asyncio
-    async def inner():
-        try:
-            data = await req.json()
-            place_id = data.get('place_id')
-            qishu = data.get('qishu')
-            is_correct = data.get('is_correct')
+    try:
+        if not data.place_id or not data.qishu:
+            return {"success": False, "message": "关注点ID和期数不能为空"}
 
-            if not place_id or not qishu:
-                return {"success": False, "message": "关注点ID和期数不能为空"}
-
-            with get_db_cursor(commit=True) as cursor:
-                cursor.execute(
-                    "UPDATE place_results SET place_id = %s, qishu = %s, is_correct = %s WHERE id = %s",
-                    (place_id, qishu, is_correct, result_id)
-                )
-            return {"success": True, "message": "更新成功"}
-        except Exception as e:
-            return {"success": False, "message": f"请求解析失败: {str(e)}"}
-
-    return asyncio.run(inner())
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE place_results SET place_id = %s, qishu = %s, is_correct = %s WHERE id = %s",
+                (data.place_id, data.qishu, data.is_correct, result_id)
+            )
+        return {"success": True, "message": "更新成功"}
+    except Exception as e:
+        return {"success": False, "message": f"请求解析失败: {str(e)}"}
 
 @router.delete("/api/place_results/{result_id}")
 def delete_place_result(result_id: int):

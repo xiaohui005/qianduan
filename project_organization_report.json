@@ -1,0 +1,173 @@
+{
+  "timestamp": "2025-10-25T15:11:20.068130",
+  "summary": {
+    "total_files_checked": 19,
+    "files_over_limit": [
+      {
+        "file": "backend/routes/analysis.py",
+        "lines": 1992,
+        "category": "backend",
+        "suggestion": "Split into multiple modules"
+      },
+      {
+        "file": "frontend/upload.js",
+        "lines": 7755,
+        "category": "frontend",
+        "suggestion": "Split into functional modules"
+      }
+    ],
+    "code_quality_issues": [
+      {
+        "type": "FILE_SIZE",
+        "severity": "HIGH",
+        "file": "backend/routes/analysis.py",
+        "description": "文件过大（1992行），远超800行限制",
+        "suggestion": "拆分成多个专题分析模块，如：analysis_tens.py, analysis_units.py, analysis_intervals.py 等"
+      },
+      {
+        "type": "FILE_SIZE",
+        "severity": "CRITICAL",
+        "file": "frontend/upload.js",
+        "description": "文件严重过大（7755行），远超800行限制",
+        "suggestion": "按功能拆分成10+个独立模块，每个功能一个文件"
+      }
+    ],
+    "recommendations": [
+      {
+        "priority": "HIGH",
+        "category": "Backend Refactoring",
+        "action": "拆分 backend/routes/analysis.py",
+        "details": [
+          "创建 analysis_tens.py - 十位分析功能",
+          "创建 analysis_units.py - 个位分析功能",
+          "创建 analysis_intervals.py - 区间分析功能",
+          "创建 analysis_positions.py - 位置分析功能",
+          "创建 analysis_colors.py - 波色分析功能",
+          "保留 analysis.py 作为路由注册中心"
+        ]
+      },
+      {
+        "priority": "CRITICAL",
+        "category": "Frontend Refactoring",
+        "action": "拆分 frontend/upload.js",
+        "details": [
+          "按功能域拆分：分析、推荐、统计、数据采集等",
+          "每个分析功能创建独立模块",
+          "使用模块化设计模式",
+          "目标：每个模块300-800行"
+        ]
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "Code Quality",
+        "action": "确保所有代码使用工具箱函数",
+        "details": [
+          "检查是否有直接使用 get_connection() 的地方",
+          "检查是否有自定义循环函数未使用 wrap_in_range",
+          "检查是否有自定义CSV导出未使用 create_csv_response"
+        ]
+      }
+    ]
+  },
+  "details": {
+    "backend": {
+      "backend/routes/analysis.py": {
+        "lines": 1992,
+        "status": "OVER_LIMIT",
+        "limit": 800
+      },
+      "backend/routes/favorites.py": {
+        "lines": 753,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/betting.py": {
+        "lines": 563,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/recommend.py": {
+        "lines": 406,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/collect.py": {
+        "lines": 175,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/analysis_seventh_smart.py": {
+        "lines": 706,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/analysis_two_groups.py": {
+        "lines": 442,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/routes/analysis_number_gap.py": {
+        "lines": 376,
+        "status": "OK",
+        "limit": 800
+      },
+      "backend/main.py": {
+        "lines": 58,
+        "status": "OK",
+        "limit": 800
+      }
+    },
+    "frontend": {
+      "frontend/upload.js": {
+        "lines": 7755,
+        "status": "OVER_LIMIT",
+        "limit": 800
+      },
+      "frontend/api.js": {
+        "lines": 598,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/utils.js": {
+        "lines": 249,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/pages.js": {
+        "lines": 231,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/main.js": {
+        "lines": 99,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/recommend16.js": {
+        "lines": 790,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/seventhSmart20.js": {
+        "lines": 387,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/fivePeriodThreexiao.js": {
+        "lines": 351,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/twoGroups.js": {
+        "lines": 735,
+        "status": "OK",
+        "limit": 800
+      },
+      "frontend/numberGapAnalysis.js": {
+        "lines": 436,
+        "status": "OK",
+        "limit": 800
+      }
+    }
+  }
+}

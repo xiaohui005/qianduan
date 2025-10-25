@@ -5,8 +5,13 @@ import re
 
 try:
     from backend.db import get_connection
+    from backend.utils.db_utils import get_db_cursor
 except ImportError:
     from db import get_connection
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from utils.db_utils import get_db_cursor
 
 # 兼容不同 lunarcalendar 版本的公历转农历，彻底防止 AttributeError
 solar_to_lunar = None
@@ -34,13 +39,11 @@ except Exception:
             return year, month, day  # fallback
 
 def get_max_period(lottery_type):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT MAX(period) FROM lottery_result WHERE lottery_type=%s", (lottery_type,))
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return row[0] if row and row[0] else None
+    """获取指定彩种的最大期号（使用上下文管理器，防止连接泄漏）"""
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT MAX(period) FROM lottery_result WHERE lottery_type=%s", (lottery_type,))
+        row = cursor.fetchone()
+        return row[0] if row and row[0] else None
 
 def fetch_lottery(url, lottery_type, check_max_period=True):
     if not url:
@@ -50,16 +53,27 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
     }, verify=False)
     # 设置编码（必须在访问resp.text之前设置）
-    # 注意：httpx使用charset_encoding而不是apparent_encoding（后者是requests库的属性）
-    # 现代网页大多使用UTF-8，如果charset_encoding为None，默认使用UTF-8
+    # 改进的编码检测逻辑，避免中文乱码
     try:
-        detected_encoding = resp.charset_encoding
-        if not detected_encoding:
-            # 没有检测到编码，尝试UTF-8（现代网页标准）
-            resp.encoding = 'utf-8'
+        # 首先尝试使用 HTTP 响应头中的编码
+        if resp.charset_encoding:
+            resp.encoding = resp.charset_encoding
         else:
-            resp.encoding = detected_encoding
-    except:
+            # 如果响应头没有编码信息，使用 chardet 库检测
+            try:
+                import chardet
+                detected = chardet.detect(resp.content)
+                if detected and detected.get('encoding'):
+                    resp.encoding = detected['encoding']
+                else:
+                    # 如果 chardet 也无法检测，默认使用 UTF-8
+                    resp.encoding = 'utf-8'
+            except ImportError:
+                # 如果没有安装 chardet，默认使用 UTF-8
+                resp.encoding = 'utf-8'
+    except Exception as e:
+        # 任何异常情况，使用 UTF-8 作为后备方案
+        print(f"编码检测异常: {e}，使用 UTF-8")
         resp.encoding = 'utf-8'
     soup = BeautifulSoup(resp.text, 'html.parser')
     results = []
@@ -129,70 +143,69 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
 
 
 def save_results(results):
+    """保存采集结果到数据库（使用上下文管理器，防止连接泄漏）"""
     if not results:
         print("无数据需要保存")
         return
-    conn = get_connection()
-    cursor = conn.cursor()
-    saved_count = 0
 
+    saved_count = 0
     # 按期号排序，确保先处理期号较小的记录
     results.sort(key=lambda x: x['period'])
 
-    for r in results:
-        try:
-            # 先检查是否已存在相同的期号记录
-            cursor.execute(
-                "SELECT id FROM lottery_result WHERE lottery_type=%s AND period=%s",
-                (r['lottery_type'], r['period'])
-            )
-            existing_record = cursor.fetchone()
-
-            if existing_record:
-                # 如果期号已存在，更新记录
+    # 使用上下文管理器确保连接正确关闭
+    with get_db_cursor(commit=True) as cursor:
+        for r in results:
+            try:
+                # 先检查是否已存在相同的期号记录
                 cursor.execute(
-                    """
-                    UPDATE lottery_result
-                    SET open_time=%s, lunar_date=%s, numbers=%s, animals=%s, created_at=NOW()
-                    WHERE lottery_type=%s AND period=%s
-                    """,
-                    (r['open_time'], r['lunar_date'], r['numbers'], r['animals'], r['lottery_type'], r['period'])
+                    "SELECT id FROM lottery_result WHERE lottery_type=%s AND period=%s",
+                    (r['lottery_type'], r['period'])
                 )
-                print(f"更新记录: {r['lottery_type']} {r['period']}")
-            else:
-                # 如果期号不存在，检查是否有相同开奖时间的记录
-                cursor.execute(
-                    "SELECT id, period FROM lottery_result WHERE lottery_type=%s AND open_time=%s",
-                    (r['lottery_type'], r['open_time'])
-                )
-                same_time_records = cursor.fetchall()
+                existing_record = cursor.fetchone()
 
-                if same_time_records:
-                    # 如果存在相同开奖时间的记录，只删除期号较小的记录
-                    for same_time_record in same_time_records:
-                        old_period = same_time_record[1]
-                        if old_period < r['period']:  # 只删除期号较小的记录
-                            cursor.execute(
-                                "DELETE FROM lottery_result WHERE lottery_type=%s AND period=%s",
-                                (r['lottery_type'], old_period)
-                            )
-                            print(f"删除相同开奖时间的旧记录: {r['lottery_type']} {old_period}")
+                if existing_record:
+                    # 如果期号已存在，更新记录
+                    cursor.execute(
+                        """
+                        UPDATE lottery_result
+                        SET open_time=%s, lunar_date=%s, numbers=%s, animals=%s, created_at=NOW()
+                        WHERE lottery_type=%s AND period=%s
+                        """,
+                        (r['open_time'], r['lunar_date'], r['numbers'], r['animals'], r['lottery_type'], r['period'])
+                    )
+                    print(f"更新记录: {r['lottery_type']} {r['period']}")
+                else:
+                    # 如果期号不存在，检查是否有相同开奖时间的记录
+                    cursor.execute(
+                        "SELECT id, period FROM lottery_result WHERE lottery_type=%s AND open_time=%s",
+                        (r['lottery_type'], r['open_time'])
+                    )
+                    same_time_records = cursor.fetchall()
 
-                # 插入新记录
-                cursor.execute(
-                    """
-                    INSERT INTO lottery_result (lottery_type, period, open_time, lunar_date, numbers, animals, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    """,
-                    (r['lottery_type'], r['period'], r['open_time'], r['lunar_date'], r['numbers'], r['animals'])
-                )
-                print(f"插入新记录: {r['lottery_type']} {r['period']}")
-            saved_count += 1
-        except Exception as e:
-            print(f"保存记录失败 {r['lottery_type']} {r['period']}: {e}")
-            continue
+                    if same_time_records:
+                        # 如果存在相同开奖时间的记录，只删除期号较小的记录
+                        for same_time_record in same_time_records:
+                            old_period = same_time_record[1]
+                            if old_period < r['period']:  # 只删除期号较小的记录
+                                cursor.execute(
+                                    "DELETE FROM lottery_result WHERE lottery_type=%s AND period=%s",
+                                    (r['lottery_type'], old_period)
+                                )
+                                print(f"删除相同开奖时间的旧记录: {r['lottery_type']} {old_period}")
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+                    # 插入新记录
+                    cursor.execute(
+                        """
+                        INSERT INTO lottery_result (lottery_type, period, open_time, lunar_date, numbers, animals, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                        """,
+                        (r['lottery_type'], r['period'], r['open_time'], r['lunar_date'], r['numbers'], r['animals'])
+                    )
+                    print(f"插入新记录: {r['lottery_type']} {r['period']}")
+                saved_count += 1
+            except Exception as e:
+                print(f"保存记录失败 {r['lottery_type']} {r['period']}: {e}")
+                continue
+        # 上下文管理器会自动 commit 和 close
+
     print(f"已保存{saved_count}条数据")

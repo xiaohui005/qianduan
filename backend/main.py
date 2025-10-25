@@ -42,17 +42,8 @@ async def analyze(file: UploadFile = File(...)):
     }
     return JSONResponse(content=result)
 
-@app.get("/restart")
-def restart_api(background_tasks: BackgroundTasks):
-    import os
-    import time
-    import subprocess
-    def kill_self():
-        time.sleep(1)
-        for proc in subprocess.run(['tasklist'], capture_output=True, text=True, encoding='gbk').stdout.splitlines():
-            if 'python' in proc.lower() and str(os.getpid()) in proc:
-                os.system(f'taskkill /F /PID {os.getpid()}')
-                break
-    background_tasks.add_task(kill_self)
-    return {"message": "重启中..."}
+# /restart 端点已移除
+# 原因：存在严重安全风险，任何人都可以通过该端点关闭服务
+# 如需重启服务，请使用系统级的进程管理工具（如 systemd、supervisor 或 Windows 服务）
+# 或者通过托盘应用（tray_app.py）进行管理
 
