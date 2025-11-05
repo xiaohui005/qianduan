@@ -4,6 +4,31 @@ import os
 import time
 import threading
 import webbrowser
+import subprocess
+
+# 检查虚拟环境并自动切换
+def ensure_venv():
+    """确保在虚拟环境中运行"""
+    # 检查是否已在虚拟环境中
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        return  # 已在虚拟环境中
+
+    # 检查项目虚拟环境是否存在
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    venv_python = os.path.join(project_root, 'venv', 'Scripts', 'python.exe')
+
+    if os.path.exists(venv_python):
+        print("检测到项目虚拟环境，正在切换...")
+        # 使用虚拟环境的Python重新运行此脚本
+        result = subprocess.run([venv_python] + sys.argv)
+        sys.exit(result.returncode)
+    else:
+        print("警告: 未找到项目虚拟环境 (venv)")
+        print("建议运行: python -m venv venv && venv\\Scripts\\pip install -r requirements_project.txt")
+        print("继续使用全局Python环境...\n")
+
+# 优先使用虚拟环境
+ensure_venv()
 
 # 添加backend到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))

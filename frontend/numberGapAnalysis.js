@@ -10,6 +10,8 @@ let gapCurrentPage = 1;
 let gapPageSize = 50;
 let gapCurrentLotteryType = 'am';
 let gapCurrentYear = null;
+let gapQueryPosition = null;  // 查询的位置（1-7）
+let gapQueryValue = null;     // 查询的间隔期数
 
 // 初始化号码间隔期数分析页面
 function initNumberGapAnalysisPage() {
@@ -41,6 +43,18 @@ function initNumberGapAnalysisPage() {
   const exportBtn = document.getElementById('exportGapCsvBtn');
   if (exportBtn) {
     exportBtn.addEventListener('click', exportNumberGapCsv);
+  }
+
+  // 绑定查询按钮事件
+  const queryBtn = document.getElementById('queryGapBtn');
+  if (queryBtn) {
+    queryBtn.addEventListener('click', handleQueryGap);
+  }
+
+  // 绑定重置按钮事件
+  const resetBtn = document.getElementById('resetGapBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', handleResetQuery);
   }
 
   // 初始化年份下拉框
@@ -109,11 +123,34 @@ function renderNumberGapTable(data) {
 
   const { data: records, pagination } = data;
 
+  // 筛选数据：如果有查询条件，只保留符合条件的记录
+  let filteredRecords = records;
+  if (gapQueryPosition !== null && gapQueryValue !== null) {
+    const queryIndex = gapQueryPosition - 1;
+    filteredRecords = records.filter(record => {
+      return record.gaps[queryIndex] >= gapQueryValue;
+    });
+  }
+
+  // 构建查询状态提示
+  let queryStatusHtml = '';
+  if (gapQueryPosition !== null && gapQueryValue !== null) {
+    queryStatusHtml = `
+      <div class="query-status" style="background:#fff3cd;border-left:4px solid #f39c12;padding:12px;border-radius:6px;margin:10px 0;font-size:14px;color:#856404;">
+        <span style="font-weight:600;">🔍 当前查询：</span>
+        查询第<span style="font-weight:700;color:#e67e22;">${gapQueryPosition}</span>位，
+        间隔期数 <span style="font-weight:700;color:#e67e22;">≥ ${gapQueryValue}</span> 期的号码
+        <span style="color:#27ae60;font-weight:600;margin-left:10px;">(共 ${filteredRecords.length} 条记录)</span>
+      </div>
+    `;
+  }
+
   // 构建表格HTML
   let html = `
     <div class="analysis-result-wrapper">
       <div class="analysis-header">
         <h3 style="color:#2c3e50;margin:0;">号码间隔期数分析</h3>
+        ${queryStatusHtml}
         <div class="info-bar" style="background:#e8f4f8;padding:12px;border-radius:6px;margin:10px 0;font-size:14px;color:#34495e;">
           <span style="font-weight:600;">📊 数据说明：</span>
           显示每期开奖号码在对应位置距离上次出现的间隔期数。
@@ -140,8 +177,8 @@ function renderNumberGapTable(data) {
           <tbody>
   `;
 
-  // 填充数据行
-  records.forEach((record, index) => {
+  // 填充数据行 - 使用筛选后的记录
+  filteredRecords.forEach((record, index) => {
     const rowBg = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
     html += `<tr style="background:${rowBg};">`;
     html += `<td style="padding:10px;text-align:center;border:1px solid #dee2e6;font-weight:600;">${record.period}</td>`;
@@ -152,8 +189,16 @@ function renderNumberGapTable(data) {
       const num = record.numbers[i];
       const gap = record.gaps[i];
 
+      // 检查是否是查询的位置（给查询列添加高亮）
+      const isQueryPosition = (gapQueryPosition !== null) && ((i + 1) === gapQueryPosition);
+
       let cellContent = '';
       let cellStyle = 'padding:10px;text-align:center;border:1px solid #dee2e6;';
+
+      // 如果是查询位置的列，添加特殊背景
+      if (isQueryPosition) {
+        cellStyle += 'background:#fffacd;';
+      }
 
       if (gap === -1) {
         // 首次出现，红色高亮
@@ -322,6 +367,66 @@ async function exportNumberGapCsv() {
     exportBtn.textContent = '📥 导出CSV';
     exportBtn.disabled = false;
   }
+}
+
+// 处理间隔期数查询
+function handleQueryGap() {
+  const positionSelect = document.getElementById('gapPositionSelect');
+  const valueInput = document.getElementById('gapValueInput');
+
+  // 获取查询条件
+  const position = positionSelect.value;
+  const value = valueInput.value;
+
+  // 验证输入
+  if (!position && !value) {
+    alert('请至少选择一个查询条件');
+    return;
+  }
+
+  if (position && !value) {
+    alert('请输入间隔期数');
+    return;
+  }
+
+  if (!position && value) {
+    alert('请选择位置');
+    return;
+  }
+
+  // 设置查询条件
+  gapQueryPosition = position ? parseInt(position) : null;
+  gapQueryValue = value ? parseInt(value) : null;
+
+  // 重置到第一页
+  gapCurrentPage = 1;
+
+  console.log(`查询条件：第${gapQueryPosition}位，间隔${gapQueryValue}期`);
+
+  // 重新加载数据
+  loadNumberGapData();
+}
+
+// 处理重置查询
+function handleResetQuery() {
+  // 清空查询条件
+  gapQueryPosition = null;
+  gapQueryValue = null;
+
+  // 重置输入框
+  const positionSelect = document.getElementById('gapPositionSelect');
+  const valueInput = document.getElementById('gapValueInput');
+
+  if (positionSelect) positionSelect.value = '';
+  if (valueInput) valueInput.value = '';
+
+  // 重置到第一页
+  gapCurrentPage = 1;
+
+  console.log('已重置查询条件');
+
+  // 重新加载数据
+  loadNumberGapData();
 }
 
 // 确保函数在全局作用域可访问

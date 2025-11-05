@@ -10,13 +10,22 @@ echo.
 
 cd /d "%~dp0"
 
+REM 检测虚拟环境
+if exist "venv\Scripts\python.exe" (
+    echo [检测] 使用项目虚拟环境
+    set PYTHON_CMD=venv\Scripts\python.exe
+) else (
+    echo [警告] 未找到虚拟环境，使用全局Python
+    set PYTHON_CMD=python
+)
+
 echo [1/2] 启动后端服务 (端口8000)...
-start "后端服务-8000" cmd /k "python launcher.py"
+start "后端服务-8000" cmd /k "%PYTHON_CMD% launcher.py"
 
 timeout /t 2 /nobreak >nul
 
 echo [2/2] 启动前端服务 (端口8080)...
-start "前端服务-8080" cmd /k "python -m http.server 8080 --directory frontend"
+start "前端服务-8080" cmd /k "%PYTHON_CMD% -m http.server 8080 --directory frontend"
 
 timeout /t 2 /nobreak >nul
 

@@ -572,6 +572,31 @@
             </select>
           </div>
 
+          <!-- 间隔期数查询 -->
+          <div style="margin-bottom:15px;padding:15px;background:white;border:2px solid #3498db;border-radius:8px;">
+            <label style="font-weight:600;margin-right:10px;color:#2c3e50;">🔍 间隔期数查询：</label>
+            <label style="margin-right:5px;color:#555;">第</label>
+            <select id="gapPositionSelect" style="padding:8px 12px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;margin-right:10px;">
+              <option value="">不限</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+            </select>
+            <label style="margin-right:5px;color:#555;">位，间隔</label>
+            <input type="number" id="gapValueInput" placeholder="期数" min="0" max="999" style="padding:8px 12px;border:2px solid #ddd;border-radius:6px;font-size:14px;width:100px;margin-right:10px;">
+            <label style="margin-right:10px;color:#555;">期</label>
+            <button id="queryGapBtn" style="padding:10px 20px;background:linear-gradient(135deg, #3498db, #2980b9);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(52,152,219,0.3);">
+              🔍 查询
+            </button>
+            <button id="resetGapBtn" style="padding:10px 20px;background:#95a5a6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;margin-left:10px;">
+              🔄 重置
+            </button>
+          </div>
+
           <!-- 导出按钮 -->
           <div>
             <button id="exportGapCsvBtn" style="padding:10px 20px;background:linear-gradient(135deg, #27ae60, #229954);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(39,174,96,0.3);">

@@ -40,7 +40,7 @@ except Exception:
 
 def get_max_period(lottery_type):
     """获取指定彩种的最大期号（使用上下文管理器，防止连接泄漏）"""
-    with get_db_cursor() as cursor:
+    with get_db_cursor(dictionary=False) as cursor:
         cursor.execute("SELECT MAX(period) FROM lottery_result WHERE lottery_type=%s", (lottery_type,))
         row = cursor.fetchone()
         return row[0] if row and row[0] else None
@@ -48,10 +48,12 @@ def get_max_period(lottery_type):
 def fetch_lottery(url, lottery_type, check_max_period=True):
     if not url:
         return []
+    # 去除URL中的锚点（如 #dh），因为BeautifulSoup不处理锚点
+    url = url.split('#')[0]
     # 兼容部分站点需带UA与关闭验证
     resp = httpx.get(url, timeout=15, headers={
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
-    }, verify=False)
+    }, verify=False, follow_redirects=True)
     # 设置编码（必须在访问resp.text之前设置）
     # 改进的编码检测逻辑，避免中文乱码
     try:
@@ -86,8 +88,8 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         dt_text = dt.get_text(strip=True)
         # 修复正则表达式，支持<b>标签和不同的日期格式
         # 兼容不同页面样式（可能有空格、冒号变体等）
-        # 新版HTML: <b>294</b>期(开奖时间:2025-10-21)
-        # 旧版HTML: 294期(开奖时间:2025-10-21)
+        # 新版HTML（2025-10）: <dt><b>297</b>期(开奖时间:2025-10-24)</dt>
+        # 旧版HTML: <dt>294期(开奖时间:2025-10-21)</dt>
         m = re.match(r'(\d+)期\(\s*开奖时间\s*[:：]\s*(\d{4}-\d{1,2}-\d{1,2})\s*\)', dt_text)
         if not m:
             continue
@@ -108,7 +110,10 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         balls = []
         animals = []
         # ball结构兼容：class可能不同或span/b标签层级不同
-        # 新版HTML: div.ball > p > span + b
+        # 新版HTML（2025-10）: div.ball > p > span + b
+        #   <div class="ball" data-name="猪" data-index="0">
+        #     <p><span class="green">43</span><b>猪</b></p>
+        #   </div>
         # 旧版HTML: div.ball > span + b
         for div in li.find_all('div', class_=re.compile('ball')):
             # 尝试新版结构：先找p标签
@@ -122,7 +127,9 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
                 animal_b = div.find('b')
 
             if num_span and animal_b:
-                balls.append(num_span.get_text(strip=True))
+                # 去掉数字中的前导零（如"01" -> "1"），但保留两位数
+                num_text = num_span.get_text(strip=True)
+                balls.append(str(int(num_text)))  # 转为int再转str去掉前导0
                 animals.append(animal_b.get_text(strip=True))
         if balls and animals:
             results.append({
@@ -185,7 +192,7 @@ def save_results(results):
                     if same_time_records:
                         # 如果存在相同开奖时间的记录，只删除期号较小的记录
                         for same_time_record in same_time_records:
-                            old_period = same_time_record[1]
+                            old_period = same_time_record['period']
                             if old_period < r['period']:  # 只删除期号较小的记录
                                 cursor.execute(
                                     "DELETE FROM lottery_result WHERE lottery_type=%s AND period=%s",

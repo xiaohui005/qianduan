@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Administrator/Desktop/six666/**)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Bash(cmd /c \"cd /d C:\\Users\\Administrator\\Desktop\\jianmo && venv\\Scripts\\activate && pip install python-jose[cryptography]==3.3.0 passlib[bcrypt]==1.7.4\")",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__list_console_messages"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

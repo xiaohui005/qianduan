@@ -511,6 +511,16 @@ function showOnlyPage(pageId) {
       initSchedulerPage();
     }
 
+    // 如果是2组观察页面,初始化
+    if (pageId === 'twoGroupsPage' && typeof initTwoGroupsPage === 'function') {
+      initTwoGroupsPage();
+    }
+
+    // 如果是号码间隔期数分析页面,初始化
+    if (pageId === 'numberGapAnalysisPage' && typeof initNumberGapAnalysisPage === 'function') {
+      initNumberGapAnalysisPage();
+    }
+
     // 确保滚动到主内容区域顶部，避免用户视觉上看到"页面底部"
     const main = document.querySelector('.main-content');
     // 优先滚动整个窗口到主内容顶部

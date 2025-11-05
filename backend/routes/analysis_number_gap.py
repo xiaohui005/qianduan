@@ -66,7 +66,9 @@ def get_number_gap_analysis(
     lottery_type: str = Query('am', description='彩种类型：am=澳门, hk=香港'),
     page: int = Query(1, ge=1, description='页码'),
     page_size: int = Query(50, ge=1, le=100, description='每页条数'),
-    year: Optional[str] = Query(None, description='年份筛选，例如：2025')
+    year: Optional[str] = Query(None, description='年份筛选，例如：2025'),
+    query_position: Optional[int] = Query(None, ge=1, le=7, description='查询位置（1-7），筛选该位置间隔期数 >= min_gap 的记录'),
+    min_gap: Optional[int] = Query(None, ge=0, le=999, description='最小间隔期数（0-999），与query_position配合使用')
 ):
     """
     号码间隔期数分析
@@ -74,6 +76,10 @@ def get_number_gap_analysis(
     返回每期开奖数据及7个位置每个号码距离上次在同位置开出的间隔期数
     间隔期数定义：当前期索引 - 上次出现索引 - 1
     首次出现的号码标记为 -1
+
+    支持筛选功能：
+    - 如果提供了 query_position 和 min_gap，则只返回该位置间隔期数 >= min_gap 的记录
+    - 筛选在内存中进行，但会影响分页结果
     """
     try:
         with get_db_cursor() as cursor:
@@ -115,13 +121,27 @@ def get_number_gap_analysis(
         # 倒序排列（最新期在前）
         gap_data.reverse()
 
-        # 分页处理
-        total = len(gap_data)
-        total_pages = (total + page_size - 1) // page_size
+        # 应用筛选条件（如果提供）
+        filtered_data = gap_data
+        if query_position is not None and min_gap is not None:
+            # 位置索引从0开始
+            position_idx = query_position - 1
+
+            # 筛选该位置间隔期数 >= min_gap 的记录
+            filtered_data = [
+                record for record in gap_data
+                if position_idx < len(record['gaps']) and
+                   record['gaps'][position_idx] is not None and
+                   record['gaps'][position_idx] >= min_gap
+            ]
+
+        # 分页处理（基于筛选后的数据）
+        total = len(filtered_data)
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
         start_idx = (page - 1) * page_size
         end_idx = min(start_idx + page_size, total)
 
-        page_data = gap_data[start_idx:end_idx]
+        page_data = filtered_data[start_idx:end_idx]
 
         return {
             "success": True,
@@ -133,7 +153,9 @@ def get_number_gap_analysis(
                 "total_pages": total_pages
             },
             "lottery_type": lottery_type,
-            "year": year
+            "year": year,
+            "query_position": query_position,
+            "min_gap": min_gap
         }
 
     except Exception as e:
@@ -148,10 +170,14 @@ def get_number_gap_analysis(
 @router.get("/api/number_gap_analysis/export")
 def export_number_gap_analysis(
     lottery_type: str = Query('am', description='彩种类型：am=澳门, hk=香港'),
-    year: Optional[str] = Query(None, description='年份筛选，例如：2025')
+    year: Optional[str] = Query(None, description='年份筛选，例如：2025'),
+    query_position: Optional[int] = Query(None, ge=1, le=7, description='查询位置（1-7）'),
+    min_gap: Optional[int] = Query(None, ge=0, le=999, description='最小间隔期数（0-999）')
 ):
     """
     导出号码间隔期数分析数据为CSV
+
+    支持筛选：如果提供了 query_position 和 min_gap，则只导出符合条件的记录
     """
     try:
         with get_db_cursor() as cursor:
@@ -185,6 +211,16 @@ def export_number_gap_analysis(
 
         # 倒序排列（最新期在前）
         gap_data.reverse()
+
+        # 应用筛选条件（如果提供）
+        if query_position is not None and min_gap is not None:
+            position_idx = query_position - 1
+            gap_data = [
+                record for record in gap_data
+                if position_idx < len(record['gaps']) and
+                   record['gaps'][position_idx] is not None and
+                   record['gaps'][position_idx] >= min_gap
+            ]
 
         # 准备CSV数据
         csv_rows = []
