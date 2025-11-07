@@ -3140,13 +3140,19 @@ function downloadCSV(rows, filename) {
 
   // 更新关注点登记结果分页
   function updatePlaceResultsPagination(results, currentPage) {
-    const total = results?.total || 0;
-    const pageSize = results?.page_size || 20;
-    const totalPages = results?.total_pages || 0;
+    const total = results?.pagination?.total || 0;
+    const pageSize = results?.pagination?.page_size || 20;
+    const totalPages = results?.pagination?.total_pages || 0;
+    console.log('分页信息:', {
+      total: total,
+      pageSize: pageSize,
+      totalPages: totalPages
+  });
     
     currentPlaceResultTotal = total;
     currentPlaceResultTotalPages = totalPages;
-    
+    console.log('results:', results);
+     
     // 更新分页信息
     const start = (currentPage - 1) * pageSize + 1;
     const end = Math.min(currentPage * pageSize, total);
