@@ -2134,7 +2134,7 @@ setTimeout(() => {
   let originalBetsData = []; // 保存原始数据用于重置
   let filteredBetsData = []; // 保存过滤后的数据
   let currentPage = 1;
-  const pageSize = 5;
+  let pageSize = 10; // 默认每页10条，可通过下拉框调整
 
   // 渲染投注记录表格
   function renderBetsTable(bets, page = 1) {
@@ -2375,7 +2375,8 @@ setTimeout(() => {
   function bindPaginationEvents() {
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
-    
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+
     if (prevBtn) {
       prevBtn.onclick = () => {
         if (currentPage > 1) {
@@ -2383,13 +2384,22 @@ setTimeout(() => {
         }
       };
     }
-    
+
     if (nextBtn) {
       nextBtn.onclick = () => {
         const totalPages = Math.ceil(filteredBetsData.length / pageSize);
         if (currentPage < totalPages) {
           goToPage(currentPage + 1);
         }
+      };
+    }
+
+    // 每页显示条数选择框事件
+    if (pageSizeSelect) {
+      pageSizeSelect.onchange = () => {
+        pageSize = parseInt(pageSizeSelect.value);
+        currentPage = 1; // 重置到第一页
+        renderBetsTable(filteredBetsData, 1);
       };
     }
   }

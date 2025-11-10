@@ -298,6 +298,16 @@
         <div id="betsPagination" class="pagination-container">
           <div class="pagination-info">
             <span id="paginationInfo">显示 0-0 条，共 0 条记录</span>
+            <span style="margin-left: 20px;">
+              每页显示：
+              <select id="pageSizeSelect" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="10" selected>10条</option>
+                <option value="20">20条</option>
+                <option value="50">50条</option>
+                <option value="100">100条</option>
+                <option value="500">500条</option>
+              </select>
+            </span>
           </div>
           <div class="pagination-controls">
             <button id="prevPageBtn" class="pagination-btn" disabled>上一页</button>
