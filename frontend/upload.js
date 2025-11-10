@@ -4918,22 +4918,23 @@ function downloadCSV(rows, filename) {
   function bindFavoriteNumbersEvents() {
     const form = document.getElementById('favoriteNumbersForm');
     if (form) {
-      form.addEventListener('submit', async function(e) {
+      // 使用 onsubmit 直接赋值，避免重复绑定
+      form.onsubmit = async function(e) {
         e.preventDefault();
-        
+
         const id = document.getElementById('favoriteNumberId').value;
         const name = document.getElementById('favoriteNumberName').value.trim();
         const numbers = document.getElementById('favoriteNumbers').value.trim();
-        
+
         if (!name || !numbers) {
           alert('请填写完整信息');
           return;
         }
-        
+
         try {
           const data = { name, numbers };
           let res;
-          
+
           if (id) {
             // 更新
             res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers/${id}`, {
@@ -4949,7 +4950,7 @@ function downloadCSV(rows, filename) {
               body: JSON.stringify(data)
             });
           }
-          
+
           const result = await res.json();
           if (result.success) {
             alert(id ? '更新成功' : '添加成功');
@@ -4962,45 +4963,45 @@ function downloadCSV(rows, filename) {
           console.error('操作失败:', error);
           alert('操作失败，请检查网络连接');
         }
-      });
+      };
     }
 
-    // 取消编辑按钮
+    // 取消编辑按钮 - 使用 onclick 避免重复绑定
     const cancelBtn = document.getElementById('cancelFavoriteNumberBtn');
     if (cancelBtn) {
-      cancelBtn.addEventListener('click', resetFavoriteNumberForm);
+      cancelBtn.onclick = resetFavoriteNumberForm;
     }
 
-    // 刷新按钮
+    // 刷新按钮 - 使用 onclick 避免重复绑定
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', loadFavoriteNumbers);
+      refreshBtn.onclick = loadFavoriteNumbers;
     }
 
     // 彩种按钮点击事件
     const lotteryBtns = document.querySelectorAll('.lottery-btn');
     lotteryBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.onclick = function() {
         // 移除所有按钮的active类
         lotteryBtns.forEach(b => b.classList.remove('active'));
         // 给当前按钮添加active类
         this.classList.add('active');
         // 重新加载数据
         loadFavoriteNumbers();
-      });
+      };
     });
 
     // 位置按钮点击事件
     const positionBtns = document.querySelectorAll('.position-btn');
     positionBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.onclick = function() {
         // 移除所有按钮的active类
         positionBtns.forEach(b => b.classList.remove('active'));
         // 给当前按钮添加active类
         this.classList.add('active');
         // 重新加载数据
         loadFavoriteNumbers();
-      });
+      };
     });
   }
 
