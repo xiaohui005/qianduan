@@ -37,6 +37,11 @@ def get_places():
         rows = cursor.fetchall()
     return jsonable_encoder(rows)
 
+# 别名端点，用于前端兼容
+@router.get("/api/betting_places")
+def get_betting_places():
+    return get_places()
+
 @router.post("/api/places")
 def add_place(data: PlaceData):
     with get_db_cursor(commit=True) as cursor:
@@ -45,6 +50,11 @@ def add_place(data: PlaceData):
             (data.name, data.description)
         )
     return {"success": True}
+
+# 别名端点，用于前端兼容
+@router.post("/api/betting_places")
+def add_betting_place(data: PlaceData):
+    return add_place(data)
 
 @router.put("/api/places/{place_id}")
 def update_place(place_id: int, data: PlaceData):
@@ -60,6 +70,11 @@ def delete_place(place_id: int):
     with get_db_cursor(commit=True) as cursor:
         cursor.execute("DELETE FROM places WHERE id=%s", (place_id,))
     return {"success": True}
+
+# 别名端点，用于前端兼容
+@router.delete("/api/betting_places/{place_id}")
+def delete_betting_place(place_id: int):
+    return delete_place(place_id)
 
 # --- 投注记录 bets 表的增删改查 API ---
 
@@ -505,6 +520,16 @@ def get_bet_report(
             }
     except Exception as e:
         return {"success": False, "message": f"报表生成失败: {str(e)}"}
+
+# 别名端点，用于前端兼容
+@router.get("/api/betting_report")
+def get_betting_report(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    place_id: Optional[int] = Query(None)
+):
+    """获取投注点报表统计数据（别名）"""
+    return get_bet_report(start_date, end_date, place_id)
 
 @router.get("/api/debug/bets")
 def debug_bets():

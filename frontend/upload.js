@@ -2350,15 +2350,23 @@ setTimeout(() => {
   async function loadBets() {
     const res = await fetch(window.BACKEND_URL + '/api/bets');
     const data = await res.json();
+
+    // 按照期数倒序排序
+    data.sort((a, b) => {
+      const qishuA = parseInt(a.qishu) || 0;
+      const qishuB = parseInt(b.qishu) || 0;
+      return qishuB - qishuA; // 倒序：大的在前
+    });
+
     allBetsData = data;
     originalBetsData = [...data]; // 保存原始数据
     filteredBetsData = [...data]; // 初始化过滤数据
     currentPage = 1;
     renderBetsTable(data, 1);
-    
+
     // 绑定分页按钮事件
     bindPaginationEvents();
-    
+
     // 绑定查询按钮事件
     bindQueryEvents();
   }
@@ -2417,21 +2425,15 @@ setTimeout(() => {
   function filterBets() {
     const queryPlace = document.getElementById('queryPlace').value.trim().toLowerCase();
     const queryQishu = document.getElementById('queryQishu').value.trim();
-    const queryBetAmount = document.getElementById('queryBetAmount').value;
-    const queryWinAmount = document.getElementById('queryWinAmount').value;
     const queryIsCorrect = document.getElementById('queryIsCorrect').value;
-    const queryProfitLoss = document.getElementById('queryProfitLoss').value;
     const queryStartDate = document.getElementById('queryStartDate').value;
     const queryEndDate = document.getElementById('queryEndDate').value;
-    
+
     // 调试信息
     console.log('查询条件:', {
       queryPlace,
       queryQishu,
-      queryBetAmount,
-      queryWinAmount,
       queryIsCorrect,
-      queryProfitLoss,
       queryStartDate,
       queryEndDate
     });
@@ -2447,27 +2449,7 @@ setTimeout(() => {
       if (queryQishu && !bet.qishu?.includes(queryQishu)) {
         return false;
       }
-      
-      // 投注金额过滤
-      if (queryBetAmount) {
-        const betAmount = parseFloat(bet.bet_amount) || 0;
-        const [minAmount, maxAmount] = parseAmountRange(queryBetAmount);
-        
-        if (betAmount < minAmount || betAmount > maxAmount) {
-          return false;
-        }
-      }
-      
-      // 赢取金额过滤
-      if (queryWinAmount) {
-        const winAmount = parseFloat(bet.win_amount) || 0;
-        const [minAmount, maxAmount] = parseAmountRange(queryWinAmount);
-        
-        if (winAmount < minAmount || winAmount > maxAmount) {
-          return false;
-        }
-      }
-      
+
       // 是否正确过滤
       if (queryIsCorrect !== '') {
         if (queryIsCorrect === 'null') {
@@ -2481,25 +2463,7 @@ setTimeout(() => {
           }
         }
       }
-      
-      // 输赢金额过滤
-      if (queryProfitLoss) {
-        if (bet.is_correct !== null && bet.is_correct !== undefined) {
-          const winAmount = parseFloat(bet.win_amount) || 0;
-          const betAmount = parseFloat(bet.bet_amount) || 0;
-          const profitLoss = winAmount - betAmount;
-          
-          const [minProfit, maxProfit] = parseAmountRange(queryProfitLoss);
-          
-          if (profitLoss < minProfit || profitLoss > maxProfit) {
-            return false;
-          }
-        } else {
-          // 如果查询输赢金额但记录未判断，则过滤掉
-          return false;
-        }
-      }
-      
+
       // 创建时间过滤
       if (queryStartDate || queryEndDate) {
         const createdDate = bet.created_at ? bet.created_at.split('T')[0] : '';
@@ -2516,7 +2480,14 @@ setTimeout(() => {
     
     console.log('过滤前数据量:', originalBetsData.length);
     console.log('过滤后数据量:', filteredBets.length);
-    
+
+    // 按照期数倒序排序
+    filteredBets.sort((a, b) => {
+      const qishuA = parseInt(a.qishu) || 0;
+      const qishuB = parseInt(b.qishu) || 0;
+      return qishuB - qishuA; // 倒序：大的在前
+    });
+
     // 更新过滤后的数据
     filteredBetsData = filteredBets;
     currentPage = 1;
@@ -2536,36 +2507,16 @@ setTimeout(() => {
     filteredBetsData = [...originalBetsData];
     currentPage = 1;
     renderBetsTable(filteredBetsData, 1);
-    
+
     // 清空查询条件
     clearQuery();
   }
-  
-  // 解析金额范围
-  function parseAmountRange(rangeStr) {
-    if (!rangeStr) return [0, Infinity];
-    
-    if (rangeStr.includes('-')) {
-      const parts = rangeStr.split('-');
-      const min = parseFloat(parts[0]) || 0;
-      const max = parseFloat(parts[1]) || Infinity;
-      return [min, max];
-    } else if (rangeStr.includes('+')) {
-      const min = parseFloat(rangeStr.replace('+', '')) || 0;
-      return [min, Infinity];
-    }
-    
-    return [0, Infinity];
-  }
-  
+
   // 清空查询条件
   function clearQuery() {
     document.getElementById('queryPlace').value = '';
     document.getElementById('queryQishu').value = '';
-    document.getElementById('queryBetAmount').value = '';
-    document.getElementById('queryWinAmount').value = '';
     document.getElementById('queryIsCorrect').value = '';
-    document.getElementById('queryProfitLoss').value = '';
     document.getElementById('queryStartDate').value = '';
     document.getElementById('queryEndDate').value = '';
     
@@ -2692,16 +2643,24 @@ setTimeout(() => {
     // 重新加载数据并保持当前页面
     const res = await fetch(window.BACKEND_URL + '/api/bets');
     const data = await res.json();
+
+    // 按照期数倒序排序
+    data.sort((a, b) => {
+      const qishuA = parseInt(a.qishu) || 0;
+      const qishuB = parseInt(b.qishu) || 0;
+      return qishuB - qishuA; // 倒序：大的在前
+    });
+
     allBetsData = data;
     originalBetsData = [...data]; // 更新原始数据
     filteredBetsData = [...data]; // 更新过滤数据
-    
+
     // 如果当前页面没有数据了，回到上一页
     const totalPages = Math.ceil(filteredBetsData.length / pageSize);
     if (currentPage > totalPages && totalPages > 0) {
       currentPage = totalPages;
     }
-    
+
     renderBetsTable(filteredBetsData, currentPage);
   }
 
@@ -2771,10 +2730,18 @@ setTimeout(() => {
       document.getElementById('betId').value = '';
       document.getElementById('cancelBetEditBtn').style.display = 'none';
       selectedPlaceId = null;
-      
+
       // 重新加载数据并跳转到第一页
       const res = await fetch(window.BACKEND_URL + '/api/bets');
       const data = await res.json();
+
+      // 按照期数倒序排序
+      data.sort((a, b) => {
+        const qishuA = parseInt(a.qishu) || 0;
+        const qishuB = parseInt(b.qishu) || 0;
+        return qishuB - qishuA; // 倒序：大的在前
+      });
+
       allBetsData = data;
       originalBetsData = [...data]; // 更新原始数据
       filteredBetsData = [...data]; // 更新过滤数据
