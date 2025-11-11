@@ -11,6 +11,7 @@ def ensure_venv():
     """确保在虚拟环境中运行"""
     # 检查是否已在虚拟环境中
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        print("已在虚拟环境中运行")
         return  # 已在虚拟环境中
 
     # 检查项目虚拟环境是否存在
@@ -25,10 +26,15 @@ def ensure_venv():
     else:
         print("警告: 未找到项目虚拟环境 (venv)")
         print("建议运行: python -m venv venv && venv\\Scripts\\pip install -r requirements_project.txt")
-        print("继续使用全局Python环境...\n")
+        print("继续使用当前Python环境...\n")
 
-# 优先使用虚拟环境
-ensure_venv()
+# 方法1：完全跳过虚拟环境检查（推荐）
+# 直接注释掉下面这行，不执行虚拟环境检查
+# ensure_venv()
+
+# 方法2：或者修改为只检查但不切换
+print(f"当前Python环境: {sys.executable}")
+print("跳过虚拟环境检查，直接在当前环境运行...\n")
 
 # 添加backend到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
@@ -109,8 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
