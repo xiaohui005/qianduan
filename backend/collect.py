@@ -129,17 +129,34 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
             if num_span and animal_b:
                 # 去掉数字中的前导零（如"01" -> "1"），但保留两位数
                 num_text = num_span.get_text(strip=True)
-                balls.append(str(int(num_text)))  # 转为int再转str去掉前导0
-                animals.append(animal_b.get_text(strip=True))
+                animal_text = animal_b.get_text(strip=True)
+
+                # 容错处理：跳过无效的号码数据
+                if not num_text or not num_text.strip():
+                    print(f"警告: 期号 {period} 存在空号码，跳过此球")
+                    continue
+
+                try:
+                    # 转为int再转str去掉前导0
+                    normalized_num = str(int(num_text))
+                    balls.append(normalized_num)
+                    animals.append(animal_text)
+                except ValueError:
+                    print(f"警告: 期号 {period} 号码格式错误 '{num_text}'，跳过此球")
+                    continue
+        # 验证数据完整性：必须有7个号码和7个生肖
         if balls and animals:
-            results.append({
-                'lottery_type': lottery_type,
-                'period': period,
-                'open_time': open_time_dt,
-                'numbers': ','.join(balls),
-                'animals': ','.join(animals),
-                'lunar_date': lunar_date
-            })
+            if len(balls) == 7 and len(animals) == 7:
+                results.append({
+                    'lottery_type': lottery_type,
+                    'period': period,
+                    'open_time': open_time_dt,
+                    'numbers': ','.join(balls),
+                    'animals': ','.join(animals),
+                    'lunar_date': lunar_date
+                })
+            else:
+                print(f"警告: 期号 {period} 数据不完整 (号码:{len(balls)}个, 生肖:{len(animals)}个)，跳过此期")
     if check_max_period:
         print(f"数据库最大期号: {max_db_period}, 网页最大期号: {max_html_period}")
         if max_db_period and max_html_period and max_db_period >= max_html_period:

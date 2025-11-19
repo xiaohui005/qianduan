@@ -36,7 +36,9 @@ def calculate_number_gaps(records):
         gaps = []
         for pos in range(7):
             if pos < len(numbers):
-                num = numbers[pos]
+                # 标准化号码：将"07"和"7"统一处理为"7"
+                num = numbers[pos].strip()
+                num = str(int(num))  # 去除前导零
 
                 # 检查该号码在该位置是否之前出现过
                 if num in last_appearance[pos]:
@@ -311,7 +313,9 @@ def get_number_gap_stats(
             for idx, record in enumerate(all_records):
                 numbers = record['numbers'].split(',')
                 if pos < len(numbers):
-                    num = numbers[pos]
+                    # 标准化号码：将"07"和"7"统一处理为"7"
+                    num = numbers[pos].strip()
+                    num = str(int(num))  # 去除前导零
 
                     # 初始化号码统计
                     if num not in position_stats:

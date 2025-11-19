@@ -17,7 +17,12 @@ def collect_api(type: str = None):
     fallback_urls = getattr(config, 'FALLBACK_COLLECT_URLS', {})
     for t in types:
         print(f"开始采集: {t}")
-        data = collect.fetch_lottery(urls[t], t)
+        try:
+            data = collect.fetch_lottery(urls[t], t)
+        except Exception as e:
+            print(f"主采集源异常: {e}")
+            data = []
+
         if not data:
             print(f"默认源未采集到数据,尝试备用源: {t}")
             try:
