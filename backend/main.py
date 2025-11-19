@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 # 导入路由模块
-from backend.routes import collect, recommend, analysis, favorites, analysis_seventh_smart, analysis_two_groups, analysis_number_gap, betting
+from backend.routes import collect, recommend, analysis, favorites, analysis_seventh_smart, analysis_two_groups, analysis_number_gap, betting, analysis_hot20
 
 # 注册路由
 app.include_router(collect.router, tags=["采集"])
@@ -28,6 +28,7 @@ app.include_router(analysis_number_gap.router, tags=["号码间隔分析"])
 app.include_router(favorites.router, tags=["收藏号码"])
 app.include_router(analysis_two_groups.router, tags=["2组观察"])
 app.include_router(betting.router, tags=["投注管理"])
+app.include_router(analysis_hot20.router, tags=["去10分析"])
 
 @app.get("/")
 def read_root():

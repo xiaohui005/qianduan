@@ -10,11 +10,13 @@
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <h2 style="color:#2980d9;text-align:center;margin:18px 0 30px 0;">彩票分析系统</h2>
-      <button class="menu-btn" id="menuCollectBtn">采集</button>
-      <button class="menu-btn" id="menuRecordsBtn">开奖结果</button>
-      <button class="menu-btn" id="menuMaxMissAlertBtn">关注点登记最大遗漏提醒</button>
-      <button id="toggleSidebarBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">分析推荐 ▼</button>
+      <div style="background:linear-gradient(135deg,#2980d9 0%,#3498db 100%);padding:20px 0;margin-bottom:15px;box-shadow:0 2px 8px rgba(41,128,217,0.2);">
+        <h2 style="color:#fff;text-align:center;margin:0;font-size:20px;font-weight:700;letter-spacing:2px;text-shadow:0 2px 4px rgba(0,0,0,0.1);">🎰 彩票分析系统</h2>
+      </div>
+      <button class="menu-btn" id="menuCollectBtn">📥 采集</button>
+      <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
+      <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
+      <button id="toggleSidebarBtn" style="width:88%;margin:0 auto 12px auto;display:block;background:linear-gradient(135deg,#fff3cd 0%,#fff8e1 100%);color:#856404;font-weight:bold;border:2px solid #ffc107;border-radius:8px;padding:10px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 2px 4px rgba(255,193,7,0.2);">✨ 分析推荐 ▼</button>
       <div id="sidebarMenuBtns">
         <!-- 推荐功能 -->
         <div class="menu-subgroup">
@@ -35,7 +37,9 @@
           </button>
           <div id="rangeGroupBtns" class="subgroup-btns">
             <button class="menu-btn menu-btn-sub" id="menuRangeBtn">+1~+20区间分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuMinusRangeBtn">-1~-20区间分析</button>
             <button class="menu-btn menu-btn-sub" id="menuSeventhRangeBtn">第7码+1~+20区间</button>
+            <button class="menu-btn menu-btn-sub" id="menuHot20Minus10Btn">去10的最热20分析</button>
           </div>
         </div>
 
@@ -77,17 +81,16 @@
           </div>
         </div>
       </div>
-      <button id="toggleRegisterBtn" style="width:90%;margin:0 5%;margin-bottom:12px;background:#fffbe9;color:#c0392b;font-weight:bold;border:1px solid #f5c16c;border-radius:7px;padding:8px 0;cursor:pointer;">
-        登记点分析 <span id="registerCollapseIcon">▼</span>
+      <button id="toggleRegisterBtn" style="width:88%;margin:0 auto 12px auto;display:block;background:linear-gradient(135deg,#f8d7da 0%,#ffe0e6 100%);color:#721c24;font-weight:bold;border:2px solid #f5c6cb;border-radius:8px;padding:10px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 2px 4px rgba(220,53,69,0.15);">
+        📊 登记点分析 <span id="registerCollapseIcon">▼</span>
       </button>
-      <div id="registerMenuBtns" style="display:none; margin-bottom:12px;">
-        <button class="menu-btn" id="menuRegisterFocusBtn">登记关注点</button>
-        <button class="menu-btn" id="menuRegisterFocusResultBtn">关注点登记结果</button>
-        <button class="menu-btn" id="menuRegisterFocusAnalysisBtn">关注点分析</button>
-        <button class="menu-btn" id="menuFavoriteNumbersBtn">关注号码管理</button>
-      
-        <button class="menu-btn" id="menuRegisterBetBtn">投注登记点</button>
-        <button class="menu-btn" id="menuRegisterBetReportBtn">投注点报表</button>
+      <div id="registerMenuBtns" style="display:none; margin-bottom:12px; padding:0 6%;">
+        <button class="menu-btn" id="menuRegisterFocusBtn" style="margin-bottom:8px;">📝 登记关注点</button>
+        <button class="menu-btn" id="menuRegisterFocusResultBtn" style="margin-bottom:8px;">📊 关注点登记结果</button>
+        <button class="menu-btn" id="menuRegisterFocusAnalysisBtn" style="margin-bottom:8px;">📈 关注点分析</button>
+        <button class="menu-btn" id="menuFavoriteNumbersBtn" style="margin-bottom:8px;">⭐ 关注号码管理</button>
+        <button class="menu-btn" id="menuRegisterBetBtn" style="margin-bottom:8px;">💰 投注登记点</button>
+        <button class="menu-btn" id="menuRegisterBetReportBtn" style="margin-bottom:8px;">📑 投注点报表</button>
       </div>
     </aside>
     <main class="main-content">
@@ -872,6 +875,12 @@
             <button type="button" class="position-btn" data-position="6">第6位</button>
             <button type="button" class="position-btn active" data-position="7">第7位</button>
           </div>
+
+          <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 15px; color: #2c3e50;">📅 年份筛选：</label>
+          <div class="year-buttons" style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #ddd;">
+            <button type="button" class="year-btn active" data-year="">全部</button>
+          </div>
+
           <button type="button" id="refreshBtn" class="btn-primary">刷新数据</button>
         </div>
         
@@ -1337,6 +1346,7 @@
   <script src="seventhSmart20.js"></script>
   <script src="twoGroups.js"></script>
   <script src="numberGapAnalysis.js"></script>
+  <script src="hot20Analysis.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');

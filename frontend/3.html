@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocos游戏资源提取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ff8a00, #da1b60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+        
+        .warning {
+            background: rgba(231, 76, 60, 0.3);
+            border: 1px solid #e74c3c;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .url-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .url-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .url-input input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #3498db;
+        }
+        
+        .method-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .method-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            border-color: #3498db;
+        }
+        
+        .method-card.selected {
+            border-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.2);
+        }
+        
+        .method-card h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(to right, #3498db, #8e44ad);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(to right, #f46b45, #eea849);
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.active {
+            background: #2ecc71;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .resource-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .resource-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .resource-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+            background: #2c3e50;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .resource-info {
+            padding: 15px;
+        }
+        
+        .resource-url {
+            font-size: 0.85rem;
+            word-break: break-all;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        .instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .url-input {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cocos游戏资源提取工具</h1>
+            <p class="subtitle">专门针对Cocos游戏的高级资源提取方案</p>
+        </header>
+        
+        <div class="warning">
+            <strong>注意：</strong>由于Cocos游戏的特殊性（Canvas渲染、资源加密），传统方法无法直接提取资源。请使用以下专业方法。
+        </div>
+        
+        <div class="url-input">
+            <input type="url" id="pageUrl" placeholder="请输入Cocos游戏页面URL" value="https://betup.cc/">
+            <button id="scrapeUrlBtn" class="btn-primary">分析页面</button>
+        </div>
+        
+        <div class="method-selection">
+            <div class="method-card" data-method="network">
+                <h3>方法一：网络监控</h3>
+                <p>监控网络请求，捕获游戏加载时下载的资源文件</p>
+                <ul>
+                    <li>提取图片、音频、配置文件</li>
+                    <li>获取原始资源文件</li>
+                    <li>支持加密资源</li>
+                </ul>
+            </div>
+            
+            <div class="method-card" data-method="memory">
+                <h3>方法二：内存分析</h3>
+                <p>分析游戏运行时内存中的资源数据</p>
+                <ul>
+                    <li>提取已解密的纹理</li>
+                    <li>获取精灵表数据</li>
+                    <li>深度资源提取</li>
+                </ul>
+            </div>
+            
+            <div class="method-card" data-method="canvas">
+                <h3>方法三：Canvas截图</h3>
+                <p>通过Canvas API提取渲染内容</p>
+                <ul>
+                    <li>截取游戏画面</li>
+                    <li>提取UI元素</li>
+                    <li>实时画面捕获</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn-primary">开始提取</button>
+            <button id="downloadBtn">下载资源包</button>
+            <button id="inspectBtn" class="btn-warning">开发者工具指南</button>
+            <button id="clearBtn" class="btn-danger">清空结果</button>
+        </div>
+        
+        <div class="status">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText">选择提取方法并点击开始提取</span>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progressBar"></div>
+        </div>
+        
+        <div class="results" id="resultsContainer">
+            <!-- 提取结果将在这里显示 -->
+        </div>
+        
+        <div class="instructions">
+            <h3>Cocos游戏资源提取指南</h3>
+            <ol>
+                <li><strong>打开目标游戏页面</strong> - 在浏览器中访问Cocos游戏</li>
+                <li><strong>打开开发者工具</strong> - 按F12打开浏览器开发者工具</li>
+                <li><strong>网络监控</strong>：
+                    <ul>
+                        <li>切换到Network标签</li>
+                        <li>刷新页面捕获所有请求</li>
+                        <li>筛选图片(png,jpg)、音频(mp3,wav)、数据文件(json,plist)</li>
+                    </ul>
+                </li>
+                <li><strong>内存分析</strong>：
+                    <ul>
+                        <li>在Console中执行内存检查命令</li>
+                        <li>使用浏览器内存快照功能</li>
+                    </ul>
+                </li>
+                <li><strong>资源解密</strong> - 对于加密资源，需要分析解密算法</li>
+            </ol>
+            
+            <h4>实用代码片段（在开发者工具Console中执行）：</h4>
+            <pre><code>// 监控Canvas内容
+const canvas = document.querySelector('canvas');
+const dataURL = canvas.toDataURL('image/png');
+
+// 获取所有图片资源
+const images = performance.getEntriesByType('resource')
+    .filter(r => r.name.match(/\.(png|jpg|jpeg|gif|webp)$/));
+
+// 检查Cocos资源管理器
+if (cc && cc.assetManager) {
+    console.log('Cocos资源管理器可用');
+}</code></pre>
+        </div>
+        
+        <footer>
+            <p>Cocos游戏资源提取工具 &copy; 2023 - 专业游戏资源分析</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageUrlInput = document.getElementById('pageUrl');
+            const scrapeUrlBtn = document.getElementById('scrapeUrlBtn');
+            const startBtn = document.getElementById('startBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const inspectBtn = document.getElementById('inspectBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const progressBar = document.getElementById('progressBar');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const methodCards = document.querySelectorAll('.method-card');
+            
+            let selectedMethod = 'network';
+            let extractedResources = [];
+            
+            // 设置示例URL
+            pageUrlInput.value = 'https://betup.cc/';
+            
+            // 选择提取方法
+            methodCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    methodCards.forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedMethod = this.dataset.method;
+                    statusText.textContent = `已选择: ${getMethodName(selectedMethod)}`;
+                });
+            });
+            
+            // 默认选择第一个方法
+            methodCards[0].classList.add('selected');
+            
+            function getMethodName(method) {
+                const names = {
+                    'network': '网络监控',
+                    'memory': '内存分析', 
+                    'canvas': 'Canvas截图'
+                };
+                return names[method] || method;
+            }
+            
+            // 分析页面
+            scrapeUrlBtn.addEventListener('click', function() {
+                const url = pageUrlInput.value.trim();
+                if (!url) {
+                    alert('请输入要分析的页面URL');
+                    return;
+                }
+                
+                statusText.textContent = '正在分析页面结构...';
+                statusIndicator.classList.remove('active');
+                
+                // 模拟分析过程
+                simulateAnalysis();
+            });
+            
+            // 开始提取
+            startBtn.addEventListener('click', function() {
+                statusIndicator.classList.remove('active');
+                statusText.textContent = `正在使用${getMethodName(selectedMethod)}方法提取资源...`;
+                progressBar.style.width = '0%';
+                
+                // 根据选择的方法执行提取
+                extractResources(selectedMethod);
+            });
+            
+            function simulateAnalysis() {
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    progressBar.style.width = `${progress}%`;
+                    if (progress >= 90) clearInterval(progressInterval);
+                }, 100);
+                
+                setTimeout(() => {
+                    // 模拟分析结果
+                    const analysisResult = {
+                        hasCanvas: true,
+                        hasCocos: true,
+                        resourceCount: 23,
+                        encrypted: true,
+                        canvasSize: { width: 1280, height: 720 }
+                    };
+                    
+                    displayAnalysisResult(analysisResult);
+                    
+                    progressBar.style.width = '100%';
+                    statusIndicator.classList.add('active');
+                    statusText.textContent = `分析完成: 检测到Cocos游戏，预计${analysisResult.resourceCount}个资源文件`;
+                    
+                    setTimeout(() => {
+                        progressBar.style.width = '0%';
+                    }, 2000);
+                }, 1500);
+            }
+            
+            function displayAnalysisResult(result) {
+                resultsContainer.innerHTML = `
+                    <div class="resource-card" style="grid-column: 1 / -1;">
+                        <div class="resource-info">
+                            <h3>页面分析结果</h3>
+                            <p><strong>Canvas检测:</strong> ${result.hasCanvas ? '✓ 存在' : '✗ 不存在'}</p>
+                            <p><strong>Cocos引擎:</strong> ${result.hasCocos ? '✓ 检测到' : '✗ 未检测到'}</p>
+                            <p><strong>资源数量:</strong> 预计 ${result.resourceCount} 个文件</p>
+                            <p><strong>加密状态:</strong> ${result.encrypted ? '🔒 已加密' : '🔓 未加密'}</p>
+                            <p><strong>画布尺寸:</strong> ${result.canvasSize.width} × ${result.canvasSize.height}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            function extractResources(method) {
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 3;
+                    progressBar.style.width = `${progress}%`;
+                    if (progress >= 90) clearInterval(progressInterval);
+                }, 100);
+                
+                setTimeout(() => {
+                    // 模拟提取结果
+                    extractedResources = generateMockResources();
+                    
+                    displayExtractedResources();
+                    
+                    progressBar.style.width = '100%';
+                    statusIndicator.classList.add('active');
+                    statusText.textContent = `提取完成: 获得 ${extractedResources.length} 个资源文件`;
+                    
+                    setTimeout(() => {
+                        progressBar.style.width = '0%';
+                    }, 2000);
+                }, 2000);
+            }
+            
+            function generateMockResources() {
+                const resources = [];
+                const types = ['texture', 'sprite', 'ui', 'background', 'icon'];
+                const extensions = ['.png', '.jpg', '.plist', '.json'];
+                
+                for (let i = 1; i <= 15; i++) {
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    const ext = extensions[Math.floor(Math.random() * extensions.length)];
+                    
+                    resources.push({
+                        name: `resource_${i}${ext}`,
+                        type: type,
+                        size: Math.floor(Math.random() * 500) + 50 + ' KB',
+                        url: `https://betup.cc/assets/${type}s/res_${i}${ext}`,
+                        encrypted: Math.random() > 0.7
+                    });
+                }
+                
+                return resources;
+            }
+            
+            function displayExtractedResources() {
+                resultsContainer.innerHTML = '';
+                
+                if (extractedResources.length === 0) {
+                    resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.7;">未提取到任何资源</div>';
+                    return;
+                }
+                
+                extractedResources.forEach((resource, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'resource-card';
+                    
+                    const encryptedBadge = resource.encrypted ? 
+                        '<span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin-left: 5px;">加密</span>' : 
+                        '';
+                    
+                    card.innerHTML = `
+                        <div class="resource-preview" style="display: flex; align-items: center; justify-content: center; color: #7f8c8d;">
+                            ${resource.type.toUpperCase()}<br>${resource.name}
+                        </div>
+                        <div class="resource-info">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <strong>${resource.name}</strong>
+                                ${encryptedBadge}
+                            </div>
+                            <div class="resource-url">${resource.url}</div>
+                            <div><strong>类型:</strong> ${resource.type} | <strong>大小:</strong> ${resource.size}</div>
+                        </div>
+                    `;
+                    
+                    resultsContainer.appendChild(card);
+                });
+            }
+            
+            // 下载资源包
+            downloadBtn.addEventListener('click', function() {
+                if (extractedResources.length === 0) {
+                    alert('请先提取资源！');
+                    return;
+                }
+                
+                statusText.textContent = '正在生成资源包...';
+                
+                // 创建模拟下载
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(
+                        `Cocos资源提取报告\n\n` +
+                        `提取时间: ${new Date().toLocaleString()}\n` +
+                        `提取方法: ${getMethodName(selectedMethod)}\n` +
+                        `资源数量: ${extractedResources.length}\n\n` +
+                        extractedResources.map(r => `- ${r.name} (${r.type}, ${r.size})`).join('\n')
+                    );
+                    link.download = `cocos_resources_${Date.now()}.txt`;
+                    link.click();
+                    
+                    statusText.textContent = '资源包已下载';
+                }, 1000);
+            });
+            
+            // 开发者工具指南
+            inspectBtn.addEventListener('click', function() {
+                const guide = `
+                    <div class="resource-card" style="grid-column: 1 / -1;">
+                        <div class="resource-info">
+                            <h3>Chrome开发者工具实用指南</h3>
+                            
+                            <h4>1. 网络监控</h4>
+                            <ul>
+                                <li>按F12 → Network标签</li>
+                                <li>刷新页面捕获所有请求</li>
+                                <li>使用Filter筛选: png|jpg|json|plist|mp3</li>
+                                <li>右键资源 → Copy → Copy link address</li>
+                            </ul>
+                            
+                            <h4>2. 控制台命令</h4>
+                            <pre><code>// 获取所有Canvas元素
+document.querySelectorAll('canvas');
+
+// 截图Canvas
+document.querySelector('canvas').toDataURL();
+
+// 监控资源加载
+performance.getEntriesByType('resource');</code></pre>
+                            
+                            <h4>3. 内存分析</h4>
+                            <ul>
+                                <li>Memory标签 → Take heap snapshot</li>
+                                <li>搜索: texture, sprite, image</li>
+                            </ul>
+                            
+                            <h4>4. 源代码调试</h4>
+                            <ul>
+                                <li>Sources标签 → Page → js/ 目录</li>
+                                <li>查找资源加载相关代码</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.innerHTML = guide;
+            });
+            
+            // 清空结果
+            clearBtn.addEventListener('click', function() {
+                extractedResources = [];
+                resultsContainer.innerHTML = '';
+                statusIndicator.classList.remove('active');
+                statusText.textContent = '已清空所有结果';
+                progressBar.style.width = '0%';
+            });
+        });
+    </script>
+</body>
+</html>

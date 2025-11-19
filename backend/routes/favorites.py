@@ -26,15 +26,23 @@ class PlaceResultData(BaseModel):
     is_correct: Optional[int] = None
 
 @router.get("/api/favorite_numbers")
-def get_favorite_numbers(position: int = 7, lottery_type: str = 'am'):
+def get_favorite_numbers(position: int = 7, lottery_type: str = 'am', year: Optional[str] = None):
     """获取所有关注号码组"""
     try:
         with get_db_cursor() as cursor:
             cursor.execute("SELECT * FROM favorite_numbers ORDER BY created_at DESC")
             rows = cursor.fetchall()
 
+            # 构建年份过滤条件
+            where_clause = "WHERE lottery_type=%s"
+            params = [lottery_type]
+
+            if year:
+                where_clause += " AND period LIKE %s"
+                params.append(f"{year}%")
+
             # 获取最新开奖记录用于计算遗漏
-            cursor.execute("SELECT numbers FROM lottery_result WHERE lottery_type=%s ORDER BY open_time DESC LIMIT 1", (lottery_type,))
+            cursor.execute(f"SELECT numbers FROM lottery_result {where_clause} ORDER BY open_time DESC LIMIT 1", params)
             latest_record = cursor.fetchone()
 
             # 为每个关注号码组计算遗漏
@@ -45,8 +53,8 @@ def get_favorite_numbers(position: int = 7, lottery_type: str = 'am'):
                 if latest_record:
                     numbers = [int(n.strip()) for n in row['numbers'].split(',') if n.strip().isdigit()]
 
-                    # 获取所有历史开奖记录用于计算遗漏（按期数正序排列）
-                    cursor.execute("SELECT numbers, open_time, period FROM lottery_result WHERE lottery_type=%s ORDER BY period ASC", (lottery_type,))
+                    # 获取历史开奖记录用于计算遗漏（按期数正序排列）
+                    cursor.execute(f"SELECT numbers, open_time, period FROM lottery_result {where_clause} ORDER BY period ASC", params)
                     all_records = cursor.fetchall()
 
                     if all_records:

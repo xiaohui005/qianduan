@@ -22,6 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `recommend.py`: 推荐号码生成（8码/16码）
 - `analysis.py`: 多维度分析（区间、位置、波色等）~1969行
 - `analysis_seventh_smart.py`: 第7个号码智能推荐20码（基于多维度评分）
+- `analysis_two_groups.py`: 2组观察分析（冷门9码+剩余40码分组）
+- `analysis_number_gap.py`: 号码间隔期数分析（计算位置间隔）
 - `favorites.py`: 关注号码管理和统计 ~753行
 - `betting.py`: 投注点管理和报表
 
@@ -271,6 +273,8 @@ if period.endswith(('0', '5')):
 - `recommend16.js`: 推荐16码专用模块
 - `fivePeriodThreexiao.js`: 五期三肖分析模块
 - `seventhSmart20.js`: 第7个号码智能推荐20码模块
+- `twoGroups.js`: 2组观察分析模块
+- `numberGapAnalysis.js`: 号码间隔期数分析模块
 
 **注意**:
 - `upload.js` 过大（7744行），需要拆分成更小的模块
@@ -290,7 +294,16 @@ if period.endswith(('0', '5')):
 
 ### 分析功能
 - 多维度分析端点位于 `backend/routes/analysis.py`
+  - 区间分析、位置分析、肖分析、波色分析等
 - 第7个号码智能推荐分析位于 `backend/routes/analysis_seventh_smart.py`
+  - `GET /api/seventh_smart_recommend20`: 生成智能推荐20码
+  - `GET /api/seventh_smart_history`: 查询历史推荐记录
+- 2组观察分析位于 `backend/routes/analysis_two_groups.py`
+  - `GET /api/two_groups_analysis`: 冷门9码分析和2组分配
+  - `GET /api/two_groups_export`: 导出2组分析CSV
+- 号码间隔期数分析位于 `backend/routes/analysis_number_gap.py`
+  - `GET /api/number_gap_analysis`: 计算号码位置间隔
+  - `GET /api/number_gap_export`: 导出间隔分析CSV
 - 关注号码管理端点位于 `backend/routes/favorites.py`
 - 投注管理端点位于 `backend/routes/betting.py`
 
@@ -464,3 +477,38 @@ python backend/init_database.py
 # 打包EXE
 pyinstaller build.spec
 ```
+
+## 最新功能说明
+
+### 2组观察分析 (analysis_two_groups.py)
+**功能**: 基于指定期号往前100期的历史数据，找出冷门9码，将剩余40码分成2组进行观察分析。
+
+**核心算法**:
+1. 统计前100期第7个号码的出现频率
+2. 找出出现次数最少的9个号码作为"冷门9码"
+3. 将剩余40个号码按出现频率排序，平均分成两组（每组20个）
+4. 支持CSV导出分析结果
+
+**使用场景**: 帮助用户识别长期未出现的号码，制定投注策略。
+
+**实现位置**: `backend/routes/analysis_two_groups.py`
+
+### 号码间隔期数分析 (analysis_number_gap.py)
+**功能**: 计算每期开奖号码在对应位置距离上次出现的间隔期数。
+
+**核心算法**:
+1. 为7个位置分别记录每个号码最后出现的期号索引
+2. 计算当前期与上次出现的间隔期数（当前索引 - 上次索引 - 1）
+3. 首次出现的号码标记为 -1
+4. 支持CSV导出，便于趋势分析
+
+**使用场景**:
+- 分析号码在特定位置的出现规律
+- 识别长期未出现的位置号码组合
+- 辅助制定投注策略
+
+**实现位置**: `backend/routes/analysis_number_gap.py`
+
+**注意事项**:
+- 间隔分析需要大量历史数据支撑，建议至少100期以上
+- 分析结果按期号正序排列，方便观察趋势变化

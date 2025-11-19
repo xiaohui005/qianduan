@@ -569,6 +569,8 @@ if (typeof pageMap === 'undefined') {
     menuFivePeriodThreexiaoBtn: 'fivePeriodThreexiaoPage',
     // 新增最大遗漏提醒页面
     menuMaxMissAlertBtn: 'maxMissAlertPage',
+    // 新增去10的最热20分析页面
+    menuHot20Minus10Btn: 'hot20Minus10Page',
   };
 }
 Object.keys(pageMap).forEach(id => {
@@ -600,6 +602,7 @@ Object.keys(pageMap).forEach(id => {
         recommend16HitPage: '推荐16码的命中情况',
         front6SzzPage: '前6码三中三',
         maxMissAlertPage: '最大遗漏提醒',
+        hot20Minus10Page: '去10的最热20分析',
       };
       document.getElementById('pageTitle').innerText = titleMap[pageMap[id]] || '';
       // 自动加载数据（如有需要）
@@ -637,6 +640,11 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuPlusMinus6Btn':
           loadPlusMinus6Analysis();
+          break;
+        case 'menuHot20Minus10Btn':
+          if (typeof loadHot20Analysis === 'function') {
+            loadHot20Analysis(null, null, 1, null);
+          }
           break;
         case 'menuEachIssueBtn':
           try {
@@ -1420,6 +1428,11 @@ Object.keys(pageMap).forEach(id => {
           break;
         case 'menuPlusMinus6Btn':
           loadPlusMinus6Analysis();
+          break;
+        case 'menuHot20Minus10Btn':
+          if (typeof loadHot20Analysis === 'function') {
+            loadHot20Analysis(null, null, 1, null);
+          }
           break;
         case 'menuEachIssueBtn':
           loadEachIssueAnalysis(window.currentEachIssueType, window.currentEachIssuePage);
@@ -4833,8 +4846,90 @@ function downloadCSV(rows, filename) {
   
   // 初始化关注号码管理
   function initFavoriteNumbers() {
+    generateYearButtons(); // 生成年份按钮
     loadFavoriteNumbers();
     bindFavoriteNumbersEvents();
+  }
+
+  // 生成年份按钮
+  function generateYearButtons() {
+    const yearButtonsDiv = document.querySelector('.year-buttons');
+    if (!yearButtonsDiv) return;
+
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = currentYear; year >= currentYear - 3; year--) {
+      years.push(year);
+    }
+
+    // 保留"全部"按钮，添加年份按钮
+    let buttonsHTML = '<button type="button" class="year-btn active" data-year="" style="padding:8px 20px;font-size:14px;font-weight:bold;border:2px solid #2980d9;background:linear-gradient(135deg, #2980d9, #3498db);color:#fff;border-radius:6px;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 12px rgba(41,128,217,0.4);transform:scale(1.05);">✓ 全部年份</button>';
+    years.forEach(year => {
+      buttonsHTML += `<button type="button" class="year-btn" data-year="${year}" style="padding:8px 20px;font-size:14px;font-weight:bold;border:2px solid #ddd;background:#fff;color:#333;border-radius:6px;cursor:pointer;transition:all 0.3s;">📆 ${year}年</button>`;
+    });
+
+    yearButtonsDiv.innerHTML = buttonsHTML;
+
+    // 绑定年份按钮点击事件
+    document.querySelectorAll('.year-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const selectedYear = this.getAttribute('data-year');
+
+        // 移除所有按钮的active样式
+        document.querySelectorAll('.year-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.background = '#fff';
+          b.style.color = '#333';
+          b.style.borderColor = '#ddd';
+          b.style.transform = 'scale(1)';
+          b.style.boxShadow = 'none';
+
+          // 恢复原始文本
+          const year = b.getAttribute('data-year');
+          if (year) {
+            b.innerHTML = `📆 ${year}年`;
+          } else {
+            b.innerHTML = '✓ 全部年份';
+          }
+        });
+
+        // 设置当前按钮为active
+        this.classList.add('active');
+        this.style.background = 'linear-gradient(135deg, #2980d9, #3498db)';
+        this.style.color = '#fff';
+        this.style.borderColor = '#2980d9';
+        this.style.transform = 'scale(1.05)';
+        this.style.boxShadow = '0 4px 12px rgba(41,128,217,0.4)';
+
+        // 更新选中按钮的文本，添加选中标记
+        if (selectedYear) {
+          this.innerHTML = `✓ ${selectedYear}年`;
+        } else {
+          this.innerHTML = '✓ 全部年份';
+        }
+
+        loadFavoriteNumbers();
+      });
+
+      // 添加hover效果
+      btn.addEventListener('mouseenter', function() {
+        if (!this.classList.contains('active')) {
+          this.style.background = '#e8f4fd';
+          this.style.borderColor = '#2980d9';
+          this.style.transform = 'scale(1.02)';
+          this.style.boxShadow = '0 2px 8px rgba(41,128,217,0.2)';
+        }
+      });
+
+      btn.addEventListener('mouseleave', function() {
+        if (!this.classList.contains('active')) {
+          this.style.background = '#fff';
+          this.style.borderColor = '#ddd';
+          this.style.transform = 'scale(1)';
+          this.style.boxShadow = 'none';
+        }
+      });
+    });
   }
 
   // 加载关注号码列表
@@ -4843,19 +4938,26 @@ function downloadCSV(rows, filename) {
       console.log('开始加载关注号码...');
       const activeBtn = document.querySelector('.position-btn.active');
       const activeLotteryBtn = document.querySelector('.lottery-btn.active');
+      const activeYearBtn = document.querySelector('.year-btn.active');
       const position = activeBtn ? activeBtn.getAttribute('data-position') : 7;
       const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
-      
-      console.log(`选择的彩种: ${lotteryType}, 位置: ${position}`);
-      
-      const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers?position=${position}&lottery_type=${lotteryType}`);
+      const year = activeYearBtn ? activeYearBtn.getAttribute('data-year') : '';
+
+      console.log(`选择的彩种: ${lotteryType}, 位置: ${position}, 年份: ${year || '全部'}`);
+
+      let url = `${window.BACKEND_URL}/api/favorite_numbers?position=${position}&lottery_type=${lotteryType}`;
+      if (year) {
+        url += `&year=${year}`;
+      }
+
+      const res = await fetch(url);
       const result = await res.json();
-      
+
       console.log('API响应:', result);
-      
+
       if (result.success) {
         console.log('关注号码数据:', result.data);
-        renderFavoriteNumbersTable(result.data, lotteryType, position);
+        renderFavoriteNumbersTable(result.data, lotteryType, position, year);
       } else {
         console.error('加载关注号码失败:', result.message);
       }
@@ -4864,14 +4966,15 @@ function downloadCSV(rows, filename) {
     }
   }
   // 渲染关注号码表格
-  function renderFavoriteNumbersTable(favoriteNumbers, lotteryType, position) {
+  function renderFavoriteNumbersTable(favoriteNumbers, lotteryType, position, year) {
     console.log('开始渲染关注号码表格，数据:', favoriteNumbers);
-    
+
     // 更新表格信息
     const tableInfo = document.getElementById('tableInfo');
     if (tableInfo) {
       const lotteryName = lotteryType === 'am' ? '澳门' : '香港';
-      tableInfo.textContent = `当前分析：${lotteryName}彩种 - 第${position}位号码遗漏统计`;
+      const yearText = year ? `<span style="color:#e74c3c;font-weight:bold;font-size:16px;">${year}年</span>` : '<span style="color:#27ae60;font-weight:bold;font-size:16px;">全部年份</span>';
+      tableInfo.innerHTML = `<span style="font-size:15px;">当前分析：</span><span style="color:#2980d9;font-weight:bold;">${lotteryName}彩种</span> - <span style="color:#e67e22;font-weight:bold;">第${position}位</span>号码遗漏统计 【${yearText}】`;
     }
     
     const tbody = document.querySelector('#favoriteNumbersTable tbody');
