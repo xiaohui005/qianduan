@@ -16,7 +16,15 @@
       "mcp__chrome-devtools__click",
       "mcp__chrome-devtools__list_console_messages",
       "Bash(cmd /c \"python -c \"\"with open(''C:/Users/Administrator/Desktop/six666/frontend/style.css'', ''a'', encoding=''utf-8'') as f: f.write(''\\n/* 折叠按钮hover效果 */\\n#toggleSidebarBtn:hover {\\n  transform: translateY(-2px) !important;\\n  box-shadow: 0 4px 8px rgba(255,193,7,0.3) !important;\\n  background: linear-gradient(135deg,#ffe082 0%%,#ffecb3 100%%) !important;\\n}\\n\\n#toggleRegisterBtn:hover {\\n  transform: translateY(-2px) !important;\\n  box-shadow: 0 4px 8px rgba(220,53,69,0.25) !important;\\n  background: linear-gradient(135deg,#f5c2c7 0%%,#ffd4da 100%%) !important;\\n}\\n'')\"\"\")",
-      "Bash(del add_css.py)"
+      "Bash(del add_css.py)",
+      "Bash(cmd /c \"cd /d C:\\Users\\Administrator\\Desktop\\six666\\frontend && dir /b\")",
+      "Bash(git tag:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(test:*)",
+      "Bash(timeout 3 curl:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

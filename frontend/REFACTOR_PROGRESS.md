@@ -3,7 +3,7 @@
 ## 📈 总体进度
 - **总阶段**：5个
 - **总检查点**：15个
-- **当前进度**：8/15 (53%)
+- **当前进度**：9/15 (60%)
 - **预计工时**：10-14天
 
 ---
@@ -145,13 +145,29 @@
 - 更新 `index.html`：引入3个新模块
 - 更新 `pages.js`：添加页面切换初始化逻辑
 
+### 检查点3.3：拆分模块7-9（minus-range, plus-minus6, place管理）✅
+- **恢复码**：`REFACTOR-P3.3-MOD-9`
+- **Git tag**：`phase3-modules-9`
+- **完成时间**：2025-11-20
+- **状态**：✅ 已完成
+
+已完成的工作：
+- 创建 `js/modules/minus-range-analysis.js`：反向区间分析模块（307行）
+  - 功能：-1~-20反向区间分析、6个反向区间统计、最新一期预测、最大遗漏和当前遗漏
+- 创建 `js/modules/plus-minus6-analysis.js`：±6码分析模块（233行）
+  - 功能：加减0~6组分析、12码预测（最大遗漏的2组）、各组遗漏统计和命中情况
+- 创建 `js/modules/place-management.js`：关注号码管理模块（280行）
+  - 功能：关注点CRUD操作、表格渲染、事件委托、表单验证
+- 更新 `index.html`：引入3个新模块
+- 更新 `pages.js`：添加页面切换初始化逻辑（minusRangePage, plusMinus6Page, registerFocusPage）
+
 ---
 
 ## 🔄 当前检查点
 
-**检查点3.3：拆分模块7-9（minus-range, plus-minus6, place管理）**
-- **恢复码**：`REFACTOR-P3.3-MOD-9`
-- **Git tag**：`phase3-modules-9`
+**检查点3.4：拆分模块10-12（betting, place-results, place-analysis）**
+- **恢复码**：`REFACTOR-P3.4-MOD-12`
+- **Git tag**：`phase3-modules-12`
 - **状态**：🔄 待开始
 
 ---
@@ -170,9 +186,9 @@
 - [x] 2.4 号码球与动画（红绿蓝三色） - `REFACTOR-P2.4-BALLS` ✅ ⭐
 
 ### 阶段3：模块拆分（5个）
-- [ ] 3.1 拆分模块1-3 - `REFACTOR-P3.1-MOD-3`
-- [ ] 3.2 拆分模块4-6 - `REFACTOR-P3.2-MOD-6`
-- [ ] 3.3 拆分模块7-9 - `REFACTOR-P3.3-MOD-9`
+- [x] 3.1 拆分模块1-3 - `REFACTOR-P3.1-MOD-3` ✅
+- [x] 3.2 拆分模块4-6 - `REFACTOR-P3.2-MOD-6` ✅
+- [x] 3.3 拆分模块7-9 - `REFACTOR-P3.3-MOD-9` ✅
 - [ ] 3.4 拆分模块10-12 - `REFACTOR-P3.4-MOD-12`
 - [ ] 3.5 拆分模块13-15 - `REFACTOR-P3.5-MOD-15` ⭐
 
@@ -258,4 +274,4 @@
 ---
 
 **最后更新**：2025-11-20
-**下一步操作**：执行检查点3.1 - 拆分upload.js模块（模块1-3）
+**下一步操作**：执行检查点3.4 - 拆分upload.js模块（模块10-12）

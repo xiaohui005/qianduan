@@ -137,6 +137,39 @@ function showOnlyPage(pageId) {
         console.error('[页面管理] ✗ initRangeAnalysisModule 函数不存在');
       }
     }
+
+    // 如果是反向区间分析页面,初始化
+    if (pageId === 'minusRangePage') {
+      console.log('[页面管理] 检测到-1~-20反向区间分析页面');
+      if (typeof window.initMinusRangeAnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initMinusRangeAnalysisModule()');
+        window.initMinusRangeAnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initMinusRangeAnalysisModule 函数不存在');
+      }
+    }
+
+    // 如果是加减前6码分析页面,初始化
+    if (pageId === 'plusMinus6Page') {
+      console.log('[页面管理] 检测到±6码分析页面');
+      if (typeof window.initPlusMinus6AnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initPlusMinus6AnalysisModule()');
+        window.initPlusMinus6AnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initPlusMinus6AnalysisModule 函数不存在');
+      }
+    }
+
+    // 如果是关注号码管理页面,初始化
+    if (pageId === 'registerFocusPage') {
+      console.log('[页面管理] 检测到关注号码管理页面');
+      if (typeof window.initPlaceManagementModule === 'function') {
+        console.log('[页面管理] 调用 initPlaceManagementModule()');
+        window.initPlaceManagementModule();
+      } else {
+        console.error('[页面管理] ✗ initPlaceManagementModule 函数不存在');
+      }
+    }
   } else {
     console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }
