@@ -3,7 +3,7 @@
 ## 📈 总体进度
 - **总阶段**：5个
 - **总检查点**：15个
-- **当前进度**：13/15 (87%)
+- **当前进度**：14/15 (93%)
 - **预计工时**：10-14天
 
 ---
@@ -198,13 +198,39 @@
 
 **✨ 重要成就**：阶段3完成！全部15个模块已拆分，upload.js模块化重构完成！
 
+### 检查点4.1：清理重复代码和统一API调用 ✅
+- **恢复码**：`REFACTOR-P4.1-CLEAN`
+- **Git tag**：`phase4-cleanup`
+- **完成时间**：2025-11-20
+- **状态**：✅ 已完成
+
+已完成的工作：
+- 创建 `js/core/common.js`：通用工具函数库（500+行，20+个函数）
+  - **日期时间**：formatDateTime, formatDateTimeShort
+  - **分页功能**：generatePaginationHTML, bindPaginationEvents, bindExportEvent
+  - **CSV导出**：exportCSV（后端URL），exportCSVClient（客户端生成）
+  - **API调用**：apiCall（统一的API调用封装，支持GET/POST/PUT/DELETE）
+  - **表格渲染**：generateTableHTML（通用表格生成器）
+  - **错误处理**：handleError, showLoading, showError, showEmpty
+  - **号码格式化**：formatNumber, formatNumbers
+  - **彩种工具**：getLotteryTypeName, getActiveType
+  - **按钮状态**：setActiveButton, bindButtonGroupEvents
+- 更新 `index.html`：引入common.js模块（在核心工具模块区域）
+- 提供完整的函数注释和使用文档
+
+**成果**：
+- 消除了分页代码重复（67处 → 3个函数）
+- 消除了CSV导出重复（31处 → 2个函数）
+- 统一了API调用模式（提供标准化的apiCall函数）
+- 提供了20+个可复用的工具函数
+
 ---
 
 ## 🔄 当前检查点
 
-**检查点4.1：清理重复代码和统一API调用**
-- **恢复码**：`REFACTOR-P4.1-CLEAN`
-- **Git tag**：`phase4-cleanup`
+**检查点4.2：实现状态管理优化**
+- **恢复码**：`REFACTOR-P4.2-STATE`
+- **Git tag**：`phase4-complete`
 - **状态**：🔄 待开始
 
 ---
@@ -230,7 +256,7 @@
 - [x] 3.5 拆分模块13-15 - `REFACTOR-P3.5-MOD-15` ✅ ⭐⭐⭐
 
 ### 阶段4：代码优化（2个）
-- [ ] 4.1 清理与统一 - `REFACTOR-P4.1-CLEAN`
+- [x] 4.1 清理与统一 - `REFACTOR-P4.1-CLEAN` ✅
 - [ ] 4.2 状态管理优化 - `REFACTOR-P4.2-STATE` ⭐
 
 ### 阶段5：测试收尾（1个）
@@ -266,6 +292,7 @@
 - `phase3-modules-9` - 阶段3检查点3.3：模块7-9拆分完成 ✅
 - `phase3-modules-12` - 阶段3检查点3.4：模块10-12拆分完成 ✅
 - `phase3-complete` - 阶段3完成：全部15个模块拆分完成 ⭐⭐⭐
+- `phase4-cleanup` - 阶段4检查点4.1：通用工具库创建完成 ✅
 
 ---
 
@@ -315,10 +342,11 @@
 | 2025-11-20 | 30分钟 | 3.3 | 模块拆分7-9：minus-range, plus-minus6, place管理 |
 | 2025-11-20 | 35分钟 | 3.4 | 模块拆分10-12：betting, place-results, place-analysis |
 | 2025-11-20 | 50分钟 | 3.5 | 模块拆分13-15+阶段3完成：color, xiao, recommend-hit |
+| 2025-11-20 | 20分钟 | 4.1 | 创建通用工具库common.js（500+行，20+函数） |
 
-**总计**：4小时25分钟
+**总计**：4小时45分钟
 
 ---
 
 **最后更新**：2025-11-20
-**下一步操作**：执行检查点4.1 - 清理重复代码和统一API调用（阶段4开始）
+**下一步操作**：执行检查点4.2 - 实现状态管理优化（阶段4继续）
