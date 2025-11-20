@@ -91,7 +91,7 @@
       <button id="toggleRegisterBtn" class="toggle-section-btn">
         📊 登记点分析 <span id="registerCollapseIcon">▼</span>
       </button>
-      <div id="registerMenuBtns" style="display:none;">
+      <div id="registerMenuBtns" class="hidden">
         <button class="menu-btn" id="menuRegisterFocusBtn">📝 登记关注点</button>
         <button class="menu-btn" id="menuRegisterFocusResultBtn">📊 关注点登记结果</button>
         <button class="menu-btn" id="menuRegisterFocusAnalysisBtn">📈 关注点分析</button>
@@ -127,27 +127,27 @@
         </div>
         
         <!-- 文龙珠源头按钮 -->
-        <div id="wenlongzhuSourceButtons" style="display: none;">
+        <div id="wenlongzhuSourceButtons" class="hidden">
           <button id="collectAmWenlongzhuBtn" type="button">采集澳门开奖数据 (文龙珠)</button>
           <button id="collectHkWenlongzhuBtn" type="button">采集香港开奖数据 (文龙珠)</button>
         </div>
         
-        <button id="toggleHistoryBtn" type="button" style="margin-top:10px;">显示历史采集</button>
-        <div id="historyCollectArea" style="display:none;">
-          <div style="margin-top:10px;">
+        <button id="toggleHistoryBtn" type="button" class="mt-2">显示历史采集</button>
+        <div id="historyCollectArea" class="hidden">
+          <div class="mt-2">
             <label class="history-collect-label">自定义澳门历史地址：</label>
             <input type="text" id="customAmUrl" class="history-collect-input" placeholder="澳门历史地址">
             <button id="collectAmHistoryBtn" type="button">采集澳门历史开奖记录</button>
           </div>
-          <div style="margin-top:10px;">
+          <div class="mt-2">
             <label class="history-collect-label">自定义香港历史地址：</label>
             <input type="text" id="customHkUrl" class="history-collect-input" placeholder="香港历史地址">
             <button id="collectHkHistoryBtn" type="button">采集香港历史开奖记录</button>
           </div>
         </div>
-        <div id="collectResult" style="margin-top:16px;"></div>
+        <div id="collectResult" class="result-container"></div>
       </div>
-      <div id="registerFocusPage" style="display:none;">
+      <div id="registerFocusPage" class="hidden">
         <h2>登记关注点</h2>
         <form id="placeForm" class="focus-form">
           <input type="hidden" id="placeId">
@@ -161,7 +161,7 @@
           </div>
           <div class="form-actions">
             <button type="submit" class="btn-primary">保存</button>
-            <button type="button" id="cancelEditBtn" class="btn-secondary" style="display:none;">取消</button>
+            <button type="button" id="cancelEditBtn" class="btn-secondary" class="hidden">取消</button>
           </div>
         </form>
         <div class="table-container">
@@ -178,26 +178,26 @@
           </table>
         </div>
       </div>
-      <div id="registerBetPage" style="display:none;">
+      <div id="registerBetPage" class="hidden">
         <h2>投注登记点</h2>
-        <form id="betForm" style="margin-bottom:16px;">
+        <form id="betForm" class="mb-3">
           <input type="hidden" id="betId">
           <label>关注点：</label>
-          <input type="text" id="betPlaceInput" autocomplete="off" required style="width:160px;">
-          <div id="betPlaceSuggest" style="position:relative;z-index:10;"></div>
+          <input type="text" id="betPlaceInput" autocomplete="off" required class="input-lg">
+          <div id="betPlaceSuggest" class="suggest-container"></div>
           <label>期数：</label>
-          <input type="text" id="betQishu" required style="width:100px;">
+          <input type="text" id="betQishu" required class="input-md">
           <label>投注金额：</label>
-          <input type="number" id="betAmount" step="0.01" min="0" required style="width:80px;">
+          <input type="number" id="betAmount" step="0.01" min="0" required class="input-sm">
           <label>赢取金额：</label>
-          <input type="number" id="winAmount" step="0.01" min="0" value="0" required style="width:80px;">
+          <input type="number" id="winAmount" step="0.01" min="0" value="0" required class="input-sm">
           <select id="betIsCorrect">
             <option value="">未判断</option>
             <option value="1">正确</option>
             <option value="0">错误</option>
           </select>
           <button type="submit">保存</button>
-          <button type="button" id="cancelBetEditBtn" style="display:none;">取消</button>
+          <button type="button" id="cancelBetEditBtn" class="hidden">取消</button>
         </form>
         
         <!-- 查询表单 -->
@@ -241,7 +241,7 @@
           </div>
         </div>
         
-        <table id="betsTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+        <table id="betsTable">
           <thead>
             <tr>
               <th>关注点</th>
@@ -308,7 +308,7 @@
         <div id="betsPagination" class="pagination-container">
           <div class="pagination-info">
             <span id="paginationInfo">显示 0-0 条，共 0 条记录</span>
-            <span style="margin-left: 20px;">
+            <span class="ml-3">
               每页显示：
               <select id="pageSizeSelect" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <option value="10" selected>10条</option>
@@ -326,21 +326,21 @@
           </div>
         </div>
       </div>
-      <div id="seventhRangePage" style="display:none;">
+      <div id="seventhRangePage" class="hidden">
         <h2>第7个号码+1~+20区间分析</h2>
         
         <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="startSeventhRangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startSeventhRangeAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         
         <!-- 分析结果 -->
-        <div id="seventhRangeResult" style="margin-top: 16px;">
+        <div id="seventhRangeResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
             点击"开始分析"按钮开始第7个号码+1~+20区间分析
           </div>
@@ -377,17 +377,17 @@
       </div>
 
       <!-- 第7个号码智能推荐20码页面 -->
-      <div id="seventhSmart20Page" style="display:none;">
+      <div id="seventhSmart20Page" class="hidden">
         <h2>第7个号码智能推荐20码</h2>
 
         <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="startSeventhSmart20Btn" class="btn-primary" style="margin-top: 10px;">开始智能分析</button>
+          <button id="startSeventhSmart20Btn" class="btn-primary" class="mt-2">开始智能分析</button>
           <button id="showSeventhSmart20DetailsBtn" class="btn-primary" style="margin-top: 10px; margin-left: 10px;">查看逐期记录</button>
           <button id="exportSeventhSmart20Btn" class="btn-secondary" style="margin-top: 10px; margin-left: 10px;">导出CSV</button>
         </div>
@@ -426,22 +426,22 @@
         </div>
 
         <!-- 推荐Top20 -->
-        <div id="seventhSmart20Result" style="margin-top: 16px;">
+        <div id="seventhSmart20Result" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
             点击"开始智能分析"按钮获取第7个号码的智能推荐20码
           </div>
         </div>
       </div>
 
-      <div id="secondFourxiaoPage" style="display:none;">
+      <div id="secondFourxiaoPage" class="hidden">
         <h2>第二个号码四肖分析</h2>
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <label class="records-query-label" style="margin-left:24px;">选择基础位置：</label>
+          <label class="records-query-label" class="ml-4">选择基础位置：</label>
           <div class="position-buttons" id="secondFourxiaoPositions" style="display:inline-block;">
             <button type="button" class="pos-btn active" data-pos="2">第2位</button>
             <button type="button" class="pos-btn" data-pos="1">第1位</button>
@@ -451,9 +451,9 @@
             <button type="button" class="pos-btn" data-pos="6">第6位</button>
             <button type="button" class="pos-btn" data-pos="7">第7位</button>
           </div>
-          <button id="startSecondFourxiaoAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startSecondFourxiaoAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
-        <div id="secondFourxiaoResult" style="margin-top: 16px;"></div>
+        <div id="secondFourxiaoResult" class="result-container"></div>
         <div id="secondFourxiaoStats" class="stats-container" style="display: none; margin-top: 20px;">
           <div class="stats-section">
             <h3 class="stats-title">总体统计</h3>
@@ -466,15 +466,15 @@
         </div>
       </div>
 
-      <div id="sixthThreexiaoPage" style="display:none;">
+      <div id="sixthThreexiaoPage" class="hidden">
         <h2>第6个号码6肖分析</h2>
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <label class="records-query-label" style="margin-left:24px;">选择基础位置：</label>
+          <label class="records-query-label" class="ml-4">选择基础位置：</label>
           <div class="position-buttons" id="sixthThreexiaoPositions" style="display:inline-block;">
             <button type="button" class="pos-btn active" data-pos="6">第6位</button>
             <button type="button" class="pos-btn" data-pos="1">第1位</button>
@@ -484,10 +484,10 @@
             <button type="button" class="pos-btn" data-pos="5">第5位</button>
             <button type="button" class="pos-btn" data-pos="7">第7位</button>
           </div>
-          <button id="startSixthThreexiaoAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startSixthThreexiaoAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         <div id="sixthThreexiaoWarning" style="display: none; margin: 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 5px; text-align: center; font-size: 15px;"></div>
-        <div id="sixthThreexiaoResult" style="margin-top: 16px;"></div>
+        <div id="sixthThreexiaoResult" class="result-container"></div>
         <div id="sixthThreexiaoStats" class="stats-container" style="display: none; margin-top: 20px;">
           <div class="stats-section">
             <h3 class="stats-title">总体统计</h3>
@@ -504,17 +504,17 @@
         </div>
       </div>
 
-      <div id="front6SzzPage" style="display:none;">
+      <div id="front6SzzPage" class="hidden">
         <h2>前6码三中三</h2>
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="startFront6SzzBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startFront6SzzBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
-        <div id="front6SzzResult" style="margin-top: 16px;"></div>
+        <div id="front6SzzResult" class="result-container"></div>
         <div id="front6SzzStats" class="stats-container" style="display: none; margin-top: 20px;">
           <div class="stats-section">
             <h3 class="stats-title">总体统计</h3>
@@ -529,12 +529,12 @@
         </div>
       </div>
  <!-- 2组观察分析页面 -->
-      <div id="twoGroupsPage" style="display:none;">
+      <div id="twoGroupsPage" class="hidden">
         <!-- 页面内容由 twoGroups.js 动态生成 -->
       </div>
 
       <!-- 号码间隔期数分析页面 -->
-      <div id="numberGapAnalysisPage" style="display:none;">
+      <div id="numberGapAnalysisPage" class="hidden">
         <h2>号码间隔期数分析</h2>
 
         <!-- 控制栏 -->
@@ -596,7 +596,7 @@
       </div>
 
       <!-- 查询遗漏期数开奖页面 -->
-      <div id="numberMissingAnalysisPage" style="display:none;">
+      <div id="numberMissingAnalysisPage" class="hidden">
         <h2>查询遗漏期数开奖</h2>
 
         <!-- 控制栏 -->
@@ -672,7 +672,7 @@
         </div>
       </div>
 
-      <div id="fivePeriodThreexiaoPage" style="display:none;">
+      <div id="fivePeriodThreexiaoPage" class="hidden">
         <h2>5期3肖计算</h2>
         
         <!-- 计算规则说明 -->
@@ -691,17 +691,17 @@
         </div>
         
         <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="seventh-range-type-group">
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="startFivePeriodThreexiaoBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startFivePeriodThreexiaoBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         
         <!-- 分析结果 -->
-        <div id="fivePeriodThreexiaoResult" style="margin-top: 16px;">
+        <div id="fivePeriodThreexiaoResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
             点击"开始分析"按钮开始5期3肖计算分析
           </div>
@@ -740,9 +740,9 @@
           </div>
         </div>
       </div>
-      <div id="registerFocusResultPage" style="display:none;">
+      <div id="registerFocusResultPage" class="hidden">
         <h2>关注点登记结果</h2>
-        <form id="placeResultForm" class="focus-form" style="margin-bottom:16px;">
+        <form id="placeResultForm" class="focus-form" class="mb-3">
           <input type="hidden" id="placeResultId">
           <div class="form-group">
             <label>关注点：</label>
@@ -753,7 +753,7 @@
           </div>
           <div class="form-group">
             <label for="placeResultQishu">期数：</label>
-            <input type="text" id="placeResultQishu" required style="width:100px;">
+            <input type="text" id="placeResultQishu" required class="input-md">
           </div>
           <div class="form-group">
             <label>是否正确：</label>
@@ -766,7 +766,7 @@
           </div>
           <div class="form-actions">
             <button type="submit" class="btn-primary">保存</button>
-            <button type="button" id="cancelPlaceResultEditBtn" class="btn-secondary" style="display:none;">取消</button>
+            <button type="button" id="cancelPlaceResultEditBtn" class="btn-secondary" class="hidden">取消</button>
           </div>
         </form>
         
@@ -811,7 +811,7 @@
           </div>
         </div>
         
-        <table id="placeResultsTable" border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
+        <table id="placeResultsTable">
           <thead>
             <tr>
               <th>关注点</th>
@@ -885,11 +885,11 @@
           </div>
         </div>
       </div>
-      <div id="registerFocusAnalysisPage" style="display:none;">
+      <div id="registerFocusAnalysisPage" class="hidden">
         <h2>关注点分析</h2>
         
         <!-- 关注点选择区域 -->
-        <div id="placeSelectionArea" style="margin-bottom:20px;">
+        <div id="placeSelectionArea" class="mb-3">
           <h3 style="color:#2980d9;margin-bottom:10px;">选择关注点</h3>
           <div id="placeButtonsContainer" class="place-buttons-container">
             <!-- 关注点按钮将在这里动态生成 -->
@@ -904,7 +904,7 @@
           </div>
         </div>
         
-        <div style="margin-bottom:16px;">
+        <div class="mb-3">
           <button id="refreshPlaceAnalysisBtn" class="btn-primary">刷新分析</button>
           <button id="exportPlaceAnalysisBtn" class="btn-secondary">导出分析</button>
         </div>
@@ -916,11 +916,11 @@
         </div>
       </div>
       <!-- 最大遗漏提醒 页面 -->
-      <div id="maxMissAlertPage" style="display:none;">
+      <div id="maxMissAlertPage" class="hidden">
         <h2>最大遗漏提醒</h2>
         <div class="query-form" style="margin-bottom: 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <label for="maxMissThreshold">最大遗漏差距阈值：</label>
-          <input type="number" id="maxMissThreshold" value="0" min="0" style="width:100px;">
+          <input type="number" id="maxMissThreshold" value="0" min="0" class="input-md">
           <button id="refreshMaxMissBtn" class="btn-primary">刷新</button>
         </div>
         <div class="table-container">
@@ -938,11 +938,11 @@
           </table>
         </div>
       </div>
-      <div id="favoriteNumbersPage" style="display:none;">
+      <div id="favoriteNumbersPage" class="hidden">
         <h2>关注号码管理</h2>
         
         <!-- 彩种和位置选择 -->
-        <div class="form-group" style="margin-bottom: 20px;">
+        <div class="form-group" class="mb-3">
           <label style="display: block; margin-bottom: 10px; font-weight: bold;">彩种选择：</label>
           <div class="lottery-buttons" style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button type="button" class="lottery-btn active" data-lottery="am">澳门</button>
@@ -982,7 +982,7 @@
           </div>
           <div class="form-actions">
             <button type="submit" class="btn-primary">保存</button>
-            <button type="button" id="cancelFavoriteNumberBtn" class="btn-secondary" style="display:none;">取消</button>
+            <button type="button" id="cancelFavoriteNumberBtn" class="btn-secondary" class="hidden">取消</button>
           </div>
         </form>
         
@@ -1008,7 +1008,7 @@
         <div id="favoriteNumberAnalysisResult" style="display:none;margin-top:20px;"></div>
       </div>
       
-      <div id="registerBetReportPage" style="display:none;">
+      <div id="registerBetReportPage" class="hidden">
         <h2>投注点报表</h2>
         
         <!-- 查询条件 -->
@@ -1040,7 +1040,7 @@
         </div>
         
         <!-- 总体统计 -->
-        <div id="betReportOverallStats" class="stats-container" style="display:none;">
+        <div id="betReportOverallStats" class="stats-container" class="hidden">
           <div class="stats-section">
             <h3 class="stats-title">总体统计</h3>
             <div class="stats-grid">
@@ -1089,7 +1089,7 @@
         </div>
         
         <!-- 关注点统计 -->
-        <div id="betReportPlaceStats" class="stats-container" style="display:none;">
+        <div id="betReportPlaceStats" class="stats-container" class="hidden">
           <div class="stats-section">
             <h3 class="stats-title">关注点统计</h3>
             
@@ -1145,7 +1145,7 @@
         </div>
         
         <!-- 时间统计 -->
-        <div id="betReportTimeStats" class="stats-container" style="display:none;">
+        <div id="betReportTimeStats" class="stats-container" class="hidden">
           <div class="stats-section">
             <h3 class="stats-title">月度统计</h3>
             <div class="table-container">
@@ -1169,7 +1169,7 @@
         </div>
         
         <!-- 输赢分布 -->
-        <div id="betReportDistribution" class="stats-container" style="display:none;">
+        <div id="betReportDistribution" class="stats-container" class="hidden">
           <div class="stats-section">
             <h3 class="stats-title">输赢分布</h3>
             <div class="table-container">
@@ -1190,7 +1190,7 @@
         </div>
         
         <!-- 图表区域 -->
-        <div id="betReportCharts" class="charts-container" style="display:none;">
+        <div id="betReportCharts" class="charts-container" class="hidden">
           <div class="chart-section">
             <h3 class="chart-title">投注趋势图</h3>
             <div id="betTrendChart" class="chart-area"></div>
@@ -1201,42 +1201,42 @@
           </div>
         </div>
       </div>
-      <div id="recommendPage" style="display:none;">
+      <div id="recommendPage" class="hidden">
         <h2>推荐8码</h2>
-        <div style="margin-bottom:16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="recommend-type-group">
             <button class="recommend-type-btn active" data-type="am">澳门</button>
             <button class="recommend-type-btn" data-type="hk">香港</button>
           </div>
         </div>
-        <div id="recommendResult" style="margin-top:16px;"></div>
+        <div id="recommendResult" class="result-container"></div>
       </div>
-      <div id="recommendHitPage" style="display:none;">
+      <div id="recommendHitPage" class="hidden">
         <h2>推荐8码的命中情况</h2>
-        <div style="margin-bottom:16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="recommend-hit-type-group">
             <button class="recommend-hit-type-btn active" data-type="am">澳门</button>
             <button class="recommend-hit-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="analyzeRecommendHitBtn" class="btn-primary" style="margin-left: 20px;">分析命中情况</button>
+          <button id="analyzeRecommendHitBtn" class="btn-primary" class="ml-3">分析命中情况</button>
         </div>
-        <div id="recommendHitResult" style="margin-top:16px;">
+        <div id="recommendHitResult" class="result-container">
           <div style="text-align:center;color:#888;padding:20px;">
             点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况
           </div>
         </div>
       </div>
-      <div id="tensPage" style="display:none;">
+      <div id="tensPage" class="hidden">
         <h2>第N位十位分析</h2>
-        <div style="margin-bottom:16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="tens-type-group">
             <button class="tens-type-btn active" data-type="am">澳门</button>
             <button class="tens-type-btn" data-type="hk">香港</button>
           </div>
-          <label class="records-query-label" style="margin-left:24px;">选择位数：</label>
+          <label class="records-query-label" class="ml-4">选择位数：</label>
           <div class="tens-pos-group" style="display:inline-block;">
             <button class="tens-pos-btn active" data-pos="1">第1位</button>
             <button class="tens-pos-btn" data-pos="2">第2位</button>
@@ -1247,9 +1247,9 @@
             <button class="tens-pos-btn" data-pos="7">第7位</button>
           </div>
         </div>
-        <div id="tensResult" style="margin-top:16px;"></div>
+        <div id="tensResult" class="result-container"></div>
       </div>
-      <div id="recordsPage" style="display:none;">
+      <div id="recordsPage" class="hidden">
         <h2>开奖记录</h2>
         <div id="recordsQuery" style="margin-top:24px;">
           <h2>开奖记录查询</h2>
@@ -1267,15 +1267,15 @@
           <div id="recordsTableAreaHk" style="flex:1;"></div>
         </div>
       </div>
-      <div id="eachIssuePage" style="display:none;">
+      <div id="eachIssuePage" class="hidden">
         <h2>每期分析</h2>
-        <div style="margin-bottom:16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="each-issue-type-group">
             <button class="each-issue-type-btn active" data-type="am">澳门</button>
             <button class="each-issue-type-btn" data-type="hk">香港</button>
           </div>
-          <label class="records-query-label" style="margin-left:24px;">期数个位分组：</label>
+          <label class="records-query-label" class="ml-4">期数个位分组：</label>
           <div class="each-issue-unit-group" style="display:inline-block;">
             <button class="each-issue-unit-btn active" data-group="">全部</button>
             <button class="each-issue-unit-btn" data-group="0">0/5组</button>
@@ -1285,9 +1285,9 @@
             <button class="each-issue-unit-btn" data-group="4">4/9组</button>
           </div>
         </div>
-        <div id="eachIssueResult" style="margin-top:16px;"></div>
+        <div id="eachIssueResult" class="result-container"></div>
       </div>
-      <div id="colorAnalysisPage" style="display:none;">
+      <div id="colorAnalysisPage" class="hidden">
         <h2>波色分析</h2>
         
         <!-- 波色定义说明 -->
@@ -1310,17 +1310,17 @@
         </div>
         
         <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="color-analysis-type-group">
             <button class="color-analysis-type-btn active" data-type="am">澳门</button>
             <button class="color-analysis-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="startColorAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="startColorAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         
         <!-- 分析结果 -->
-        <div id="colorAnalysisResult" style="margin-top: 16px;">
+        <div id="colorAnalysisResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
             点击"开始分析"按钮开始波色分析
           </div>
@@ -1356,21 +1356,21 @@
 
      
 
-      <div id="twentyRangePage" style="display:none;">
+      <div id="twentyRangePage" class="hidden">
         <h2>20区间分析</h2>
         
         <!-- 彩种选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
           <div class="twenty-range-type-group">
             <button class="twenty-range-type-btn active" data-type="am">澳门</button>
             <button class="twenty-range-type-btn" data-type="hk">香港</button>
           </div>
-          <button id="start20RangeAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
+          <button id="start20RangeAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         
         <!-- 位置选择 -->
-        <div style="margin-bottom: 16px;">
+        <div class="mb-3">
           <label class="records-query-label">选择位置：</label>
           <div class="position-select-group">
             <button class="position-select-btn active" data-position="1">位置1</button>
@@ -1384,7 +1384,7 @@
         </div>
         
         <!-- 分析结果 -->
-        <div id="twentyRangeResult" style="margin-top: 16px;">
+        <div id="twentyRangeResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
             点击"开始分析"按钮开始20区间分析
           </div>

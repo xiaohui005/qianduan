@@ -465,6 +465,61 @@ textarea:disabled {
   border-color: var(--primary-blue);
 }
 
+/* ==================== 表单容器 ==================== */
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.form-inline label {
+  margin: 0;
+}
+
+.form-inline input,
+.form-inline select {
+  flex: 0 0 auto;
+}
+
+.form-section {
+  margin-bottom: var(--spacing-md);
+}
+
+/* ==================== 输入框尺寸 ==================== */
+.input-sm {
+  width: 80px;
+}
+
+.input-md {
+  width: 100px;
+}
+
+.input-lg {
+  width: 160px;
+}
+
+.input-full {
+  width: 100%;
+}
+
+/* ==================== 自动提示容器 ==================== */
+.suggest-container {
+  position: relative;
+  z-index: 10;
+}
+
+/* ==================== 结果容器 ==================== */
+.result-container {
+  margin-top: var(--spacing-md);
+}
+
+.result-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--spacing-lg);
+}
+
 /* ==================== 提示框 ==================== */
 .alert {
   padding: var(--spacing-md);
