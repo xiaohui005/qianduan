@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>彩票分析系统</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎰</text></svg>">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="layout">
@@ -1414,18 +1414,25 @@
 
     </main>
   </div>
-  <script src="utils.js"></script>
-  <script src="config.js"></script>
-  <script src="api.js"></script>
-  <script src="pages.js"></script>
+  <!-- 核心工具模块 -->
+  <script src="js/core/state.js"></script>
+  <script src="js/core/errorHandler.js"></script>
+  <script src="js/core/ui.js"></script>
+
+  <!-- 基础模块 -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pages.js"></script>
   <script src="upload.js"></script>
-  <script src="recommend16.js"></script>
-  <script src="fivePeriodThreexiao.js"></script>
-  <script src="seventhSmart20.js"></script>
-  <script src="twoGroups.js"></script>
-  <script src="numberGapAnalysis.js"></script>
-  <script src="numberMissingAnalysis.js"></script>
-  <script src="hot20Analysis.js"></script>
+  <script src="js/features/recommend16.js"></script>
+  <script src="js/features/fivePeriodThreexiao.js"></script>
+  <script src="js/features/seventhSmart20.js"></script>
+  <script src="js/features/twoGroups.js"></script>
+  <script src="js/features/numberGapAnalysis.js"></script>
+  <script src="js/features/numberMissingAnalysis.js"></script>
+  <script src="js/features/hot20Analysis.js"></script>
+  <script src="js/main.js"></script>
     <script>
       // 调试信息
       console.log('页面加载完成');
