@@ -38,37 +38,8 @@ function initRestartButton() {
 }
 
 // ==================== 源头切换功能 ====================
-
-/**
- * 初始化采集源头切换
- */
-function initSourceSelection() {
-  const sourceBtns = document.querySelectorAll('.source-btn');
-  const defaultSourceButtons = document.getElementById('defaultSourceButtons');
-  const wenlongzhuSourceButtons = document.getElementById('wenlongzhuSourceButtons');
-
-  if (sourceBtns.length === 0) return;
-
-  sourceBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      // 移除所有按钮的激活状态
-      sourceBtns.forEach(b => b.classList.remove('active'));
-
-      // 添加当前按钮的激活状态
-      this.classList.add('active');
-
-      // 切换按钮组显示
-      const source = this.dataset.source;
-      if (source === 'default') {
-        if (defaultSourceButtons) defaultSourceButtons.style.display = 'block';
-        if (wenlongzhuSourceButtons) wenlongzhuSourceButtons.style.display = 'none';
-      } else if (source === 'wenlongzhu') {
-        if (defaultSourceButtons) defaultSourceButtons.style.display = 'none';
-        if (wenlongzhuSourceButtons) wenlongzhuSourceButtons.style.display = 'block';
-      }
-    });
-  });
-}
+// 注意：源头切换功能已移至 js/modules/collect.js 模块
+// 这里保留是为了向后兼容，实际功能由 collect 模块提供
 
 // ==================== 主初始化函数 ====================
 
@@ -81,8 +52,10 @@ function initApp() {
   // 初始化重启按钮
   initRestartButton();
 
-  // 初始化源头切换
-  initSourceSelection();
+  // 初始化数据采集模块（如果存在）
+  if (typeof window.initCollectModule === 'function') {
+    window.initCollectModule();
+  }
 
   console.log('应用初始化完成');
 }

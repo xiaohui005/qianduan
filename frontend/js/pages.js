@@ -93,6 +93,50 @@ function showOnlyPage(pageId) {
         console.error('[页面管理] ✗ initNumberMissingAnalysisPage 函数不存在');
       }
     }
+
+    // 如果是推荐8码页面,初始化
+    if (pageId === 'recommendPage') {
+      console.log('[页面管理] 检测到推荐8码页面');
+      if (typeof initRecommendModule === 'function') {
+        console.log('[页面管理] 调用 initRecommendModule()');
+        initRecommendModule();
+      } else {
+        console.error('[页面管理] ✗ initRecommendModule 函数不存在');
+      }
+    }
+
+    // 如果是十位分析页面,初始化
+    if (pageId === 'tensPage') {
+      console.log('[页面管理] 检测到十位分析页面');
+      if (typeof window.initTensAnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initTensAnalysisModule()');
+        window.initTensAnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initTensAnalysisModule 函数不存在');
+      }
+    }
+
+    // 如果是个位分析页面,初始化
+    if (pageId === 'unitsPage') {
+      console.log('[页面管理] 检测到个位分析页面');
+      if (typeof window.initUnitsAnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initUnitsAnalysisModule()');
+        window.initUnitsAnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initUnitsAnalysisModule 函数不存在');
+      }
+    }
+
+    // 如果是区间分析页面,初始化
+    if (pageId === 'rangePage') {
+      console.log('[页面管理] 检测到+1~+20区间分析页面');
+      if (typeof window.initRangeAnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initRangeAnalysisModule()');
+        window.initRangeAnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initRangeAnalysisModule 函数不存在');
+      }
+    }
   } else {
     console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }

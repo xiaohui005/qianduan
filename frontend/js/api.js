@@ -666,4 +666,27 @@ async function exportHot20Minus10(lotteryType, pos, year = '') {
 }
 
 
+// ==================== 导出 API 对象 ====================
+
+/**
+ * API 对象 - 统一导出所有 API 函数
+ */
+window.API = {
+  // 数据采集
+  collectData,
+  collectHistory,
+
+  // 开奖记录
+  getRecords,
+
+  // 推荐相关
+  generateRecommend,
+  generateRecommend16,
+  getRecommendHit,
+
+  // 分析相关（按需添加其他导出）
+  getHot20Minus10,
+  exportHot20Minus10
+};
+
 console.log('API 请求模块已加载');

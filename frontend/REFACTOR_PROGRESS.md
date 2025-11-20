@@ -3,7 +3,7 @@
 ## 📈 总体进度
 - **总阶段**：5个
 - **总检查点**：15个
-- **当前进度**：7/15 (47%)
+- **当前进度**：8/15 (53%)
 - **预计工时**：10-14天
 
 ---
@@ -114,13 +114,44 @@
 - 在 `js/core/ui.js` 中集成颜色分配到 `createNumberBall()` 函数
 - 支持小号球（.number-ball-sm）和大号球（.number-ball-lg）
 
+### 检查点3.1：拆分模块1-3（collect, records, recommend）✅
+- **恢复码**：`REFACTOR-P3.1-MOD-3`
+- **Git tag**：`phase3-modules-3`
+- **完成时间**：2025-11-20
+- **状态**：✅ 已完成
+
+已完成的工作：
+- 创建 `js/modules/collect.js`：数据采集模块（313行）
+- 创建 `js/modules/records.js`：开奖记录管理模块（430行）
+- 创建 `js/modules/recommend.js`：推荐8码模块（180行）
+- 更新 `index.html`：引入3个新模块
+- 更新 `main.js`：添加模块初始化调用
+- 更新 `pages.js`：页面切换时自动初始化
+- 更新 `api.js`：导出API函数为window.API对象
+
+### 检查点3.2：拆分模块4-6（tens, units, range分析）✅
+- **恢复码**：`REFACTOR-P3.2-MOD-6`
+- **Git tag**：`phase3-modules-6`
+- **完成时间**：2025-11-20
+- **状态**：✅ 已完成
+
+已完成的工作：
+- 创建 `js/modules/tens-analysis.js`：十位分析模块（313行）
+  - 功能：第N位十位分析、遗漏统计、年份筛选、CSV导出
+- 创建 `js/modules/units-analysis.js`：个位分析模块（233行）
+  - 功能：1组/2组遗漏、连续命中统计、交替遗漏分析
+- 创建 `js/modules/range-analysis.js`：区间分析模块（360行）
+  - 功能：+1~+20区间分析、6个区间统计、最新一期预测
+- 更新 `index.html`：引入3个新模块
+- 更新 `pages.js`：添加页面切换初始化逻辑
+
 ---
 
 ## 🔄 当前检查点
 
-**检查点3.1：拆分upload.js模块（模块1-3）**
-- **恢复码**：`REFACTOR-P3.1-MOD-3`
-- **Git tag**：`phase3-modules-3`
+**检查点3.3：拆分模块7-9（minus-range, plus-minus6, place管理）**
+- **恢复码**：`REFACTOR-P3.3-MOD-9`
+- **Git tag**：`phase3-modules-9`
 - **状态**：🔄 待开始
 
 ---

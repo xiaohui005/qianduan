@@ -251,37 +251,40 @@ async function queryRecords(areaId, page = 1) {
 queryRecords('recordsTableAreaAm', 1);
 queryRecords('recordsTableAreaHk', 1);
 
-async function generateRecommend(type = 'am') {
-  const resultDiv = document.getElementById('recommendResult');
-  resultDiv.innerHTML = '正在生成推荐...';
-  try {
-    const res = await fetch(window.BACKEND_URL + '/recommend?lottery_type=' + type);
-    const data = await res.json();
-    if (!data.recommend) {
-      resultDiv.innerHTML = '<span style="color:red;">暂无推荐结果</span>';
-      return;
-    }
-    let html = `<div style='color:#2980d9;font-size:15px;margin-bottom:8px;'>推荐基于期号：${data.used_period || ''}</div>`;
-    html += '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">';
-    html += '<tr><th>位置</th><th>推荐8码</th></tr>';
-    data.recommend.forEach((nums, idx) => {
-      html += `<tr><td>第${idx+1}位</td><td>${nums.map(n => `<span class='${getBallColorClass(n.padStart(2,'0'))}' style='display:inline-block;padding:2px 10px;border-radius:16px;margin:2px 4px;'>${n}</span>`).join('')}</td></tr>`;
-    });
-    html += '</table>';
-    resultDiv.innerHTML = html;
-  } catch (e) {
-    resultDiv.innerHTML = '推荐失败：' + e;
-  }
-}
+// ==================== 推荐8码功能已移至 js/modules/recommend.js ====================
+// 以下代码已注释，功能由独立模块提供
 
-// 推荐彩种按钮切换
-document.querySelectorAll('.recommend-type-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.recommend-type-btn').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    generateRecommend(this.dataset.type);
-  });
-});
+// async function generateRecommend(type = 'am') {
+//   const resultDiv = document.getElementById('recommendResult');
+//   resultDiv.innerHTML = '正在生成推荐...';
+//   try {
+//     const res = await fetch(window.BACKEND_URL + '/recommend?lottery_type=' + type);
+//     const data = await res.json();
+//     if (!data.recommend) {
+//       resultDiv.innerHTML = '<span style="color:red;">暂无推荐结果</span>';
+//       return;
+//     }
+//     let html = `<div style='color:#2980d9;font-size:15px;margin-bottom:8px;'>推荐基于期号：${data.used_period || ''}</div>`;
+//     html += '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">';
+//     html += '<tr><th>位置</th><th>推荐8码</th></tr>';
+//     data.recommend.forEach((nums, idx) => {
+//       html += `<tr><td>第${idx+1}位</td><td>${nums.map(n => `<span class='${getBallColorClass(n.padStart(2,'0'))}' style='display:inline-block;padding:2px 10px;border-radius:16px;margin:2px 4px;'>${n}</span>`).join('')}</td></tr>`;
+//     });
+//     html += '</table>';
+//     resultDiv.innerHTML = html;
+//   } catch (e) {
+//     resultDiv.innerHTML = '推荐失败：' + e;
+//   }
+// }
+
+// // 推荐彩种按钮切换
+// document.querySelectorAll('.recommend-type-btn').forEach(btn => {
+//   btn.addEventListener('click', function() {
+//     document.querySelectorAll('.recommend-type-btn').forEach(b => b.classList.remove('active'));
+//     this.classList.add('active');
+//     generateRecommend(this.dataset.type);
+//   });
+// });
 
 let tensAnalysisCache = {am: null, hk: null};
 let currentTensType = 'am';
