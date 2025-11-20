@@ -1,0 +1,373 @@
+/**
+ * 响应式样式
+ * 定义不同屏幕尺寸下的自适应布局
+ */
+
+/* ==================== 平板设备 (≤1024px) ==================== */
+@media (max-width: 1024px) {
+  /* 主内容区宽度调整 */
+  .main-content {
+    max-width: 100%;
+    padding: var(--spacing-md);
+  }
+
+  /* 表格容器滚动 */
+  .table-container {
+    overflow-x: auto;
+  }
+
+  /* 查询网格调整为2列 */
+  .query-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 统计网格调整 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 按钮组自动换行 */
+  .recommend-type-group,
+  .recommend-hit-type-group,
+  .tens-type-group,
+  .seventh-range-type-group,
+  .twenty-range-type-group,
+  .each-issue-type-group,
+  .color-analysis-type-group {
+    flex-wrap: wrap;
+  }
+
+  /* 位置按钮组换行 */
+  .tens-pos-group,
+  .position-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+/* ==================== 手机设备 (≤768px) ==================== */
+@media (max-width: 768px) {
+  /* 侧边栏默认折叠 */
+  .sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .sidebar:not(.collapsed) {
+    width: var(--sidebar-width);
+    position: fixed;
+    z-index: 200;
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* 主内容区调整 */
+  .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+    padding: var(--spacing-sm);
+  }
+
+  /* 页面头部垂直布局 */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  /* 查询表单单列布局 */
+  .query-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 查询操作按钮垂直排列 */
+  .query-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .query-actions button {
+    width: 100%;
+  }
+
+  /* 卡片减少内边距 */
+  .card {
+    padding: var(--spacing-md);
+  }
+
+  /* 统计网格单列 */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 分页容器垂直布局 */
+  .pagination-container {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 表格字体缩小 */
+  .data-table,
+  table {
+    font-size: var(--font-size-xs);
+  }
+
+  .data-table th,
+  .data-table td,
+  table th,
+  table td {
+    padding: 8px 6px;
+  }
+
+  /* 号码球缩小 */
+  .number-ball {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    font-size: var(--font-size-sm);
+    margin: 2px;
+  }
+
+  /* 按钮组完全换行 */
+  .recommend-type-group,
+  .recommend-hit-type-group,
+  .tens-type-group,
+  .seventh-range-type-group,
+  .twenty-range-type-group,
+  .each-issue-type-group,
+  .color-analysis-type-group,
+  .tens-pos-group,
+  .position-buttons {
+    width: 100%;
+  }
+
+  .recommend-type-btn,
+  .recommend-hit-type-btn,
+  .tens-type-btn,
+  .seventh-range-type-btn,
+  .twenty-range-type-btn,
+  .each-issue-type-btn,
+  .color-analysis-type-btn,
+  .tens-pos-btn,
+  .pos-btn,
+  .position-btn,
+  .position-select-btn {
+    flex: 1 1 calc(33.333% - var(--spacing-xs));
+    min-width: 80px;
+  }
+
+  /* 栅格系统手机全宽 */
+  .col-2,
+  .col-3,
+  .col-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* ==================== 小屏手机 (≤480px) ==================== */
+@media (max-width: 480px) {
+  /* 根字体缩小 */
+  html {
+    font-size: 14px;
+  }
+
+  /* 进一步减少间距 */
+  .main-content {
+    padding: var(--spacing-xs);
+  }
+
+  .card {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* 页面标题缩小 */
+  .page-header h1 {
+    font-size: var(--font-size-xl);
+  }
+
+  /* 按钮缩小 */
+  .btn,
+  button[type="button"],
+  button[type="submit"],
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 12px;
+    font-size: var(--font-size-xs);
+  }
+
+  /* 分页按钮缩小 */
+  .pagination-btn,
+  .page-number {
+    padding: 6px 10px;
+    font-size: var(--font-size-xs);
+  }
+
+  /* 输入框缩小 */
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    padding: 8px 10px;
+    font-size: var(--font-size-xs);
+  }
+
+  /* 号码球进一步缩小 */
+  .number-ball {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    font-size: 12px;
+    margin: 1px;
+  }
+
+  /* 菜单按钮适配 */
+  .menu-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .menu-btn-sub {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 按钮组按钮缩小 */
+  .recommend-type-btn,
+  .recommend-hit-type-btn,
+  .tens-type-btn,
+  .seventh-range-type-btn,
+  .twenty-range-type-btn,
+  .each-issue-type-btn,
+  .color-analysis-type-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .tens-pos-btn,
+  .pos-btn,
+  .position-btn,
+  .position-select-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    flex: 1 1 calc(50% - var(--spacing-xs));
+  }
+}
+
+/* ==================== 打印样式 ==================== */
+@media print {
+  /* 隐藏侧边栏和导航 */
+  .sidebar,
+  .page-header .restart-btn,
+  .query-actions {
+    display: none !important;
+  }
+
+  /* 主内容区占满页面 */
+  .main-content {
+    margin-left: 0;
+    padding: 0;
+    max-width: 100%;
+  }
+
+  /* 移除交互样式 */
+  .btn,
+  button,
+  .menu-btn {
+    box-shadow: none;
+  }
+
+  /* 表格边框优化 */
+  .data-table,
+  table {
+    border-collapse: collapse;
+  }
+
+  .data-table th,
+  .data-table td,
+  table th,
+  table td {
+    border: 1px solid #000;
+  }
+
+  /* 分页控件隐藏 */
+  .pagination-container {
+    display: none;
+  }
+
+  /* 号码球打印样式 */
+  .number-ball {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
+
+/* ==================== 横屏模式 ==================== */
+@media (orientation: landscape) and (max-width: 768px) {
+  /* 横屏时侧边栏自动折叠 */
+  .sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  /* 充分利用横向空间 */
+  .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+  }
+
+  /* 查询网格恢复2列 */
+  .query-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==================== 暗色模式支持（预留） ==================== */
+@media (prefers-color-scheme: dark) {
+  /* 可以在这里添加暗色模式自动切换逻辑 */
+  /* 目前通过 [data-theme="dark"] 手动切换 */
+}
+
+/* ==================== 高对比度模式 ==================== */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-muted: var(--text-secondary);
+  }
+
+  .number-ball {
+    border: 2px solid #000;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    border: 2px solid #000;
+  }
+}
+
+/* ==================== 减少动画模式 ==================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .number-ball:hover {
+    transform: none;
+  }
+
+  .btn:hover,
+  .menu-btn:hover {
+    transform: none;
+  }
+}

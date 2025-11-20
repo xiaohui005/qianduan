@@ -1,0 +1,453 @@
+/**
+ * 页面特定样式
+ * 定义各个功能页面的特殊样式和覆盖
+ */
+
+/* ==================== 开奖记录页面 ==================== */
+.records-page .number-ball {
+  margin: 2px 4px;
+}
+
+.records-page .data-table {
+  font-size: var(--font-size-sm);
+}
+
+.records-page .period-column {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-blue);
+}
+
+/* ==================== 推荐号码页面 ==================== */
+.recommend-page .recommendation-card {
+  border-left: 4px solid var(--primary-orange);
+}
+
+.recommend-page .position-label {
+  display: inline-block;
+  min-width: 60px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.recommend-page .number-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+/* ==================== 推荐16码页面 ==================== */
+.recommend16-page .recommendation-card {
+  border-left: 4px solid var(--primary-blue);
+}
+
+.recommend16-page .number-ball-sm {
+  margin: 2px 3px;
+}
+
+/* ==================== 第7个号码智能推荐页面 ==================== */
+.seventh-smart-page .top20-container {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.seventh-smart-page .score-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.seventh-smart-page .score-item {
+  background: var(--bg-card);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.seventh-smart-page .score-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.seventh-smart-page .score-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-blue);
+}
+
+/* ==================== 区间分析页面 ==================== */
+.interval-analysis-page .hit-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.interval-analysis-page .hit-yes {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.interval-analysis-page .hit-no {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.interval-analysis-page .interval-range {
+  font-family: var(--font-family-mono);
+  color: var(--text-secondary);
+}
+
+/* ==================== 位置分析页面 ==================== */
+.position-analysis-page .position-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.position-analysis-page .stats-card {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ==================== 10码分析页面 ==================== */
+.tens-analysis-page .tens-type-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.tens-analysis-page .tens-pos-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tens-analysis-page .top10-highlight {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ==================== 波色分析页面 ==================== */
+.color-analysis-page .color-legend {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.color-analysis-page .legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.color-analysis-page .legend-color {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
+
+.color-analysis-page .red-legend {
+  background: linear-gradient(135deg, var(--ball-red) 0%, var(--ball-red-dark) 100%);
+}
+
+.color-analysis-page .blue-legend {
+  background: linear-gradient(135deg, var(--ball-blue) 0%, var(--ball-blue-dark) 100%);
+}
+
+.color-analysis-page .green-legend {
+  background: linear-gradient(135deg, var(--ball-green) 0%, var(--ball-green-dark) 100%);
+}
+
+/* ==================== 肖分析页面 ==================== */
+.xiao-analysis-page .xiao-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  margin: 2px;
+}
+
+/* ==================== 关注号码页面 ==================== */
+.favorites-page .place-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  transition: border-color var(--transition-base);
+}
+
+.favorites-page .place-card:hover {
+  border-color: var(--primary-blue);
+}
+
+.favorites-page .place-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.favorites-page .place-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-blue);
+}
+
+.favorites-page .omission-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-error);
+}
+
+/* ==================== 投注管理页面 ==================== */
+.betting-page .betting-card {
+  border-left: 4px solid var(--primary-orange);
+}
+
+.betting-page .amount-input {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  text-align: right;
+}
+
+.betting-page .total-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-orange);
+}
+
+.betting-page .profit-positive {
+  color: var(--color-success);
+}
+
+.betting-page .profit-negative {
+  color: var(--color-error);
+}
+
+/* ==================== 数据采集页面 ==================== */
+.collect-page .collect-btn {
+  min-width: 200px;
+  font-size: var(--font-size-base);
+}
+
+.collect-page .last-collect-time {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+.collect-page .collect-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.collect-page .status-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.collect-page .status-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+/* ==================== 定时任务页面 ==================== */
+.scheduler-page .task-list {
+  list-style: none;
+  padding: 0;
+}
+
+.scheduler-page .task-item {
+  background: var(--bg-card);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+  border-left: 4px solid var(--primary-blue);
+}
+
+.scheduler-page .task-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.scheduler-page .task-schedule {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+}
+
+/* ==================== 2组观察分析页面 ==================== */
+.two-groups-page .cold-numbers-section {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.two-groups-page .group-section {
+  background: var(--bg-card);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  border: 2px solid var(--border-color);
+}
+
+.two-groups-page .group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.two-groups-page .group-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.two-groups-page .group1-badge {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+}
+
+.two-groups-page .group2-badge {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+/* ==================== 号码间隔分析页面 ==================== */
+.number-gap-page .gap-table {
+  font-family: var(--font-family-mono);
+}
+
+.number-gap-page .gap-value {
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.number-gap-page .gap-first {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.number-gap-page .gap-hot {
+  color: var(--color-error);
+  font-weight: var(--font-weight-bold);
+}
+
+.number-gap-page .gap-cold {
+  color: var(--primary-blue);
+}
+
+/* ==================== 加载状态 ==================== */
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-muted);
+}
+
+.page-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-md);
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.empty-state-message {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* ==================== 通用页面容器 ==================== */
+.page-container {
+  animation: fadeIn var(--transition-base);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== 导出按钮组 ==================== */
+.export-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: var(--text-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-base);
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.export-btn::before {
+  content: "↓";
+  font-size: var(--font-size-lg);
+}
