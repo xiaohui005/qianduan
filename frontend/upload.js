@@ -495,49 +495,8 @@ if (!document.getElementById('unitsPage')) {
   `;
   mainContent.appendChild(unitsDiv);
 }
-// 页面切换通用函数
-function showOnlyPage(pageId) {
-  // 隐藏所有主内容区页面（id以Page结尾的div）
-  document.querySelectorAll('.main-content > div[id$="Page"]').forEach(div => {
-    div.style.display = 'none';
-  });
-  // 只显示目标页面
-  const page = document.getElementById(pageId);
-  if (page) {
-    page.style.display = 'block';
-
-    // 如果是定时采集页面,初始化
-    if (pageId === 'schedulerPage' && typeof initSchedulerPage === 'function') {
-      initSchedulerPage();
-    }
-
-    // 如果是2组观察页面,初始化
-    if (pageId === 'twoGroupsPage' && typeof initTwoGroupsPage === 'function') {
-      initTwoGroupsPage();
-    }
-
-    // 如果是号码间隔期数分析页面,初始化
-    if (pageId === 'numberGapAnalysisPage' && typeof initNumberGapAnalysisPage === 'function') {
-      initNumberGapAnalysisPage();
-    }
-
-    // 确保滚动到主内容区域顶部，避免用户视觉上看到"页面底部"
-    const main = document.querySelector('.main-content');
-    // 优先滚动整个窗口到主内容顶部
-    try {
-      const topTarget = main ? main.getBoundingClientRect().top + window.pageYOffset - 10 : 0;
-      window.scrollTo({ top: Math.max(topTarget, 0), behavior: 'smooth' });
-    } catch (e) {
-      // 兜底：尽量滚动到页面顶部或目标区块
-      if (typeof window.scrollTo === 'function') {
-        window.scrollTo(0, 0);
-      }
-      if (page.scrollIntoView) {
-        page.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  }
-}
+// 页面切换通用函数已移至 pages.js 统一管理
+// showOnlyPage 函数现在由 pages.js 提供，包含所有页面的初始化逻辑
 
 // 1. 左侧主菜单按钮切换逻辑优化
 if (typeof pageMap === 'undefined') {
