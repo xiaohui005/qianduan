@@ -733,3 +733,6 @@ console.log('analyzeTwoGroups 函数:', typeof analyzeTwoGroups);
         setupButton();
     }
 })();
+
+// 导出初始化函数供pages.js调用
+window.initTwoGroupsPage = initTwoGroupsPage;
