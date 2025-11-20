@@ -94,6 +94,17 @@ function showOnlyPage(pageId) {
       }
     }
 
+    // 如果是开奖记录页面,初始化
+    if (pageId === 'recordsPage') {
+      console.log('[页面管理] 检测到开奖记录页面');
+      if (typeof window.initRecordsModule === 'function') {
+        console.log('[页面管理] 调用 initRecordsModule()');
+        window.initRecordsModule();
+      } else {
+        console.error('[页面管理] ✗ initRecordsModule 函数不存在');
+      }
+    }
+
     // 如果是推荐8码页面,初始化
     if (pageId === 'recommendPage') {
       console.log('[页面管理] 检测到推荐8码页面');
