@@ -203,6 +203,50 @@ function showOnlyPage(pageId) {
         console.error('[页面管理] ✗ initPlaceAnalysisModule 函数不存在');
       }
     }
+
+    // 如果是波色分析页面,初始化
+    if (pageId === 'colorAnalysisPage') {
+      console.log('[页面管理] 检测到波色分析页面');
+      if (typeof window.initColorAnalysis === 'function') {
+        console.log('[页面管理] 调用 initColorAnalysis()');
+        window.initColorAnalysis();
+      } else {
+        console.error('[页面管理] ✗ initColorAnalysis 函数不存在');
+      }
+    }
+
+    // 如果是推荐8码命中情况页面,初始化
+    if (pageId === 'recommendHitPage') {
+      console.log('[页面管理] 检测到推荐8码命中情况页面');
+      if (typeof window.initRecommendHitAnalysis === 'function') {
+        console.log('[页面管理] 调用 initRecommendHitAnalysis()');
+        window.initRecommendHitAnalysis();
+      } else {
+        console.error('[页面管理] ✗ initRecommendHitAnalysis 函数不存在');
+      }
+    }
+
+    // 如果是第二个号码四肖分析页面,初始化
+    if (pageId === 'secondFourxiaoPage') {
+      console.log('[页面管理] 检测到第二个号码四肖分析页面');
+      if (typeof window.initSecondFourxiaoAnalysis === 'function') {
+        console.log('[页面管理] 调用 initSecondFourxiaoAnalysis()');
+        window.initSecondFourxiaoAnalysis();
+      } else {
+        console.error('[页面管理] ✗ initSecondFourxiaoAnalysis 函数不存在');
+      }
+    }
+
+    // 如果是第6个号码6肖分析页面,初始化
+    if (pageId === 'sixthThreexiaoPage') {
+      console.log('[页面管理] 检测到第6个号码6肖分析页面');
+      if (typeof window.initSixthThreexiaoAnalysis === 'function') {
+        console.log('[页面管理] 调用 initSixthThreexiaoAnalysis()');
+        window.initSixthThreexiaoAnalysis();
+      } else {
+        console.error('[页面管理] ✗ initSixthThreexiaoAnalysis 函数不存在');
+      }
+    }
   } else {
     console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }
