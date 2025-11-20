@@ -26,6 +26,7 @@ const PAGE_CONFIG = {
   'menuColorAnalysisBtn': { pageId: 'colorAnalysisPage', title: '波色分析' },
   'menuTwoGroupsBtn': { pageId: 'twoGroupsPage', title: '2组观察分析' },
   'menuNumberGapBtn': { pageId: 'numberGapAnalysisPage', title: '号码间隔期数分析' },
+  'menuNumberMissingBtn': { pageId: 'numberMissingAnalysisPage', title: '查询遗漏期数开奖' },
 
   // 登记点分析
   'menuRegisterFocusBtn': { pageId: 'registerFocusPage', title: '登记关注点' },
@@ -79,6 +80,17 @@ function showOnlyPage(pageId) {
         initNumberGapAnalysisPage();
       } else {
         console.error('[页面管理] ✗ initNumberGapAnalysisPage 函数不存在');
+      }
+    }
+
+    // 如果是查询遗漏期数开奖页面,初始化
+    if (pageId === 'numberMissingAnalysisPage') {
+      console.log('[页面管理] 检测到查询遗漏期数开奖页面');
+      if (typeof initNumberMissingAnalysisPage === 'function') {
+        console.log('[页面管理] 调用 initNumberMissingAnalysisPage()');
+        initNumberMissingAnalysisPage();
+      } else {
+        console.error('[页面管理] ✗ initNumberMissingAnalysisPage 函数不存在');
       }
     }
   } else {

@@ -78,6 +78,7 @@
             <button class="menu-btn menu-btn-sub" id="menuColorAnalysisBtn">波色分析</button>
             <button class="menu-btn menu-btn-sub" id="menuTwoGroupsBtn">2组观察分析</button>
             <button class="menu-btn menu-btn-sub" id="menuNumberGapBtn">号码间隔期数分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuNumberMissingBtn">查询遗漏期数开奖</button>
           </div>
         </div>
       </div>
@@ -584,6 +585,83 @@
         <div id="numberGapResult">
           <div style="text-align:center;color:#888;padding:40px;">
             正在加载数据...
+          </div>
+        </div>
+      </div>
+
+      <!-- 查询遗漏期数开奖页面 -->
+      <div id="numberMissingAnalysisPage" style="display:none;">
+        <h2>查询遗漏期数开奖</h2>
+
+        <!-- 控制栏 -->
+        <div class="control-bar" style="margin-bottom:20px;padding:15px;background:#f8f9fa;border-radius:8px;">
+          <!-- 彩种选择 -->
+          <div style="margin-bottom:15px;">
+            <label style="font-weight:600;margin-right:10px;color:#2c3e50;">选择彩种：</label>
+            <button class="miss-type-btn active" data-type="am" style="padding:10px 20px;border:2px solid #ddd;background:#f8f9fa;color:#333;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;margin-right:10px;">澳门</button>
+            <button class="miss-type-btn" data-type="hk" style="padding:10px 20px;border:2px solid #ddd;background:#f8f9fa;color:#333;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;">香港</button>
+          </div>
+
+          <!-- 期号输入 -->
+          <div style="margin-bottom:15px;padding:15px;background:white;border:2px solid #e67e22;border-radius:8px;">
+            <label style="font-weight:600;margin-right:10px;color:#2c3e50;">🔍 输入目标期号：</label>
+            <input type="text" id="missPeriodInput" placeholder="例如：2025323" style="padding:10px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;width:200px;margin-right:15px;" />
+            <button id="queryMissingBtn" style="padding:10px 25px;background:linear-gradient(135deg, #e67e22, #d35400);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(230,126,34,0.3);">
+              🔍 查询
+            </button>
+          </div>
+
+          <!-- 筛选选项 -->
+          <div style="margin-bottom:15px;display:flex;align-items:center;">
+            <!-- 位置筛选 -->
+            <div style="margin-right:20px;">
+              <label style="font-weight:600;margin-right:10px;color:#2c3e50;">位置筛选：</label>
+              <select id="missPositionSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
+                <option value="">全部位置</option>
+                <option value="1">位置1</option>
+                <option value="2">位置2</option>
+                <option value="3">位置3</option>
+                <option value="4">位置4</option>
+                <option value="5">位置5</option>
+                <option value="6">位置6</option>
+                <option value="7">位置7</option>
+              </select>
+            </div>
+
+            <!-- 排序方式 -->
+            <div>
+              <label style="font-weight:600;margin-right:10px;color:#2c3e50;">排序方式：</label>
+              <select id="missSortSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
+                <option value="missing_desc">遗漏期数降序</option>
+                <option value="missing_asc">遗漏期数升序</option>
+                <option value="number_asc">号码升序</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 导出按钮 -->
+          <div>
+            <button id="exportMissingCsvBtn" style="padding:10px 20px;background:linear-gradient(135deg, #27ae60, #229954);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(39,174,96,0.3);">
+              📥 导出CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div style="margin-bottom:20px;padding:15px;background:#fff3cd;border-left:4px solid #ffc107;border-radius:4px;color:#856404;">
+          <h4 style="margin:0 0 10px 0;color:#856404;">📌 功能说明</h4>
+          <p style="margin:5px 0;line-height:1.6;">
+            <strong>功能：</strong>查询1-49每个号码最后一次开奖到输入期数的遗漏期数<br>
+            <strong>示例：</strong>如果2025320开出28，输入2025323，则28的遗漏期数为3期<br>
+            <strong>位置筛选：</strong>可以选择只统计某个位置的遗漏情况，或统计所有位置（默认）<br>
+            <strong>颜色标识：</strong>遗漏50期以上显示为红色，30-50期显示为橙色
+          </p>
+        </div>
+
+        <!-- 结果显示区 -->
+        <div id="numberMissingResult">
+          <div style="text-align:center;padding:40px;color:#999;">
+            请输入期号并点击查询
           </div>
         </div>
       </div>
@@ -1346,6 +1424,7 @@
   <script src="seventhSmart20.js"></script>
   <script src="twoGroups.js"></script>
   <script src="numberGapAnalysis.js"></script>
+  <script src="numberMissingAnalysis.js"></script>
   <script src="hot20Analysis.js"></script>
     <script>
       // 调试信息

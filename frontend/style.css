@@ -3560,3 +3560,20 @@ h2 {
   box-shadow: 0 4px 8px rgba(220,53,69,0.25) !important;
   background: linear-gradient(135deg,#f5c2c7 0%,#ffd4da 100%) !important;
 }
+
+/* 查询遗漏期数开奖样式 */
+.miss-hot {
+  background-color: #fee;
+  color: #c00;
+}
+
+.miss-warm {
+  background-color: #ffe5cc;
+  color: #e67e22;
+}
+
+.miss-type-btn.active {
+  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+  color: white !important;
+  border-color: #2980b9 !important;
+}

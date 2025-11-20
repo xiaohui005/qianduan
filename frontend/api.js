@@ -595,7 +595,39 @@ async function getNumberGapStats(lotteryType) {
   return await response.json();
 }
 
+// ==================== 查询遗漏期数开奖相关 API ====================
 
+/**
+ * 获取号码遗漏期数分析
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} targetPeriod - 目标期号
+ * @param {number} position - 位置筛选（可选，1-7）
+ * @returns {Promise<Object>} 分析数据
+ */
+async function getNumberMissingAnalysis(lotteryType, targetPeriod, position = null) {
+  let url = `${API_BASE}/api/number_missing_analysis?lottery_type=${lotteryType}&target_period=${targetPeriod}`;
+  if (position) {
+    url += `&position=${position}`;
+  }
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 导出号码遗漏期数分析CSV
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} targetPeriod - 目标期号
+ * @param {number} position - 位置筛选（可选，1-7）
+ * @returns {Promise<Blob>} CSV文件
+ */
+async function exportNumberMissingAnalysisCsv(lotteryType, targetPeriod, position = null) {
+  let url = `${API_BASE}/api/number_missing_analysis/export?lottery_type=${lotteryType}&target_period=${targetPeriod}`;
+  if (position) {
+    url += `&position=${position}`;
+  }
+  const response = await fetch(url);
+  return await response.blob();
+}
 
 // ==================== 去10最热20分析相关 API ====================
 
