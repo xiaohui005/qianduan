@@ -27,7 +27,7 @@ let selectedPlaceId = null;
 let allBetsData = [];
 let originalBetsData = []; // 保存原始数据用于重置
 let filteredBetsData = []; // 保存过滤后的数据
-let currentPage = 1;
+let bettingCurrentPage = 1;
 let pageSize = 10; // 默认每页10条，可通过下拉框调整
 
 // ==================== 渲染函数 ====================
@@ -213,27 +213,27 @@ function updateBetsStats(bets, pageBets = []) {
 /**
  * 更新分页控件
  * @param {Array} bets - 投注记录列表
- * @param {number} currentPage - 当前页码
+ * @param {number} bettingCurrentPage - 当前页码
  */
-function updateBetsPagination(bets, currentPage) {
+function updateBetsPagination(bets, bettingCurrentPage) {
   const totalPages = Math.ceil(bets.length / pageSize);
-  const startRecord = (currentPage - 1) * pageSize + 1;
-  const endRecord = Math.min(currentPage * pageSize, bets.length);
+  const startRecord = (bettingCurrentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(bettingCurrentPage * pageSize, bets.length);
 
   // 更新分页信息
   document.getElementById('paginationInfo').textContent =
     `显示 ${startRecord}-${endRecord} 条，共 ${bets.length} 条记录`;
 
   // 更新按钮状态
-  document.getElementById('prevPageBtn').disabled = currentPage <= 1;
-  document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+  document.getElementById('prevPageBtn').disabled = bettingCurrentPage <= 1;
+  document.getElementById('nextPageBtn').disabled = bettingCurrentPage >= totalPages;
 
   // 生成页码按钮
   const pageNumbersContainer = document.getElementById('pageNumbers');
   pageNumbersContainer.innerHTML = '';
 
   const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let startPage = Math.max(1, bettingCurrentPage - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
   if (endPage - startPage + 1 < maxVisiblePages) {
@@ -242,7 +242,7 @@ function updateBetsPagination(bets, currentPage) {
 
   for (let i = startPage; i <= endPage; i++) {
     const pageBtn = document.createElement('span');
-    pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+    pageBtn.className = `page-number ${i === bettingCurrentPage ? 'active' : ''}`;
     pageBtn.textContent = i;
     pageBtn.onclick = () => goToPage(i);
     pageNumbersContainer.appendChild(pageBtn);
@@ -254,7 +254,7 @@ function updateBetsPagination(bets, currentPage) {
  * @param {number} page - 页码
  */
 function goToPage(page) {
-  currentPage = page;
+  bettingCurrentPage = page;
   renderBetsTable(filteredBetsData, page);
 }
 
@@ -276,7 +276,7 @@ async function loadBets() {
   allBetsData = data;
   originalBetsData = [...data]; // 保存原始数据
   filteredBetsData = [...data]; // 初始化过滤数据
-  currentPage = 1;
+  bettingCurrentPage = 1;
   renderBetsTable(data, 1);
 
   // 绑定分页按钮事件
@@ -345,11 +345,11 @@ async function deleteBet(id) {
 
   // 如果当前页面没有数据了，回到上一页
   const totalPages = Math.ceil(filteredBetsData.length / pageSize);
-  if (currentPage > totalPages && totalPages > 0) {
-    currentPage = totalPages;
+  if (bettingCurrentPage > totalPages && totalPages > 0) {
+    bettingCurrentPage = totalPages;
   }
 
-  renderBetsTable(filteredBetsData, currentPage);
+  renderBetsTable(filteredBetsData, bettingCurrentPage);
 }
 
 // ==================== 查询和过滤 ====================
@@ -424,7 +424,7 @@ function filterBets() {
 
   // 更新过滤后的数据
   filteredBetsData = filteredBets;
-  currentPage = 1;
+  bettingCurrentPage = 1;
   renderBetsTable(filteredBets, 1);
 
   // 显示查询结果提示
@@ -441,7 +441,7 @@ function filterBets() {
 async function resetQuery() {
   // 恢复原始数据
   filteredBetsData = [...originalBetsData];
-  currentPage = 1;
+  bettingCurrentPage = 1;
   renderBetsTable(filteredBetsData, 1);
 
   // 清空查询条件
@@ -612,8 +612,8 @@ function bindPaginationEvents() {
 
   if (prevBtn) {
     prevBtn.onclick = () => {
-      if (currentPage > 1) {
-        goToPage(currentPage - 1);
+      if (bettingCurrentPage > 1) {
+        goToPage(bettingCurrentPage - 1);
       }
     };
   }
@@ -621,8 +621,8 @@ function bindPaginationEvents() {
   if (nextBtn) {
     nextBtn.onclick = () => {
       const totalPages = Math.ceil(filteredBetsData.length / pageSize);
-      if (currentPage < totalPages) {
-        goToPage(currentPage + 1);
+      if (bettingCurrentPage < totalPages) {
+        goToPage(bettingCurrentPage + 1);
       }
     };
   }
@@ -631,7 +631,7 @@ function bindPaginationEvents() {
   if (pageSizeSelect) {
     pageSizeSelect.onchange = () => {
       pageSize = parseInt(pageSizeSelect.value);
-      currentPage = 1; // 重置到第一页
+      bettingCurrentPage = 1; // 重置到第一页
       renderBetsTable(filteredBetsData, 1);
     };
   }
@@ -722,7 +722,7 @@ function bindFormEvents() {
       allBetsData = data;
       originalBetsData = [...data]; // 更新原始数据
       filteredBetsData = [...data]; // 更新过滤数据
-      currentPage = 1;
+      bettingCurrentPage = 1;
       renderBetsTable(filteredBetsData, 1);
     };
   }
