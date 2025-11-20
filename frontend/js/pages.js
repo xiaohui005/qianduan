@@ -53,6 +53,7 @@ function showOnlyPage(pageId) {
   // 隐藏所有页面
   allPages.forEach(page => {
     page.style.display = 'none';
+    page.classList.add('hidden');
   });
 
   // 显示指定页面
@@ -60,6 +61,7 @@ function showOnlyPage(pageId) {
   if (targetPage) {
     console.log(`[页面管理] ✓ 找到页面容器: ${pageId}`);
     targetPage.style.display = 'block';
+    targetPage.classList.remove('hidden');
 
     // 如果是2组观察页面,初始化
     if (pageId === 'twoGroupsPage') {
