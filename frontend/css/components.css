@@ -425,6 +425,46 @@ textarea:disabled {
   color: var(--color-info);
 }
 
+/* ==================== 数据源选择 ==================== */
+.source-selection {
+  margin-bottom: 20px;
+}
+
+.source-selection-label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: var(--font-weight-bold);
+}
+
+.source-selection-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.source-btn {
+  padding: 10px 20px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-base);
+}
+
+.source-btn:hover {
+  border-color: var(--primary-blue);
+  background: var(--bg-hover);
+}
+
+.source-btn.active {
+  background: var(--primary-blue);
+  color: var(--text-white);
+  border-color: var(--primary-blue);
+}
+
 /* ==================== 提示框 ==================== */
 .alert {
   padding: var(--spacing-md);

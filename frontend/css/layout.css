@@ -46,6 +46,24 @@ body {
   z-index: 100;
 }
 
+/* 侧边栏标题区域 */
+.sidebar-header {
+  background: linear-gradient(135deg, #2980d9 0%, #3498db 100%);
+  padding: 20px 0;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(41, 128, 217, 0.2);
+}
+
+.sidebar-title {
+  color: var(--text-white);
+  text-align: center;
+  margin: 0;
+  font-size: 20px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .sidebar::-webkit-scrollbar {
   width: 6px;
 }
@@ -141,6 +159,62 @@ body {
 
 .menu-subgroup-btn:hover {
   background: #d1eaf5;
+}
+
+.menu-subgroup-btn .icon {
+  margin-right: 4px;
+}
+
+/* 折叠/展开主按钮 */
+.toggle-section-btn {
+  width: 88%;
+  margin: 0 auto 12px auto;
+  display: block;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-md);
+  padding: 10px 0;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: 2px solid;
+  text-align: center;
+}
+
+/* 分析推荐折叠按钮 */
+#toggleSidebarBtn {
+  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+  color: #856404;
+  border-color: #ffc107;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+}
+
+#toggleSidebarBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+  background: linear-gradient(135deg, #ffe082 0%, #ffecb3 100%);
+}
+
+/* 登记点分析折叠按钮 */
+#toggleRegisterBtn {
+  background: linear-gradient(135deg, #f8d7da 0%, #ffe0e6 100%);
+  color: #721c24;
+  border-color: #f5c6cb;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.15);
+}
+
+#toggleRegisterBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.25);
+  background: linear-gradient(135deg, #f5c2c7 0%, #ffd4da 100%);
+}
+
+/* 登记点菜单容器 */
+#registerMenuBtns {
+  margin-bottom: 12px;
+  padding: 0 6%;
+}
+
+#registerMenuBtns .menu-btn {
+  margin-bottom: 8px;
 }
 
 .subgroup-btns {
