@@ -4,7 +4,7 @@
 
 // 全局变量
 let currentLotteryType = 'am';
-let currentPage = 1;
+let fivePeriodCurrentPage = 1;
 let currentPageSize = 30;
 let currentData = null;
 
@@ -82,7 +82,7 @@ async function startFivePeriodThreexiaoAnalysis() {
     
     try {
         // 调用API获取数据
-        const response = await fetch(`${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&page=${currentPage}&page_size=${currentPageSize}`);
+        const response = await fetch(`${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&page=${fivePeriodCurrentPage}&page_size=${currentPageSize}`);
         const data = await response.json();
         
         if (data.success) {
@@ -238,26 +238,26 @@ function displayFivePeriodThreexiaoStats(data) {
  */
 function createPaginationControls(data) {
     const totalPages = data.total_pages;
-    const currentPage = data.page;
+    const fivePeriodCurrentPage = data.page;
     
     let html = `
         <div class="pagination-container">
             <div class="pagination-info">
-                <span>显示第 ${(currentPage - 1) * currentPageSize + 1} - ${Math.min(currentPage * currentPageSize, data.total_triggers)} 条，共 ${data.total_triggers} 条记录</span>
+                <span>显示第 ${(fivePeriodCurrentPage - 1) * currentPageSize + 1} - ${Math.min(fivePeriodCurrentPage * currentPageSize, data.total_triggers)} 条，共 ${data.total_triggers} 条记录</span>
             </div>
             <div class="pagination-controls">
     `;
     
     // 上一页按钮
     html += `
-        <button class="pagination-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
+        <button class="pagination-btn" ${fivePeriodCurrentPage <= 1 ? 'disabled' : ''} onclick="changePage(${fivePeriodCurrentPage - 1})">
             上一页
         </button>
     `;
     
     // 页码按钮
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
+    const startPage = Math.max(1, fivePeriodCurrentPage - 2);
+    const endPage = Math.min(totalPages, fivePeriodCurrentPage + 2);
     
     if (startPage > 1) {
         html += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
@@ -267,7 +267,7 @@ function createPaginationControls(data) {
     }
     
     for (let i = startPage; i <= endPage; i++) {
-        const isActive = i === currentPage;
+        const isActive = i === fivePeriodCurrentPage;
         html += `
             <button class="pagination-btn ${isActive ? 'active' : ''}" onclick="changePage(${i})" ${isActive ? 'disabled' : ''}>
                 ${i}
@@ -284,7 +284,7 @@ function createPaginationControls(data) {
     
     // 下一页按钮
     html += `
-        <button class="pagination-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
+        <button class="pagination-btn" ${fivePeriodCurrentPage >= totalPages ? 'disabled' : ''} onclick="changePage(${fivePeriodCurrentPage + 1})">
             下一页
         </button>
     `;
@@ -302,7 +302,7 @@ function createPaginationControls(data) {
  */
 function changePage(page) {
     if (page < 1) return;
-    currentPage = page;
+    fivePeriodCurrentPage = page;
     startFivePeriodThreexiaoAnalysis();
 }
 
@@ -312,7 +312,7 @@ function changePage(page) {
 function changePageSize() {
     const select = document.getElementById('pageSizeSelect');
     currentPageSize = parseInt(select.value);
-    currentPage = 1;
+    fivePeriodCurrentPage = 1;
     startFivePeriodThreexiaoAnalysis();
 }
 
