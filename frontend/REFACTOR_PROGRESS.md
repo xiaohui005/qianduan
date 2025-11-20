@@ -3,7 +3,7 @@
 ## 📈 总体进度
 - **总阶段**：5个
 - **总检查点**：15个
-- **当前进度**：9/15 (60%)
+- **当前进度**：10/15 (67%)
 - **预计工时**：10-14天
 
 ---
@@ -161,13 +161,29 @@
 - 更新 `index.html`：引入3个新模块
 - 更新 `pages.js`：添加页面切换初始化逻辑（minusRangePage, plusMinus6Page, registerFocusPage）
 
+### 检查点3.4：拆分模块10-12（betting, place-results, place-analysis）✅
+- **恢复码**：`REFACTOR-P3.4-MOD-12`
+- **Git tag**：`phase3-modules-12`
+- **完成时间**：2025-11-20
+- **状态**：✅ 已完成
+
+已完成的工作：
+- 创建 `js/modules/betting.js`：投注登记点管理模块（753行）
+  - 功能：投注记录CRUD、分页查询、关注点模糊搜索、统计（总体和本页）、CSV导出
+- 创建 `js/modules/place-results.js`：关注点登记结果管理模块（770行）
+  - 功能：登记结果CRUD、分页查询、遗漏统计、关注点按钮选择、自动完成
+- 创建 `js/modules/place-analysis.js`：关注点分析模块（379行）
+  - 功能：分析卡片展示、统计信息、详细记录、CSV导出、关注点按钮
+- 更新 `index.html`：引入3个新模块
+- 更新 `pages.js`：添加页面切换初始化逻辑（registerBetPage, registerFocusResultPage, registerFocusAnalysisPage）
+
 ---
 
 ## 🔄 当前检查点
 
-**检查点3.4：拆分模块10-12（betting, place-results, place-analysis）**
-- **恢复码**：`REFACTOR-P3.4-MOD-12`
-- **Git tag**：`phase3-modules-12`
+**检查点3.5：拆分模块13-15（color, xiao, recommend-hit分析）**
+- **恢复码**：`REFACTOR-P3.5-MOD-15`
+- **Git tag**：`phase3-complete`
 - **状态**：🔄 待开始
 
 ---
@@ -189,7 +205,7 @@
 - [x] 3.1 拆分模块1-3 - `REFACTOR-P3.1-MOD-3` ✅
 - [x] 3.2 拆分模块4-6 - `REFACTOR-P3.2-MOD-6` ✅
 - [x] 3.3 拆分模块7-9 - `REFACTOR-P3.3-MOD-9` ✅
-- [ ] 3.4 拆分模块10-12 - `REFACTOR-P3.4-MOD-12`
+- [x] 3.4 拆分模块10-12 - `REFACTOR-P3.4-MOD-12` ✅
 - [ ] 3.5 拆分模块13-15 - `REFACTOR-P3.5-MOD-15` ⭐
 
 ### 阶段4：代码优化（2个）
@@ -274,4 +290,4 @@
 ---
 
 **最后更新**：2025-11-20
-**下一步操作**：执行检查点3.4 - 拆分upload.js模块（模块10-12）
+**下一步操作**：执行检查点3.5 - 拆分upload.js模块（模块13-15，阶段3完成）

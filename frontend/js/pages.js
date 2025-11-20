@@ -170,6 +170,39 @@ function showOnlyPage(pageId) {
         console.error('[页面管理] ✗ initPlaceManagementModule 函数不存在');
       }
     }
+
+    // 如果是投注登记点页面,初始化
+    if (pageId === 'registerBetPage') {
+      console.log('[页面管理] 检测到投注登记点页面');
+      if (typeof window.initBettingModule === 'function') {
+        console.log('[页面管理] 调用 initBettingModule()');
+        window.initBettingModule();
+      } else {
+        console.error('[页面管理] ✗ initBettingModule 函数不存在');
+      }
+    }
+
+    // 如果是关注点登记结果页面,初始化
+    if (pageId === 'registerFocusResultPage') {
+      console.log('[页面管理] 检测到关注点登记结果页面');
+      if (typeof window.initPlaceResultsModule === 'function') {
+        console.log('[页面管理] 调用 initPlaceResultsModule()');
+        window.initPlaceResultsModule();
+      } else {
+        console.error('[页面管理] ✗ initPlaceResultsModule 函数不存在');
+      }
+    }
+
+    // 如果是关注点分析页面,初始化
+    if (pageId === 'registerFocusAnalysisPage') {
+      console.log('[页面管理] 检测到关注点分析页面');
+      if (typeof window.initPlaceAnalysisModule === 'function') {
+        console.log('[页面管理] 调用 initPlaceAnalysisModule()');
+        window.initPlaceAnalysisModule();
+      } else {
+        console.error('[页面管理] ✗ initPlaceAnalysisModule 函数不存在');
+      }
+    }
   } else {
     console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }
