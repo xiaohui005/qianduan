@@ -258,6 +258,28 @@ function showOnlyPage(pageId) {
         console.error('[页面管理] ✗ initSixthThreexiaoAnalysis 函数不存在');
       }
     }
+
+    // 如果是5期3肖计算页面,初始化
+    if (pageId === 'fivePeriodThreexiaoPage') {
+      console.log('[页面管理] 检测到5期3肖计算页面');
+      if (typeof window.initFivePeriodThreexiao === 'function') {
+        console.log('[页面管理] 调用 initFivePeriodThreexiao()');
+        window.initFivePeriodThreexiao();
+      } else {
+        console.error('[页面管理] ✗ initFivePeriodThreexiao 函数不存在');
+      }
+    }
+
+    // 如果是第7个号码智能推荐20码页面,初始化
+    if (pageId === 'seventhSmart20Page') {
+      console.log('[页面管理] 检测到第7个号码智能推荐20码页面');
+      if (typeof window.initSeventhSmart20 === 'function') {
+        console.log('[页面管理] 调用 initSeventhSmart20()');
+        window.initSeventhSmart20();
+      } else {
+        console.error('[页面管理] ✗ initSeventhSmart20 函数不存在');
+      }
+    }
   } else {
     console.error(`[页面管理] ✗ 页面 ${pageId} 不存在`);
   }

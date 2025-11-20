@@ -342,6 +342,9 @@ async function exportToCSV() {
     }
 }
 
+// 导出初始化函数供pages.js调用
+window.initFivePeriodThreexiao = initFivePeriodThreexiao;
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     // 检查是否在5期3肖计算页面

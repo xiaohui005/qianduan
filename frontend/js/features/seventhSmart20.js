@@ -379,6 +379,9 @@ function exportSeventhSmart20CSV(lotteryType) {
   window.open(url, '_blank');
 }
 
+// 导出初始化函数供pages.js调用
+window.initSeventhSmart20 = initSeventhSmart20;
+
 // 确保DOM加载完成后初始化
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSeventhSmart20);
