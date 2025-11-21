@@ -26,8 +26,25 @@ class PlaceResultData(BaseModel):
     is_correct: Optional[int] = None
 
 @router.get("/api/favorite_numbers")
-def get_favorite_numbers(position: int = 7, lottery_type: str = 'am', year: Optional[str] = None):
-    """获取所有关注号码组"""
+def get_favorite_numbers(
+    position: int = 7,
+    lottery_type: str = 'am',
+    year: Optional[str] = None,
+    min_miss: Optional[int] = None,
+    max_miss: Optional[int] = None,
+    sort_by: Optional[str] = None
+):
+    """
+    获取所有关注号码组
+
+    参数:
+        position: 分析的位置(1-7)
+        lottery_type: 彩种('am'或'hk')
+        year: 年份筛选
+        min_miss: 最小当前遗漏期数
+        max_miss: 最大当前遗漏期数
+        sort_by: 排序方式('gap_asc'表示按差值从小到大排序)
+    """
     try:
         with get_db_cursor() as cursor:
             cursor.execute("SELECT * FROM favorite_numbers ORDER BY created_at DESC")
@@ -48,7 +65,7 @@ def get_favorite_numbers(position: int = 7, lottery_type: str = 'am', year: Opti
             # 为每个关注号码组计算遗漏
             for row in rows:
                 current_miss = 0
-                max_miss = 0
+                max_miss_value = 0
 
                 if latest_record:
                     numbers = [int(n.strip()) for n in row['numbers'].split(',') if n.strip().isdigit()]
@@ -60,7 +77,7 @@ def get_favorite_numbers(position: int = 7, lottery_type: str = 'am', year: Opti
                     if all_records:
                         # 计算当前遗漏和最大遗漏
                         current_miss = 0
-                        max_miss = 0
+                        max_miss_value = 0
                         temp_miss = 0
 
                         # 按期数从旧到新遍历
@@ -74,14 +91,33 @@ def get_favorite_numbers(position: int = 7, lottery_type: str = 'am', year: Opti
 
                             if not hit:
                                 temp_miss += 1
-                                max_miss = max(max_miss, temp_miss)
+                                max_miss_value = max(max_miss_value, temp_miss)
                             else:
                                 temp_miss = 0
 
                         current_miss = temp_miss
 
                 row['current_miss'] = current_miss
-                row['max_miss'] = max_miss
+                row['max_miss'] = max_miss_value
+                row['gap'] = max_miss_value - current_miss  # 计算差值
+
+            # 应用遗漏期数区间筛选
+            if min_miss is not None or max_miss is not None:
+                filtered_rows = []
+                for row in rows:
+                    current = row['current_miss']
+                    # 同时满足最小和最大条件
+                    if min_miss is not None and current < min_miss:
+                        continue
+                    if max_miss is not None and current > max_miss:
+                        continue
+                    filtered_rows.append(row)
+                rows = filtered_rows
+
+            # 应用排序
+            if sort_by == 'gap_asc':
+                # 按差值从小到大排序
+                rows = sorted(rows, key=lambda x: x['gap'])
 
             return {"success": True, "data": rows}
     except Exception as e:

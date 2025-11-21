@@ -968,6 +968,22 @@
             <button type="button" class="year-btn active" data-year="">全部</button>
           </div>
 
+          <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 15px; color: #2c3e50;">🔍 遗漏期数筛选：</label>
+          <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #ddd; align-items: center;">
+            <label style="margin: 0;">最小遗漏：</label>
+            <input type="number" id="minMissInput" placeholder="留空表示不限" min="0" style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <label style="margin: 0 0 0 10px;">最大遗漏：</label>
+            <input type="number" id="maxMissInput" placeholder="留空表示不限" min="0" style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <button type="button" id="applyMissFilterBtn" class="btn-primary" style="margin-left: 10px;">应用筛选</button>
+            <button type="button" id="clearMissFilterBtn" class="btn-secondary" style="margin-left: 5px;">清除筛选</button>
+          </div>
+
+          <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 15px; color: #2c3e50;">📊 排序方式：</label>
+          <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #ddd;">
+            <button type="button" id="sortByGapBtn" class="btn-secondary">按差值从小到大排序</button>
+            <button type="button" id="sortByDefaultBtn" class="btn-secondary">恢复默认排序</button>
+          </div>
+
           <button type="button" id="refreshBtn" class="btn-primary">刷新数据</button>
         </div>
         
@@ -999,6 +1015,7 @@
                 <th>关注号码</th>
                 <th>当前遗漏</th>
                 <th>最大遗漏</th>
+                <th>差值</th>
                 <th>创建时间</th>
                 <th>操作</th>
               </tr>

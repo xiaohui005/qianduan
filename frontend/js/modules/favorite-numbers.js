@@ -82,11 +82,29 @@ async function loadFavoriteNumbers() {
     const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
     const year = activeYearBtn ? activeYearBtn.getAttribute('data-year') : '';
 
-    console.log(`选择的彩种: ${lotteryType}, 位置: ${position}, 年份: ${year || '全部'}`);
+    // 获取遗漏期数筛选条件
+    const minMissInput = document.getElementById('minMissInput');
+    const maxMissInput = document.getElementById('maxMissInput');
+    const minMiss = minMissInput && minMissInput.value ? parseInt(minMissInput.value) : null;
+    const maxMiss = maxMissInput && maxMissInput.value ? parseInt(maxMissInput.value) : null;
+
+    // 获取排序方式
+    const sortBy = window.currentSortBy || null;
+
+    console.log(`选择的彩种: ${lotteryType}, 位置: ${position}, 年份: ${year || '全部'}, 最小遗漏: ${minMiss || '不限'}, 最大遗漏: ${maxMiss || '不限'}, 排序: ${sortBy || '默认'}`);
 
     let url = `${window.BACKEND_URL}/api/favorite_numbers?position=${position}&lottery_type=${lotteryType}`;
     if (year) {
       url += `&year=${year}`;
+    }
+    if (minMiss !== null) {
+      url += `&min_miss=${minMiss}`;
+    }
+    if (maxMiss !== null) {
+      url += `&max_miss=${maxMiss}`;
+    }
+    if (sortBy) {
+      url += `&sort_by=${sortBy}`;
     }
 
     const res = await fetch(url);
@@ -130,18 +148,20 @@ function renderFavoriteNumbersTable(favoriteNumbers, lotteryType, position, year
 
   if (!favoriteNumbers || favoriteNumbers.length === 0) {
     console.log('没有数据，显示空状态');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">暂无数据</td></tr>';
     return;
   }
 
   favoriteNumbers.forEach((item, index) => {
     console.log(`渲染第${index + 1}条数据:`, item);
+    const gap = item.gap !== undefined ? item.gap : (item.max_miss || 0) - (item.current_miss || 0);
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${item.name || ''}</td>
       <td>${item.numbers || ''}</td>
       <td>${item.current_miss || 0}</td>
       <td>${item.max_miss || 0}</td>
+      <td style="font-weight:bold;color:${gap < 5 ? '#e74c3c' : gap < 10 ? '#e67e22' : '#27ae60'};">${gap}</td>
       <td>${item.created_at ? item.created_at.replace('T', ' ').slice(0, 19) : ''}</td>
       <td>
         <button class="btn-edit" data-id="${item.id}">编辑</button>
@@ -254,6 +274,42 @@ function bindFavoriteNumbersEvents() {
       loadFavoriteNumbers();
     };
   });
+
+  // 应用遗漏筛选按钮
+  const applyMissFilterBtn = document.getElementById('applyMissFilterBtn');
+  if (applyMissFilterBtn) {
+    applyMissFilterBtn.onclick = loadFavoriteNumbers;
+  }
+
+  // 清除遗漏筛选按钮
+  const clearMissFilterBtn = document.getElementById('clearMissFilterBtn');
+  if (clearMissFilterBtn) {
+    clearMissFilterBtn.onclick = function() {
+      const minMissInput = document.getElementById('minMissInput');
+      const maxMissInput = document.getElementById('maxMissInput');
+      if (minMissInput) minMissInput.value = '';
+      if (maxMissInput) maxMissInput.value = '';
+      loadFavoriteNumbers();
+    };
+  }
+
+  // 按差值排序按钮
+  const sortByGapBtn = document.getElementById('sortByGapBtn');
+  if (sortByGapBtn) {
+    sortByGapBtn.onclick = function() {
+      window.currentSortBy = 'gap_asc';
+      loadFavoriteNumbers();
+    };
+  }
+
+  // 恢复默认排序按钮
+  const sortByDefaultBtn = document.getElementById('sortByDefaultBtn');
+  if (sortByDefaultBtn) {
+    sortByDefaultBtn.onclick = function() {
+      window.currentSortBy = null;
+      loadFavoriteNumbers();
+    };
+  }
 }
 
 /**
