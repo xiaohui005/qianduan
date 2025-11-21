@@ -564,41 +564,111 @@ function setupQueryPlaceAutocomplete() {
 }
 
 /**
- * 关注点输入框模糊匹配
+ * 关注点输入框模糊匹配（优化版，支持键盘导航）
  */
 function setupPlaceInput() {
   const input = document.getElementById('betPlaceInput');
   const suggest = document.getElementById('betPlaceSuggest');
   if (!input || !suggest) return;
 
-  input.oninput = function() {
-    const val = input.value.trim().toLowerCase();
+  let selectedIndex = -1;
+  let suggestions = [];
+
+  // 输入事件
+  input.addEventListener('input', function() {
+    const val = this.value.trim().toLowerCase();
+
     if (!val) {
+      suggest.style.display = 'none';
       suggest.innerHTML = '';
       selectedPlaceId = null;
       return;
     }
-    const matches = allPlaces.filter(p => p.name.toLowerCase().includes(val));
-    if (matches.length === 0) {
+
+    // 确保 allPlaces 已加载
+    if (!allPlaces || allPlaces.length === 0) {
+      suggest.innerHTML = '<div style="background:#fffbe9;padding:4px 8px;">正在加载关注点数据...</div>';
+      suggest.style.display = 'block';
+      return;
+    }
+
+    // 过滤匹配的关注点
+    suggestions = allPlaces.filter(p => p.name.toLowerCase().includes(val));
+
+    if (suggestions.length === 0) {
       suggest.innerHTML = '<div style="background:#fffbe9;padding:4px 8px;">无匹配关注点</div>';
+      suggest.style.display = 'block';
       selectedPlaceId = null;
       return;
     }
-    suggest.innerHTML = matches.map(p => `<div class="bet-place-suggest-item" data-id="${p.id}" style="padding:4px 8px;cursor:pointer;">${p.name}</div>`).join('');
-    // 绑定点击
-    Array.from(suggest.querySelectorAll('.bet-place-suggest-item')).forEach(item => {
-      item.onclick = function() {
-        input.value = this.textContent;
-        selectedPlaceId = this.getAttribute('data-id');
-        suggest.innerHTML = '';
-      };
-    });
-  };
 
-  // 失焦时稍后隐藏建议
-  input.onblur = function() {
-    setTimeout(() => { suggest.innerHTML = ''; }, 200);
-  };
+    // 显示建议（添加 autocomplete-suggestion-item 类以支持样式）
+    suggest.innerHTML = suggestions.map((p, index) =>
+      `<div class="bet-place-suggest-item autocomplete-suggestion-item" data-index="${index}" data-id="${p.id}" style="padding:4px 8px;cursor:pointer;">${p.name}</div>`
+    ).join('');
+
+    suggest.style.display = 'block';
+    selectedIndex = -1;
+  });
+
+  // 键盘事件
+  input.addEventListener('keydown', function(e) {
+    const items = suggest.querySelectorAll('.bet-place-suggest-item');
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+      updateSelection(items, selectedIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, -1);
+      updateSelection(items, selectedIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        input.value = suggestions[selectedIndex].name;
+        selectedPlaceId = suggestions[selectedIndex].id;
+        suggest.style.display = 'none';
+        suggest.innerHTML = '';
+      }
+    } else if (e.key === 'Escape') {
+      suggest.style.display = 'none';
+      suggest.innerHTML = '';
+      selectedIndex = -1;
+    }
+  });
+
+  // 点击事件
+  suggest.addEventListener('click', function(e) {
+    if (e.target.classList.contains('bet-place-suggest-item')) {
+      const index = parseInt(e.target.getAttribute('data-index'));
+      input.value = suggestions[index].name;
+      selectedPlaceId = suggestions[index].id;
+      suggest.style.display = 'none';
+      suggest.innerHTML = '';
+      selectedIndex = -1;
+    }
+  });
+
+  // 失焦事件
+  input.addEventListener('blur', function() {
+    setTimeout(() => {
+      suggest.style.display = 'none';
+      suggest.innerHTML = '';
+      selectedIndex = -1;
+    }, 200);
+  });
+
+  // 更新选中状态
+  function updateSelection(items, index) {
+    items.forEach((item, i) => {
+      if (i === index) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
 }
 
 // ==================== 事件绑定 ====================

@@ -175,14 +175,25 @@ function showOnlyPage(pageId) {
       }
     }
 
-    // 如果是关注号码管理页面,初始化
+    // 如果是登记关注点页面,初始化
     if (pageId === 'registerFocusPage') {
-      console.log('[页面管理] 检测到关注号码管理页面');
+      console.log('[页面管理] 检测到登记关注点页面');
       if (typeof window.initPlaceManagementModule === 'function') {
         console.log('[页面管理] 调用 initPlaceManagementModule()');
         window.initPlaceManagementModule();
       } else {
         console.error('[页面管理] ✗ initPlaceManagementModule 函数不存在');
+      }
+    }
+
+    // 如果是关注号码管理页面,初始化
+    if (pageId === 'favoriteNumbersPage') {
+      console.log('[页面管理] 检测到关注号码管理页面');
+      if (typeof window.initFavoriteNumbersModule === 'function') {
+        console.log('[页面管理] 调用 initFavoriteNumbersModule()');
+        window.initFavoriteNumbersModule();
+      } else {
+        console.error('[页面管理] ✗ initFavoriteNumbersModule 函数不存在');
       }
     }
 
@@ -194,6 +205,17 @@ function showOnlyPage(pageId) {
         window.initBettingModule();
       } else {
         console.error('[页面管理] ✗ initBettingModule 函数不存在');
+      }
+    }
+
+    // 如果是投注点报表页面,初始化
+    if (pageId === 'registerBetReportPage') {
+      console.log('[页面管理] 检测到投注点报表页面');
+      if (typeof window.initBetReport === 'function') {
+        console.log('[页面管理] 调用 initBetReport()');
+        window.initBetReport();
+      } else {
+        console.error('[页面管理] ✗ initBetReport 函数不存在');
       }
     }
 

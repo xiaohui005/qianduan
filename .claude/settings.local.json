@@ -44,7 +44,15 @@
       "Bash(cmd /c \"findstr /C:\"getBallColorClass\" C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\features\\seventhRangeAnalysis.js\")",
       "Bash(cmd /c \"dir /b C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\utils.js\")",
       "Bash(cmd /c \"powershell Get-Content ''C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\utils.js'' | Select-Object -Last 30\")",
-      "Bash(cmd /c \"findstr /C:\"id=\"\"collectPage\"\"\" C:\\Users\\Administrator\\Desktop\\six666\\frontend\\index.html\")"
+      "Bash(cmd /c \"findstr /C:\"id=\"\"collectPage\"\"\" C:\\Users\\Administrator\\Desktop\\six666\\frontend\\index.html\")",
+      "Bash(cmd /c \"cd C:\\Users\\Administrator\\Desktop\\six666\\backend &amp;&amp; start /b python -m uvicorn main:app --host 0.0.0.0 --port 8000\")",
+      "Bash(cmd /c \"cd C:\\Users\\Administrator\\Desktop\\six666\\frontend &amp;&amp; start /b python -m http.server 8080\")",
+      "mcp__chrome-devtools__fill",
+      "Bash(cmd /c \"findstr /C:\"window.initFavoriteNumbers\" C:\\Users\\Administrator\\Desktop\\six666\\frontend\\upload.js\")",
+      "Bash(cmd /c \"powershell Get-Content ''''C:\\Users\\Administrator\\Desktop\\six666\\frontend\\upload.js'''' | Select-Object -Last 50\")",
+      "Bash(cmd /c \"dir /b C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\modules\")",
+      "Bash(cmd /c \"dir /b frontend\\js\\modules\")",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "ask": []

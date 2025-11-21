@@ -184,8 +184,10 @@
         <form id="betForm" class="mb-3">
           <input type="hidden" id="betId">
           <label>关注点：</label>
-          <input type="text" id="betPlaceInput" autocomplete="off" required class="input-lg">
-          <div id="betPlaceSuggest" class="suggest-container"></div>
+          <div class="autocomplete-container">
+            <input type="text" id="betPlaceInput" placeholder="请输入关注点名称" autocomplete="off" required class="input-lg">
+            <div id="betPlaceSuggest" class="autocomplete-suggestions"></div>
+          </div>
           <label>期数：</label>
           <input type="text" id="betQishu" required class="input-md">
           <label>投注金额：</label>
@@ -1523,6 +1525,8 @@
   <script src="js/modules/plus-minus6-analysis.js"></script>
   <script src="js/modules/place-management.js"></script>
   <script src="js/modules/betting.js"></script>
+  <script src="js/modules/bet-report.js"></script>
+  <script src="js/modules/favorite-numbers.js"></script>
   <script src="js/modules/place-results.js"></script>
   <script src="js/modules/place-analysis.js"></script>
   <script src="js/modules/color-analysis.js"></script>

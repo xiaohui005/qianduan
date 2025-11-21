@@ -4228,6 +4228,9 @@ function downloadCSV(rows, filename) {
     setupBetReportPlaceAutocomplete();
   }
 
+  // 导出投注点报表初始化函数
+  window.initBetReport = initBetReport;
+
   // 加载所有关注点
   async function loadAllPlaces() {
     try {
@@ -4812,6 +4815,9 @@ function downloadCSV(rows, filename) {
     loadFavoriteNumbers();
     bindFavoriteNumbersEvents();
   }
+
+  // 导出关注号码管理模块初始化函数
+  window.initFavoriteNumbersModule = initFavoriteNumbers;
 
   // 生成年份按钮
   function generateYearButtons() {
