@@ -120,7 +120,7 @@ function renderSeventhSmart20(data, resultDiv, summaryDiv) {
 
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <thead>
-          <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+          <tr style="background:rgb(75, 11, 226); border-bottom: 2px solid #dee2e6;">
             <th style="padding: 12px 8px; text-align: center; width: 60px;">排名</th>
             <th style="padding: 12px 8px; text-align: center; width: 60px;">号码</th>
             <th style="padding: 12px 8px; text-align: center; width: 80px;">综合评分</th>
@@ -271,7 +271,7 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
       <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <thead>
-            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+            <tr style="background:rgb(10, 121, 233); border-bottom: 2px solid #dee2e6;">
               <th style="padding: 10px 8px; text-align: center; width: 90px;">当前期号</th>
               <th style="padding: 10px 8px; text-align: center; min-width: 400px;">该期推荐的Top20号码</th>
               <th style="padding: 10px 8px; text-align: center; width: 90px;">下一期期号</th>

@@ -66,9 +66,29 @@ function initHot20Minus10Page() {
     </div>
 
     <!-- 说明信息 -->
-    <div id="hot20Info" style="margin-bottom:16px;padding:12px;background:#e7f3ff;border-left:4px solid #2980d9;color:#333;border-radius:4px;">
-      <strong>分析说明：</strong>"去10"即排除最近10期出现的号码。每期显示该期往前10期出现过的号码（排除集），以及往前200期排除这些号码后最热的20个号码。<br>
-      <strong>遗漏说明：</strong>主表格显示的是<span style="color:#e74c3c;font-weight:bold;">20个号码整体的遗漏</span>。如果这20个号码中<strong>任何一个命中，遗漏清0</strong>；如果<strong>全部未命中，遗漏+1</strong>。展开详情可查看每个号码的独立遗漏情况。
+    <div id="hot20Info" style="margin-bottom:16px;padding:14px;background:linear-gradient(135deg,#e7f3ff 0%,#f0f8ff 100%);border-left:4px solid #2980d9;color:#333;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,0.08);">
+      <div style="margin-bottom:12px;">
+        <strong style="font-size:16px;color:#2980d9;">📌 功能说明</strong><br>
+        <span style="margin-left:20px;">• "去10"即排除最近10期出现的号码</span><br>
+        <span style="margin-left:20px;">• 每期显示该期往前10期出现过的号码（排除集）</span><br>
+        <span style="margin-left:20px;">• 以及往前200期排除这些号码后最热的20个号码</span>
+      </div>
+
+      <div style="margin-bottom:12px;padding-top:10px;border-top:1px dashed #bcd9f5;">
+        <strong style="font-size:16px;color:#e74c3c;">🔢 遗漏值详解（基于历史所有期数）</strong><br>
+        <span style="margin-left:20px;">• <strong style="color:#2980d9;">当前遗漏</strong>：从历史第一期开始累计，表示"最热20码"已连续多少期未命中</span><br>
+        <span style="margin-left:20px;">• <strong style="color:#27ae60;">命中规则</strong>：20个号码中<u>任何一个</u>出现在下期该位置 → 遗漏清0</span><br>
+        <span style="margin-left:20px;">• <strong style="color:#e67e22;">未中规则</strong>：20个号码<u>全部未出现</u>在下期该位置 → 遗漏+1</span><br>
+        <span style="margin-left:20px;">• <strong style="color:#9b59b6;">历史最大遗漏</strong>：记录从第一期到当前期出现过的最大遗漏值</span>
+      </div>
+
+      <div style="padding-top:10px;border-top:1px dashed #bcd9f5;">
+        <strong style="font-size:16px;color:#27ae60;">💡 实战应用</strong><br>
+        <span style="margin-left:20px;">• 遗漏值越大，说明热号连续未中期数越多，<span style="color:#e74c3c;font-weight:bold;">理论上下期命中概率增加</span></span><br>
+        <span style="margin-left:20px;">• 当遗漏值接近"历史最大遗漏"时，可<span style="color:#e67e22;font-weight:bold;">重点关注</span></span><br>
+        <span style="margin-left:20px;">• 遗漏清0后，表示热号回归，可<span style="color:#2980d9;font-weight:bold;">继续跟踪</span></span><br>
+        <span style="margin-left:20px;">• <span style="background:#fff3cd;padding:2px 6px;border-radius:3px;">颜色提示：<span style="color:#95a5a6;">■ 0期</span> <span style="color:#f39c12;">■ 1-2期</span> <span style="color:#e67e22;">■ 3-4期</span> <span style="color:#e74c3c;">■ 5期+</span></span></span>
+      </div>
     </div>
 
     <!-- 结果区域 -->

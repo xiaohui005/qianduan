@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `analysis_seventh_smart.py`: 第7个号码智能推荐20码（基于多维度评分）
 - `analysis_two_groups.py`: 2组观察分析（冷门9码+剩余40码分组）
 - `analysis_number_gap.py`: 号码间隔期数分析（计算位置间隔）
+- `analysis_hot20.py`: 去10的最热20分析（排除最近10期号码，统计最热20码）
 - `favorites.py`: 关注号码管理和统计 ~753行
 - `betting.py`: 投注点管理和报表
 
@@ -130,6 +131,18 @@ pip install -r requirements_tray.txt
 pyinstaller build.spec
 
 # 生成的 EXE 位于 dist/ 目录
+```
+
+### 服务管理命令（Windows）
+```bash
+# 停止所有服务
+停止所有服务.bat
+
+# 清理占用的端口（8000和8080）
+清理端口.bat
+
+# 重启前端服务
+重启前端.bat
 ```
 
 ## 核心业务逻辑
@@ -268,17 +281,35 @@ if period.endswith(('0', '5')):
 - `pages.js`: 页面管理和菜单系统 ~180行
 - `main.js`: 主入口和全局初始化 ~100行
 
-**功能模块**：
+**功能模块** (frontend/js/modules/)：
 - `upload.js`: 主要功能模块（~7744行，包含大部分分析功能）
+- `collect.js`: 数据采集模块
+- `records.js`: 开奖记录查询模块
+- `recommend.js`: 推荐8码模块
 - `recommend16.js`: 推荐16码专用模块
+- `recommend-hit.js`: 推荐8码命中情况分析
 - `fivePeriodThreexiao.js`: 五期三肖分析模块
 - `seventhSmart20.js`: 第7个号码智能推荐20码模块
 - `twoGroups.js`: 2组观察分析模块
 - `numberGapAnalysis.js`: 号码间隔期数分析模块
+- `place-management.js`: 关注点登记管理
+- `place-results.js`: 关注点登记结果
+- `place-analysis.js`: 关注点分析
+- `favorite-numbers.js`: 关注号码管理
+- `xiao-analysis.js`: 肖分析模块
+- `color-analysis.js`: 波色分析模块
+- `betting.js`: 投注登记点
+- `bet-report.js`: 投注点报表
+- `tens-analysis.js`: 第N位十位分析
+- `units-analysis.js`: 第N个码个位分析
+- `range-analysis.js`: +1~+20区间分析
+- `minus-range-analysis.js`: -1~-20区间分析
+- `plus-minus6-analysis.js`: 加减前6码分析
 
 **注意**:
-- `upload.js` 过大（7744行），需要拆分成更小的模块
+- `upload.js` 过大（7744行），建议继续拆分成更小的模块
 - 前端新功能应创建独立模块，每个模块控制在 300-800 行
+- 大部分功能已成功模块化，从 `upload.js` 中分离出独立模块
 
 ## 重要 API 端点
 
@@ -304,6 +335,9 @@ if period.endswith(('0', '5')):
 - 号码间隔期数分析位于 `backend/routes/analysis_number_gap.py`
   - `GET /api/number_gap_analysis`: 计算号码位置间隔
   - `GET /api/number_gap_export`: 导出间隔分析CSV
+- 去10的最热20分析位于 `backend/routes/analysis_hot20.py`
+  - `GET /api/hot20_minus10`: 去10最热20分析（排除最近10期号码，统计前200期最热20码）
+  - `GET /api/hot20_minus10/export_all`: 导出去10最热20分析CSV
 - 关注号码管理端点位于 `backend/routes/favorites.py`
 - 投注管理端点位于 `backend/routes/betting.py`
 
@@ -512,3 +546,30 @@ pyinstaller build.spec
 **注意事项**:
 - 间隔分析需要大量历史数据支撑，建议至少100期以上
 - 分析结果按期号正序排列，方便观察趋势变化
+
+### 去10的最热20分析 (analysis_hot20.py)
+**功能**: 排除最近10期出现的号码，统计前200期最热的20个号码，并跟踪命中情况和遗漏值。
+
+**核心算法**:
+1. 获取最近10期（包括当前期）的号码作为排除集
+2. 统计前200期（包括当前期）指定位置的号码频率
+3. 排除"去10期号码"后，选出出现频率最高的20个号码
+4. 检查下一期该位置的号码是否在热20中，记录命中情况
+5. 计算遗漏值：正序遍历历史，未命中时遗漏+1，命中时重置为0
+6. 记录历史最大遗漏值
+
+**使用场景**:
+- 识别当前热门号码（排除短期重复）
+- 跟踪热号的延续性和命中率
+- 通过遗漏值判断投注时机
+
+**实现位置**: `backend/routes/analysis_hot20.py`
+
+**API端点**:
+- `GET /api/hot20_minus10?lottery_type={am|hk}&pos={1-7}&page={page}&page_size={size}&year={year}`: 分页查询
+- `GET /api/hot20_minus10/export_all?lottery_type={am|hk}&pos={1-7}&year={year}`: 导出CSV
+
+**注意事项**:
+- 需要至少10期数据才能开始分析
+- 建议至少50期数据以获得更准确的频率统计
+- 遗漏值计算基于历史所有期数，反映长期趋势
