@@ -5138,28 +5138,73 @@ function downloadCSV(rows, filename) {
 
   // 分析关注号码
   window.analyzeFavoriteNumber = async function(id, position = 7) {
+    console.log('🔍 analyzeFavoriteNumber 被调用，id=', id, 'position=', position);
+
+    const analysisResult = document.getElementById('favoriteNumberAnalysisResult');
+    if (!analysisResult) {
+      console.error('找不到分析结果显示区域');
+      return;
+    }
+
+    // 显示加载状态
+    analysisResult.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:18px;color:#667eea;">🔄 正在分析中...</div></div>';
+    analysisResult.style.display = 'block';
+
     try {
       const activeLotteryBtn = document.querySelector('.lottery-btn.active');
       const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
-      
+      console.log('🎲 当前彩种:', lotteryType);
+
       const res = await fetch(`${window.BACKEND_URL}/api/favorite_numbers/${id}/analysis?lottery_type=${lotteryType}&position=${position}`);
       const result = await res.json();
-      
+
       if (result.success) {
         showFavoriteNumberAnalysis(result.data);
+
+        // 显示结果后，平滑滚动到分析结果区域
+        setTimeout(() => {
+          if (analysisResult) {
+            analysisResult.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        }, 100);
       } else {
-        alert('分析失败: ' + result.message);
+        // 在页面上显示错误，而不是alert
+        analysisResult.innerHTML = `
+          <div style="text-align:center;padding:40px;background:#ffe6e6;border:2px solid #ff4444;border-radius:12px;">
+            <div style="font-size:24px;color:#ff4444;margin-bottom:15px;">❌</div>
+            <div style="font-size:18px;color:#cc0000;font-weight:bold;">分析失败</div>
+            <div style="font-size:14px;color:#666;margin-top:10px;">${result.message}</div>
+          </div>
+        `;
+        analysisResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } catch (error) {
       console.error('分析失败:', error);
-      alert('分析失败，请检查网络连接');
+      // 在页面上显示错误，而不是alert
+      analysisResult.innerHTML = `
+        <div style="text-align:center;padding:40px;background:#ffe6e6;border:2px solid #ff4444;border-radius:12px;">
+          <div style="font-size:24px;color:#ff4444;margin-bottom:15px;">❌</div>
+          <div style="font-size:18px;color:#cc0000;font-weight:bold;">分析失败</div>
+          <div style="font-size:14px;color:#666;margin-top:10px;">请检查网络连接</div>
+          <div style="font-size:12px;color:#999;margin-top:5px;">${error.message}</div>
+        </div>
+      `;
+      analysisResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   // 显示关注号码分析结果
   function showFavoriteNumberAnalysis(data) {
+    console.log('🎯 开始显示关注号码分析结果');
     const analysisResult = document.getElementById('favoriteNumberAnalysisResult');
-    if (!analysisResult) return;
+    if (!analysisResult) {
+      console.error('❌ 找不到 favoriteNumberAnalysisResult 元素！');
+      return;
+    }
+    console.log('✅ 找到分析结果元素，准备显示数据');
 
     const { favorite_group, numbers, analysis, position_stats, stats } = data;
     
@@ -5170,17 +5215,29 @@ function downloadCSV(rows, filename) {
     const lotteryName = lotteryType === 'am' ? '澳门' : '香港';
     
     let html = `
-      <div class="analysis-header">
-        <h3>关注号码组分析结果</h3>
-        <div class="analysis-info">
-          <p><strong>号码组名称：</strong>${favorite_group.name}</p>
-          <p><strong>关注号码：</strong>${favorite_group.numbers}</p>
-          <p><strong>分析彩种：</strong>${lotteryName}</p>
-          <p><strong>分析位置：</strong>第${position}位</p>
-          <p><strong>创建时间：</strong>${formatDateTime(favorite_group.created_at)}</p>
+      <div class="analysis-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); animation: slideIn 0.5s ease-out;">
+        <h3 style="color: white; font-size: 22px; margin-bottom: 20px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">📊 关注号码组分析结果</h3>
+        <div class="analysis-info" style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 15px; backdrop-filter: blur(10px);">
+          <p style="color: white;"><strong style="color: #ffd700;">号码组名称：</strong>${favorite_group.name}</p>
+          <p style="color: white;"><strong style="color: #ffd700;">关注号码：</strong>${favorite_group.numbers}</p>
+          <p style="color: white;"><strong style="color: #ffd700;">分析彩种：</strong>${lotteryName}</p>
+          <p style="color: white;"><strong style="color: #ffd700;">分析位置：</strong>第${position}位</p>
+          <p style="color: white;"><strong style="color: #ffd700;">创建时间：</strong>${formatDateTime(favorite_group.created_at)}</p>
         </div>
-        <button class="pagination-btn" onclick="exportFavoriteAnalysis()" style="margin-top: 10px;">导出Excel</button>
+        <button class="pagination-btn" onclick="exportFavoriteAnalysis()" style="margin-top: 15px; background: #ffd700; color: #333; font-weight: bold; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">📥 导出Excel</button>
       </div>
+      <style>
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      </style>
     `;
 
     // 重置页码为第1页(每次加载新分析时)
@@ -5193,20 +5250,20 @@ function downloadCSV(rows, filename) {
     const totalPages = Math.ceil(totalRecords / pageSize);
     
     html += `
-      <div class="stats-section">
-        <h4>详细记录（共${totalRecords}期）</h4>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
+      <div class="stats-section" style="margin-top: 30px; border: 3px solid #667eea; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h4 style="color: #667eea; font-size: 20px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #667eea; text-align: center;">📋 详细记录（共 <span style="color: #e74c3c; font-weight: bold; font-size: 22px;">${totalRecords}</span> 期）</h4>
+        <div class="table-container" style="overflow-x: auto; border-radius: 8px;">
+          <table class="data-table" style="width: 100%; border-collapse: collapse;">
+            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
               <tr>
-                <th>期数</th>
-                <th>开奖时间</th>
-                <th>开奖号码</th>
-                <th>中奖号码</th>
-                <th>中奖位置</th>
-                <th>是否中奖</th>
-                <th>当前遗漏</th>
-                <th>历史最大遗漏</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">期数</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">开奖时间</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">开奖号码</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">中奖号码</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">中奖位置</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">是否中奖</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">当前遗漏</th>
+                <th style="padding: 12px; text-align: center; font-weight: bold;">历史最大遗漏</th>
               </tr>
             </thead>
             <tbody id="analysisTableBody">
@@ -5242,19 +5299,23 @@ function downloadCSV(rows, filename) {
           </div>
 
         <!-- 分页控件 -->
-        <div class="pagination-container" style="margin-top: 20px; text-align: center;">
-          <div class="pagination-info" style="margin-bottom: 10px;">
-            第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条记录
+        <div class="pagination-container" style="margin-top: 25px; text-align: center; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+          <div class="pagination-info" style="margin-bottom: 15px; font-size: 16px; color: #667eea; font-weight: bold;">
+            第 <span style="color: #e74c3c; font-size: 18px;">${currentPage}</span> / ${totalPages} 页，共 <span style="color: #e74c3c; font-size: 18px;">${totalRecords}</span> 条记录
           </div>
-          <div class="pagination-controls" style="display: flex; justify-content: center; gap: 10px;">
-            <button class="pagination-btn" id="analysisPrevPageBtn">上一页</button>
-            <button class="pagination-btn" id="analysisNextPageBtn">下一页</button>
+          <div class="pagination-controls" style="display: flex; justify-content: center; gap: 15px;">
+            <button class="pagination-btn" id="analysisPrevPageBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">⬅️ 上一页</button>
+            <button class="pagination-btn" id="analysisNextPageBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">下一页 ➡️</button>
           </div>
         </div>
+      </div>
       `;
 
     analysisResult.innerHTML = html;
     analysisResult.style.display = 'block';
+    console.log('✅ 分析结果已设置到页面，display = block');
+    console.log('📊 HTML内容长度:', html.length);
+    console.log('📍 元素位置:', analysisResult.getBoundingClientRect());
 
     // 保存分析数据到全局变量，供分页使用
     window.currentAnalysisData = analysis;

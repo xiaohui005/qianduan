@@ -58,7 +58,8 @@
       "Bash(timeout 2 bash:*)",
       "mcp__chrome-devtools__press_key",
       "Bash(start \"\" python -m http.server 8080 -d C:UsersAdministratorDesktopsix666frontend)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(start chrome http://localhost:8080)"
     ],
     "deny": [],
     "ask": []
