@@ -1249,6 +1249,10 @@
             <button class="tens-pos-btn" data-pos="6">第6位</button>
             <button class="tens-pos-btn" data-pos="7">第7位</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="tensYearSelect" class="records-query-input" style="width:120px;">
+            <option value="">全部年份</option>
+          </select>
         </div>
         <div id="tensResult" class="result-container"></div>
       </div>
@@ -1310,6 +1314,10 @@
             <button class="range-pos-btn" data-pos="6">第6位</button>
             <button class="range-pos-btn active" data-pos="7">第7位</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="rangeYearSelect" class="records-query-input" style="width:120px;">
+            <option value="">全部年份</option>
+          </select>
         </div>
         <div id="rangeResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
@@ -1337,6 +1345,10 @@
             <button class="minus-range-pos-btn" data-pos="6">第6位</button>
             <button class="minus-range-pos-btn active" data-pos="7">第7位</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="minusRangeYearSelect" class="records-query-input" style="width:120px;">
+            <option value="">全部年份</option>
+          </select>
         </div>
         <div id="minusRangeResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
@@ -1364,6 +1376,10 @@
             <button class="units-pos-btn" data-pos="6">第6位</button>
             <button class="units-pos-btn" data-pos="7">第7位</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="unitsYearSelect" class="records-query-input" style="width:120px;">
+            <option value="">全部年份</option>
+          </select>
         </div>
         <div id="unitsResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
@@ -1381,6 +1397,10 @@
             <button class="plus-minus6-type-btn active" data-type="am">澳门</button>
             <button class="plus-minus6-type-btn" data-type="hk">香港</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="plusMinus6YearSelect" class="records-query-input" style="width:120px;">
+            <option value="">全部年份</option>
+          </select>
           <button id="startPlusMinus6AnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         <div id="plusMinus6Result" class="result-container">
@@ -1511,6 +1531,7 @@
   <!-- 基础模块 -->
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/utils/yearFilter.js"></script>
   <script src="js/api.js"></script>
   <script src="js/pages.js"></script>
 

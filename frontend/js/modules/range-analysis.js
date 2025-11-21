@@ -292,6 +292,15 @@ function initRangeAnalysisModule() {
     });
   });
 
+  // 年份下拉框事件
+  const yearSelect = document.getElementById('rangeYearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('rangeYearSelect', function(year) {
+      currentRangeYear = year;
+      loadRangeAnalysis(currentRangeType, currentRangeNextPos, 1, year);
+    });
+  }
+
   // 查询按钮事件
   const queryBtn = document.getElementById('rangeQueryBtn');
   if (queryBtn) {

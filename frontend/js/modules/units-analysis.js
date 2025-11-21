@@ -217,6 +217,15 @@ function initUnitsAnalysisModule() {
     });
   });
 
+  // 年份下拉框事件
+  const yearSelect = document.getElementById('unitsYearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('unitsYearSelect', function(year) {
+      currentUnitsYear = year;
+      loadUnitsAnalysis(currentUnitsType, currentUnitsPos, year);
+    });
+  }
+
   // 首次加载：默认澳门第7位
   loadUnitsAnalysis(currentUnitsType, currentUnitsPos, currentUnitsYear);
 

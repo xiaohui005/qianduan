@@ -402,8 +402,8 @@ def get_places_max_miss_alerts(threshold: int = Query(0, ge=0), lottery_type: st
                         "gap": gap,
                     })
 
-            # 按 gap 升序、再按 max_miss 降序，便于优先查看接近最大遗漏的
-            alerts.sort(key=lambda x: (x["gap"], -x["max_miss"]))
+            # 按当前遗漏倒序排列，遗漏大的显示在前面
+            alerts.sort(key=lambda x: -x["current_miss"])
 
             return {"success": True, "data": alerts, "threshold": threshold}
     except Exception as e:

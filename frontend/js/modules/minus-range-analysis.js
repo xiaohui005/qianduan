@@ -262,6 +262,15 @@ function renderMinusRangeResult(data, type, nextPos, year) {
 function initMinusRangeAnalysisModule() {
   console.log('🎯 Initializing Minus Range Analysis module...');
 
+  // 年份下拉框事件
+  const yearSelect = document.getElementById('minusRangeYearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('minusRangeYearSelect', function(year) {
+      currentMinusRangeYear = year;
+      loadMinusRangeAnalysis(1, currentMinusRangeType, currentMinusRangeNextPos, year);
+    });
+  }
+
   // 首次加载：默认澳门第7位
   loadMinusRangeAnalysis(1, currentMinusRangeType, currentMinusRangeNextPos, '');
 

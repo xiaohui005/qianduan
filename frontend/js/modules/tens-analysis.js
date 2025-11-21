@@ -271,6 +271,14 @@ function initTensAnalysisModule() {
     });
   });
 
+  // 年份下拉框事件
+  const yearSelect = document.getElementById('tensYearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('tensYearSelect', function(year) {
+      loadTensAnalysis(currentTensType, currentTensPos, 1, year);
+    });
+  }
+
   // 首次加载：默认澳门第7位
   loadTensAnalysis(currentTensType, currentTensPos, 1, '');
 

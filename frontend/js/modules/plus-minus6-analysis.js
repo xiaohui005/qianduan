@@ -200,6 +200,15 @@ function initPlusMinus6AnalysisModule() {
     });
   });
 
+  // 年份下拉框事件
+  const yearSelect = document.getElementById('plusMinus6YearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('plusMinus6YearSelect', function(year) {
+      currentPm6Year = year;
+      loadPlusMinus6Analysis(currentPm6Type, currentPm6Pos, 1, year);
+    });
+  }
+
   // 查询按钮事件
   const queryBtn = document.getElementById('pm6QueryBtn');
   if (queryBtn) {

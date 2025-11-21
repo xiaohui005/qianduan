@@ -29,7 +29,14 @@ async function loadPlusMinus6Analysis(lotteryType, page = 1) {
   resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">正在分析加减前6码...</div>';
 
   try {
-    const url = `${window.BACKEND_URL}/plus_minus6_analysis?lottery_type=${lotteryType}&pos=7&page=${page}&page_size=30`;
+    // 获取年份筛选值
+    const yearSelect = document.getElementById('plusMinus6YearSelect');
+    const year = yearSelect ? yearSelect.value : '';
+
+    let url = `${window.BACKEND_URL}/plus_minus6_analysis?lottery_type=${lotteryType}&pos=7&page=${page}&page_size=30`;
+    if (year) {
+      url += `&year=${year}`;
+    }
     console.log('请求URL:', url);
 
     const response = await fetch(url);
@@ -195,6 +202,18 @@ function initPlusMinus6() {
       });
     }
   });
+
+  // 初始化年份下拉框
+  const yearSelect = document.getElementById('plusMinus6YearSelect');
+  if (yearSelect && typeof initYearFilter === 'function') {
+    initYearFilter('plusMinus6YearSelect', function(year) {
+      console.log('年份筛选已改变:', year);
+      // 年份改变时不自动加载，用户需要点击"开始分析"按钮
+    });
+    console.log('✅ 年份筛选已初始化');
+  } else {
+    console.warn('⚠️ 未找到年份下拉框或 initYearFilter 函数未定义');
+  }
 
   // 绑定开始分析按钮
   const startBtn = document.getElementById('startPlusMinus6AnalysisBtn');

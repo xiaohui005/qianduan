@@ -69,6 +69,17 @@ function renderSeventhRangeAnalysis(data) {
     return;
   }
 
+  // 取最新期号，用于"后最近命中"为空时的差值计算
+  let latestPeriod = null;
+  try {
+    latestPeriod = results.reduce((maxVal, r) => {
+      const p = parseInt((r && r.current_period) || '0', 10);
+      return isNaN(p) ? maxVal : Math.max(maxVal, p);
+    }, 0);
+  } catch (e) {
+    latestPeriod = null;
+  }
+
   let html = `
     <div style="margin-bottom: 15px;">
       <button id="exportSeventhRangeBtn" class="btn-secondary">导出CSV</button>
@@ -82,6 +93,13 @@ function renderSeventhRangeAnalysis(data) {
           <th>预测区间</th>
           <th>下期第7码</th>
           <th>命中情况</th>
+          <th>自本期起命中数</th>
+          <th>自本期起遗漏数</th>
+          <th>最大连续遗漏</th>
+          <th>固定区间双向遗漏</th>
+          <th>前最近命中</th>
+          <th>后最近命中</th>
+          <th>后-前差值</th>
         </tr>
       </thead>
       <tbody>
@@ -117,6 +135,18 @@ function renderSeventhRangeAnalysis(data) {
       predictedRange = groups.join(', ');
     }
 
+    // 计算"后-前差值"
+    let diffValue = '-';
+    const prev = parseInt(record.around_prev_hit_period || '', 10);
+    const next = record.around_next_hit_period ? parseInt(record.around_next_hit_period, 10) : null;
+    if (!isNaN(prev)) {
+      if (next != null && !isNaN(next)) {
+        diffValue = next - prev;
+      } else if (latestPeriod != null && !isNaN(latestPeriod)) {
+        diffValue = latestPeriod - prev;
+      }
+    }
+
     html += `
       <tr>
         <td>${record.current_period}</td>
@@ -125,6 +155,13 @@ function renderSeventhRangeAnalysis(data) {
         <td>${predictedRange}</td>
         <td>${record.next_seventh ? `<span class="${nextBallClass}">${record.next_seventh}</span>` : '-'}</td>
         <td>${hitStatus}</td>
+        <td>${record.series_hit_count || 0}</td>
+        <td>${record.series_total_miss || 0}</td>
+        <td>${record.max_miss || 0}</td>
+        <td>${record.around_total_omission !== undefined ? record.around_total_omission : '-'}</td>
+        <td>${record.around_prev_hit_period || '-'}</td>
+        <td>${record.around_next_hit_period || '-'}</td>
+        <td>${diffValue}</td>
       </tr>
     `;
   });

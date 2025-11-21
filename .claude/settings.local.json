@@ -52,7 +52,9 @@
       "Bash(cmd /c \"powershell Get-Content ''''C:\\Users\\Administrator\\Desktop\\six666\\frontend\\upload.js'''' | Select-Object -Last 50\")",
       "Bash(cmd /c \"dir /b C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\modules\")",
       "Bash(cmd /c \"dir /b frontend\\js\\modules\")",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(start /b python -m http.server 8080)",
+      "Bash(timeout /t 2)"
     ],
     "deny": [],
     "ask": []
