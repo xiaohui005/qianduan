@@ -431,16 +431,17 @@ function initSidebarMenu() {
   const sidebarMenuBtns = document.getElementById('sidebarMenuBtns');
 
   if (toggleSidebarBtn && sidebarMenuBtns) {
-    // 默认展开
-    sidebarMenuBtns.style.display = 'block';
+    // 默认收起
+    sidebarMenuBtns.style.display = 'none';
+    toggleSidebarBtn.innerHTML = '✨ 分析推荐 ▶';
 
     toggleSidebarBtn.addEventListener('click', function() {
       if (sidebarMenuBtns.style.display === 'none') {
         sidebarMenuBtns.style.display = 'block';
-        this.innerHTML = '分析推荐 ▼';
+        this.innerHTML = '✨ 分析推荐 ▼';
       } else {
         sidebarMenuBtns.style.display = 'none';
-        this.innerHTML = '分析推荐 ▶';
+        this.innerHTML = '✨ 分析推荐 ▶';
       }
     });
   }
