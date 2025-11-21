@@ -649,90 +649,18 @@ console.log('twoGroups.js 已加载');
 console.log('initTwoGroupsPage 函数:', typeof initTwoGroupsPage);
 console.log('analyzeTwoGroups 函数:', typeof analyzeTwoGroups);
 
-// 立即修复按钮绑定
+// 注释掉自定义按钮绑定逻辑，完全依赖 pages.js 的统一管理
+// 这样可以避免与 pages.js 的页面切换逻辑冲突
+/*
 (function() {
     console.log('[2组观察] 开始修复按钮绑定...');
-
-    // 等待页面完全加载
-    function setupButton() {
-        const btn = document.getElementById('menuTwoGroupsBtn');
-        const page = document.getElementById('twoGroupsPage');
-
-        if (!btn) {
-            console.error('[2组观察] ✗ 找不到按钮，1秒后重试...');
-            setTimeout(setupButton, 1000);
-            return;
-        }
-
-        if (!page) {
-            console.error('[2组观察] ✗ 找不到页面容器');
-            return;
-        }
-
-        console.log('[2组观察] ✓ 找到按钮和页面容器');
-
-        // 清除可能存在的旧事件
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-
-        // 绑定新事件
-        newBtn.addEventListener('click', function(e) {
-            console.log('[2组观察] ========== 按钮被点击 ==========');
-
-            // 隐藏所有页面
-            document.querySelectorAll('[id$="Page"]').forEach(p => {
-                p.style.display = 'none';
-            });
-
-            // 显示当前页面
-            page.style.display = 'block';
-            page.style.visibility = 'visible';
-            console.log('[2组观察] ✓ 页面已显示');
-
-            // 初始化页面内容
-            if (typeof initTwoGroupsPage === 'function') {
-                console.log('[2组观察] ✓ 调用 initTwoGroupsPage()');
-                initTwoGroupsPage();
-
-                // 检查内容是否生成
-                setTimeout(() => {
-                    const contentLength = page.innerHTML.length;
-                    console.log('[2组观察] 页面内容长度:', contentLength);
-                    if (contentLength > 100) {
-                        console.log('[2组观察] ✓✓✓ 页面内容已成功生成！');
-                    } else {
-                        console.error('[2组观察] ✗ 页面内容为空！');
-                    }
-                }, 100);
-            } else {
-                console.error('[2组观察] ✗ initTwoGroupsPage 函数不存在');
-            }
-
-            // 更新标题
-            const titleEl = document.getElementById('pageTitle');
-            if (titleEl) {
-                titleEl.textContent = '2组观察分析';
-            }
-
-            // 更新按钮状态
-            document.querySelectorAll('.menu-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            this.classList.add('active');
-
-            console.log('[2组观察] ========== 处理完成 ==========');
-        });
-
-        console.log('[2组观察] ✓✓✓ 按钮事件绑定成功！');
-    }
-
-    // 如果 DOM 已加载，立即执行；否则等待
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupButton);
-    } else {
-        setupButton();
-    }
+    // ... 已移除自定义按钮绑定代码 ...
 })();
+*/
+console.log('[2组观察] 使用 pages.js 统一管理页面切换');
 
-// 导出初始化函数供pages.js调用
+// 导出函数供外部调用
 window.initTwoGroupsPage = initTwoGroupsPage;
+window.analyzeTwoGroups = analyzeTwoGroups;
+window.verifyTwoGroups = verifyTwoGroups;
+window.exportTwoGroups = exportTwoGroups;

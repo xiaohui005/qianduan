@@ -78,13 +78,24 @@ async function loadColorAnalysis(type = 'am') {
     const response = await fetch(`${window.BACKEND_URL}/color_analysis?lottery_type=${type}`);
     const data = await response.json();
 
-    if (data.success && data.analysis_results) {
+    if (data.success && data.data && data.data.analysis_results) {
       console.log('波色分析数据加载成功:', data);
-      currentColorAnalysisResults = performColorAnalysis(data.analysis_results);
+      console.log('预测数据:', data.data.latest_prediction);
+
+      // 后端已经完成分析，直接使用返回的结果，不需要再次分析
+      currentColorAnalysisResults = data.data.analysis_results;
       currentColorType = type;
       currentColorAnalysisPage = 1;
       renderColorAnalysisTable(currentColorAnalysisResults, 1);
       showColorAnalysisStats(currentColorAnalysisResults);
+
+      // 显示最新一期的预测
+      if (data.data.latest_prediction) {
+        console.log('调用 showLatestPrediction...');
+        showLatestPrediction(data.data.latest_prediction);
+      } else {
+        console.warn('没有预测数据');
+      }
     } else {
       resultDiv.innerHTML = '<div style="text-align:center;color:red;padding:20px;">加载失败：' + (data.message || '未知错误') + '</div>';
     }
@@ -159,17 +170,30 @@ function renderColorAnalysisTable(results, page = 1) {
   const resultDiv = document.getElementById('colorAnalysisResult');
   if (!resultDiv) return;
 
+  // 按期数倒序排列（最新的在前）
+  const sortedResults = [...results].reverse();
+
   const pageSize = 20;
   const startIndex = (page - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, results.length);
-  const pageResults = results.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(results.length / pageSize);
+  const endIndex = Math.min(startIndex + pageSize, sortedResults.length);
+  const pageResults = sortedResults.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(sortedResults.length / pageSize);
 
   let html = `
     <div style="margin-bottom: 20px;">
       <h3 style="color: #2980d9;">波色分析结果</h3>
-      <p style="color: #666;">分析规则：当前期第2个号码的波色与下一期第7个号码的波色对比</p>
-      <p style="color: #666;">
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #2980d9;">
+        <p style="color: #666; margin: 5px 0;">
+          <strong>分析规则：</strong>当前期开奖号码前6个排序后的第2个号码波色 与 下一期第7个号码波色对比
+        </p>
+        <p style="color: #666; margin: 5px 0;">
+          <strong>当前错误次数：</strong>从最旧期开始累加，遇到"对"清零，遇到"错"累加1
+        </p>
+        <p style="color: #666; margin: 5px 0;">
+          <strong>历史最大错误次数：</strong>记录从最旧期到当前期的最大连续错误次数
+        </p>
+      </div>
+      <p style="color: #666; margin-top: 10px;">
         <span style="color: #e74c3c; font-weight: bold;">红波</span>: ${colorGroups.red.join(', ')}
         <br>
         <span style="color: #3498db; font-weight: bold;">蓝波</span>: ${colorGroups.blue.join(', ')}
@@ -195,37 +219,52 @@ function renderColorAnalysisTable(results, page = 1) {
           <tr>
             <th>当前期数</th>
             <th>开奖时间</th>
-            <th>开奖号码</th>
+            <th>当前期开奖号码</th>
             <th>第2个号码</th>
             <th>第2个号码波色</th>
             <th>下一期期数</th>
-            <th>下一期开奖时间</th>
-            <th>下一期开奖号码</th>
             <th>下一期第7个号码</th>
             <th>下一期第7个号码波色</th>
-            <th>波色是否一致</th>
+            <th>结果</th>
+            <th>当前错误次数</th>
+            <th>历史最大错误次数</th>
           </tr>
         </thead>
         <tbody>
   `;
 
   pageResults.forEach(result => {
-    const hitClass = result.isHit ? 'hit' : 'miss';
-    const hitText = result.isHit ? '一致' : '不一致';
+    const hitClass = result.is_hit ? 'hit' : 'miss';
+    const hitText = result.is_hit ? '对' : '错';
+    const currentMiss = result.current_miss || 0;
+    const maxMiss = result.max_miss || 0;
+
+    // 当前错误次数的样式：错误次数越多，颜色越深
+    let currentMissStyle = '';
+    if (currentMiss > 0) {
+      const opacity = Math.min(0.3 + currentMiss * 0.1, 1);
+      currentMissStyle = `background-color: rgba(231, 76, 60, ${opacity}); color: white; font-weight: bold;`;
+    }
+
+    // 历史最大错误次数的样式
+    let maxMissStyle = '';
+    if (maxMiss > 0 && maxMiss === currentMiss) {
+      maxMissStyle = `background-color: #e74c3c; color: white; font-weight: bold;`;
+    }
 
     html += `
       <tr>
-        <td>${result.currentPeriod}</td>
-        <td>${formatColorAnalysisDateTime(result.currentOpenTime)}</td>
-        <td>${result.currentNumbers.map(n => String(n).padStart(2, '0')).join(', ')}</td>
-        <td style="font-weight: bold; font-size: 16px;">${String(result.currentSecond).padStart(2, '0')}</td>
-        <td style="${getColorGroupStyle(result.currentSecondColor)}">${result.currentSecondColorName}</td>
-        <td>${result.nextPeriod}</td>
-        <td>${formatColorAnalysisDateTime(result.nextOpenTime)}</td>
-        <td>${result.nextNumbers.map(n => String(n).padStart(2, '0')).join(', ')}</td>
-        <td style="font-weight: bold; font-size: 16px;">${String(result.nextSeventh).padStart(2, '0')}</td>
-        <td style="${getColorGroupStyle(result.nextSeventhColor)}">${result.nextSeventhColorName}</td>
+        <td>${result.current_period}</td>
+        <td>${formatColorAnalysisDateTime(result.current_open_time)}</td>
+        <td>${result.current_numbers.map(n => String(n).padStart(2, '0')).join(', ')}</td>
+        <td style="font-weight: bold; font-size: 16px;">${String(result.second_number).padStart(2, '0')}</td>
+        <td style="${getColorGroupStyle(result.second_color)}">${getColorGroupName(result.second_color)}</td>
+        <td>${result.next_period}</td>
+        <td style="font-weight: bold; font-size: 16px;">${String(result.next_seventh_number).padStart(2, '0')}</td>
+        <td style="${getColorGroupStyle(result.next_seventh_color)}">${getColorGroupName(result.next_seventh_color)}</td>
         <td class="${hitClass}">${hitText}</td>
+        <td style="${currentMissStyle}">${currentMiss}</td>
+        <td style="${maxMissStyle}">${maxMiss}</td>
       </tr>
     `;
   });
@@ -281,7 +320,7 @@ function showColorAnalysisStats(results) {
   if (!statsDiv) return;
 
   const totalRecords = results.length;
-  const hitRecords = results.filter(r => r.isHit).length;
+  const hitRecords = results.filter(r => r.is_hit).length;
   const missRecords = totalRecords - hitRecords;
   const hitRate = totalRecords > 0 ? ((hitRecords / totalRecords) * 100).toFixed(2) : '0.00';
 
@@ -299,7 +338,7 @@ function showColorAnalysisStats(results) {
   };
 
   results.forEach(r => {
-    const key = `${r.currentSecondColor}-${r.nextSeventhColor}`;
+    const key = `${r.second_color}-${r.next_seventh_color}`;
     if (colorCombinations.hasOwnProperty(key)) {
       colorCombinations[key]++;
     }
@@ -391,25 +430,36 @@ function updateColorAnalysisStats(allResults, currentPageResults) {
  * 绑定波色分析事件
  */
 function bindColorAnalysisEvents() {
+  console.log('[波色分析] 开始绑定事件...');
+
   // 彩种选择按钮
   const typeBtns = document.querySelectorAll('.color-type-btn');
+  console.log('[波色分析] 找到彩种按钮数量:', typeBtns.length);
+
   typeBtns.forEach(btn => {
     btn.addEventListener('click', function() {
+      console.log('[波色分析] 彩种按钮被点击:', this.dataset.type);
       typeBtns.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       currentColorType = this.dataset.type;
+      console.log('[波色分析] 当前彩种已切换为:', currentColorType);
     });
   });
 
   // 开始分析按钮
   const startBtn = document.getElementById('startColorAnalysisBtn');
+  console.log('[波色分析] 找到开始分析按钮:', !!startBtn);
+
   if (startBtn) {
     startBtn.addEventListener('click', function() {
+      console.log('[波色分析] 开始分析按钮被点击，当前彩种:', currentColorType);
       loadColorAnalysis(currentColorType);
     });
+  } else {
+    console.error('[波色分析] 找不到开始分析按钮');
   }
 
-  // 导出按钮（在renderColorAnalysisTable中动态绑定）
+  console.log('[波色分析] 事件绑定完成');
 }
 
 /**
@@ -437,9 +487,9 @@ function initColorAnalysis() {
   // 绑定事件
   bindColorAnalysisEvents();
 
-  // 显示初始提示
+  // 显示初始提示（只在没有内容时显示）
   const resultDiv = document.getElementById('colorAnalysisResult');
-  if (resultDiv) {
+  if (resultDiv && !resultDiv.querySelector('table')) {
     resultDiv.innerHTML = `
       <div style="text-align:center;color:#888;padding:40px;">
         <p style="font-size: 16px; margin-bottom: 20px;">选择彩种后点击"开始分析"按钮查看波色分析结果</p>
@@ -454,7 +504,17 @@ function initColorAnalysis() {
     `;
   }
 
-  console.log('波色分析模块初始化完成');
+  // 不清空预测显示，保持预测框
+  const predictionDiv = document.getElementById('colorAnalysisPrediction');
+  console.log('[波色分析] 预测框元素:', predictionDiv ? '存在' : '不存在');
+
+  // 只在首次加载且没有数据时隐藏统计信息
+  const statsDiv = document.getElementById('colorAnalysisStats');
+  if (statsDiv && statsDiv.style.display !== 'block') {
+    statsDiv.style.display = 'none';
+  }
+
+  console.log('[波色分析] 模块初始化完成');
 }
 
 /**
@@ -469,29 +529,103 @@ function changeColorAnalysisPage(page) {
  * 显示最新预测结果（如果后端提供）
  */
 function showLatestPrediction(prediction) {
-  if (!prediction) return;
+  console.log('showLatestPrediction 被调用，预测数据:', prediction);
+
+  if (!prediction) {
+    console.warn('预测数据为空');
+    return;
+  }
 
   const predictionDiv = document.getElementById('colorAnalysisPrediction');
-  if (!predictionDiv) return;
+  if (!predictionDiv) {
+    console.error('找不到 colorAnalysisPrediction 元素');
+    return;
+  }
 
-  const { current_period, current_second, current_second_color, predicted_seventh_color } = prediction;
+  console.log('找到预测显示容器');
+
+  const { current_period, second_number, second_color, predicted_color } = prediction;
+
+  const nextPeriod = prediction.next_period || (parseInt(current_period) + 1);
 
   let html = `
-    <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3; margin-top: 20px;">
-      <h4 style="color: #1976d2; margin: 0 0 10px 0;">📊 最新预测</h4>
-      <p style="margin: 5px 0;">
-        <strong>当前期数：</strong>${current_period}
-        <br>
-        <strong>当前期第2个号码：</strong><span style="font-weight: bold; font-size: 16px;">${String(current_second).padStart(2, '0')}</span>
-        <br>
-        <strong>当前期第2个号码波色：</strong><span style="${getColorGroupStyle(current_second_color)}">${getColorGroupName(current_second_color)}</span>
-        <br>
-        <strong>预测下一期第7个号码波色：</strong><span style="${getColorGroupStyle(predicted_seventh_color)}">${getColorGroupName(predicted_seventh_color)}</span>
-      </p>
+    <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white;">
+      <div style="display: flex; align-items: center; margin-bottom: 15px;">
+        <div style="font-size: 32px; margin-right: 10px;">🔮</div>
+        <div>
+          <h3 style="margin: 0; font-size: 20px; color: white;">最新预测</h3>
+          <div style="font-size: 12px; opacity: 0.9; margin-top: 3px;">基于历史数据的波色分析预测</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
+          <div style="text-align: center; background: rgba(255,255,255,0.2); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; opacity: 0.8; margin-bottom: 5px;">已开奖期数</div>
+            <div style="font-size: 24px; font-weight: bold;">${current_period}</div>
+          </div>
+          <div style="font-size: 24px; opacity: 0.8;">→</div>
+          <div style="text-align: center; background: rgba(255,255,255,0.3); padding: 12px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.5);">
+            <div style="font-size: 11px; opacity: 0.8; margin-bottom: 5px;">预测期数</div>
+            <div style="font-size: 24px; font-weight: bold;">${nextPeriod}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.95); border-radius: 8px; padding: 15px; color: #333;">
+        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
+          <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
+            <strong>分析依据：</strong>${current_period}期开奖号码前6个排序后的第2个号码
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="color: #666; margin-right: 8px;">号码：</span>
+            <span style="font-weight: bold; font-size: 22px; margin-right: 12px; color: #333;">${String(second_number).padStart(2, '0')}</span>
+            <span style="${getColorGroupStyle(second_color)}; padding: 4px 12px; border-radius: 4px; background: rgba(0,0,0,0.05); font-weight: bold; font-size: 14px;">${getColorGroupName(second_color)}</span>
+          </div>
+        </div>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 6px; text-align: center;">
+          <div style="font-size: 13px; opacity: 0.95; margin-bottom: 8px;">预测 ${nextPeriod} 期第7个号码波色为</div>
+          <div style="font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+            ${getColorGroupName(predicted_color)}
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
   predictionDiv.innerHTML = html;
+
+  // 强制显示预测框
+  predictionDiv.style.display = 'block';
+  predictionDiv.style.visibility = 'visible';
+  predictionDiv.style.opacity = '1';
+
+  console.log('预测框HTML已设置，预测期数:', nextPeriod);
+  console.log('预测框样式:', {
+    display: predictionDiv.style.display,
+    visibility: predictionDiv.style.visibility,
+    opacity: predictionDiv.style.opacity
+  });
+
+  // 调试：检查父元素是否可见
+  let parent = predictionDiv.parentElement;
+  console.log('预测框父元素:', parent ? parent.id : '无');
+  if (parent) {
+    console.log('父元素样式:', {
+      display: window.getComputedStyle(parent).display,
+      visibility: window.getComputedStyle(parent).visibility
+    });
+  }
+
+  // 调试：检查预测框的实际计算样式
+  const computedStyle = window.getComputedStyle(predictionDiv);
+  console.log('预测框计算样式:', {
+    display: computedStyle.display,
+    visibility: computedStyle.visibility,
+    opacity: computedStyle.opacity,
+    height: computedStyle.height,
+    width: computedStyle.width
+  });
 }
 
 // 导出模块初始化函数

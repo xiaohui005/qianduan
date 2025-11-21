@@ -15,7 +15,9 @@ const PAGE_CONFIG = {
   'menuTensBtn': { pageId: 'tensPage', title: '第N位十位分析' },
   'menuUnitsBtn': { pageId: 'unitsPage', title: '第N个码个位分析' },
   'menuRangeBtn': { pageId: 'rangePage', title: '+1~+20区间分析' },
+  'menuMinusRangeBtn': { pageId: 'minusRangePage', title: '-1~-20区间分析' },
   'menuSeventhRangeBtn': { pageId: 'seventhRangePage', title: '第7个号码+1~+20区间分析' },
+  'menuHot20Minus10Btn': { pageId: 'hot20Minus10Page', title: '去10的最热20分析' },
   'menuSeventhSmart20Btn': { pageId: 'seventhSmart20Page', title: '第7个号码智能推荐20码' },
   'menuSecondFourxiaoBtn': { pageId: 'secondFourxiaoPage', title: '第二个号码四肖分析' },
   'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码6肖分析' },
@@ -164,12 +166,12 @@ function showOnlyPage(pageId) {
 
     // 如果是加减前6码分析页面,初始化
     if (pageId === 'plusMinus6Page') {
-      console.log('[页面管理] 检测到±6码分析页面');
-      if (typeof window.initPlusMinus6AnalysisModule === 'function') {
-        console.log('[页面管理] 调用 initPlusMinus6AnalysisModule()');
-        window.initPlusMinus6AnalysisModule();
+      console.log('[页面管理] 检测到加减前6码分析页面');
+      if (typeof window.initPlusMinus6 === 'function') {
+        console.log('[页面管理] 调用 initPlusMinus6()');
+        window.initPlusMinus6();
       } else {
-        console.error('[页面管理] ✗ initPlusMinus6AnalysisModule 函数不存在');
+        console.error('[页面管理] ✗ initPlusMinus6 函数不存在');
       }
     }
 
@@ -214,6 +216,24 @@ function showOnlyPage(pageId) {
         window.initPlaceAnalysisModule();
       } else {
         console.error('[页面管理] ✗ initPlaceAnalysisModule 函数不存在');
+      }
+    }
+
+    // 如果是最大遗漏提醒页面,初始化
+    if (pageId === 'maxMissAlertPage') {
+      console.log('[页面管理] 检测到最大遗漏提醒页面');
+      if (typeof window.initMaxMissAlertModule === 'function') {
+        console.log('[页面管理] 调用 initMaxMissAlertModule()');
+        window.initMaxMissAlertModule();
+
+        // 初始化后自动加载数据
+        if (typeof window.loadMaxMissAlerts === 'function') {
+          const thresholdInput = document.getElementById('maxMissThreshold');
+          const threshold = thresholdInput ? parseInt(thresholdInput.value || '0') || 0 : 0;
+          window.loadMaxMissAlerts(threshold);
+        }
+      } else {
+        console.error('[页面管理] ✗ initMaxMissAlertModule 函数不存在');
       }
     }
 
@@ -280,6 +300,50 @@ function showOnlyPage(pageId) {
         window.initSeventhSmart20();
       } else {
         console.error('[页面管理] ✗ initSeventhSmart20 函数不存在');
+      }
+    }
+
+    // 如果是第7个号码+1~+20区间分析页面,初始化
+    if (pageId === 'seventhRangePage') {
+      console.log('[页面管理] 检测到第7个号码+1~+20区间分析页面');
+      if (typeof window.initSeventhRangeAnalysis === 'function') {
+        console.log('[页面管理] 调用 initSeventhRangeAnalysis()');
+        window.initSeventhRangeAnalysis();
+      } else {
+        console.error('[页面管理] ✗ initSeventhRangeAnalysis 函数不存在');
+      }
+    }
+
+    // 如果是去10的最热20分析页面,初始化
+    if (pageId === 'hot20Minus10Page') {
+      console.log('[页面管理] 检测到去10的最热20分析页面');
+      if (typeof window.initHot20Minus10Page === 'function') {
+        console.log('[页面管理] 调用 initHot20Minus10Page()');
+        window.initHot20Minus10Page();
+      } else {
+        console.error('[页面管理] ✗ initHot20Minus10Page 函数不存在');
+      }
+    }
+
+    // 如果是前6码三中三页面,初始化
+    if (pageId === 'front6SzzPage') {
+      console.log('[页面管理] 检测到前6码三中三页面');
+      if (typeof window.initFront6Szz === 'function') {
+        console.log('[页面管理] 调用 initFront6Szz()');
+        window.initFront6Szz();
+      } else {
+        console.error('[页面管理] ✗ initFront6Szz 函数不存在');
+      }
+    }
+
+    // 如果是每期分析页面,初始化
+    if (pageId === 'eachIssuePage') {
+      console.log('[页面管理] 检测到每期分析页面');
+      if (typeof window.initEachIssue === 'function') {
+        console.log('[页面管理] 调用 initEachIssue()');
+        window.initEachIssue();
+      } else {
+        console.error('[页面管理] ✗ initEachIssue 函数不存在');
       }
     }
   } else {
@@ -374,16 +438,48 @@ function initSidebarMenu() {
     const icon = document.getElementById(group.iconId);
 
     if (btn && content && icon) {
-      // 默认展开
-      content.style.display = 'block';
+      // 默认展开 - 使用CSS类
+      content.classList.add('show');
 
       btn.addEventListener('click', function(e) {
         e.stopPropagation(); // 防止触发父级折叠
-        if (content.style.display === 'none') {
-          content.style.display = 'block';
+        const isExpanded = content.classList.contains('show');
+
+        if (!isExpanded) {
+          // 展开：先折叠其他所有子分组，腾出空间
+          subgroups.forEach(otherGroup => {
+            if (otherGroup.contentId !== group.contentId) {
+              const otherContent = document.getElementById(otherGroup.contentId);
+              const otherIcon = document.getElementById(otherGroup.iconId);
+              if (otherContent) {
+                otherContent.classList.remove('show');
+                if (otherIcon) otherIcon.textContent = '▶';
+              }
+            }
+          });
+
+          content.classList.add('show');
           icon.textContent = '▼';
+
+          // 展开后滚动
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const sidebar = document.querySelector('.sidebar');
+              if (btn && sidebar) {
+                const titleRect = btn.getBoundingClientRect();
+                const sidebarRect = sidebar.getBoundingClientRect();
+                const targetOffset = 60;
+                const scrollAmount = titleRect.top - sidebarRect.top - targetOffset;
+                sidebar.scrollTo({
+                  top: Math.max(0, sidebar.scrollTop + scrollAmount),
+                  behavior: 'smooth'
+                });
+              }
+            });
+          });
         } else {
-          content.style.display = 'none';
+          // 折叠
+          content.classList.remove('show');
           icon.textContent = '▶';
         }
       });
@@ -397,12 +493,19 @@ function initSidebarMenu() {
 
   if (toggleRegisterBtn && registerMenuBtns) {
     toggleRegisterBtn.addEventListener('click', function() {
-      if (registerMenuBtns.style.display === 'none') {
+      // 使用classList.toggle而不是style.display
+      if (registerMenuBtns.classList.contains('hidden')) {
+        registerMenuBtns.classList.remove('hidden');
         registerMenuBtns.style.display = 'block';
         if (registerCollapseIcon) {
           registerCollapseIcon.textContent = '▼';
         }
+        // 展开后滚动到子菜单可视区域
+        setTimeout(() => {
+          registerMenuBtns.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
       } else {
+        registerMenuBtns.classList.add('hidden');
         registerMenuBtns.style.display = 'none';
         if (registerCollapseIcon) {
           registerCollapseIcon.textContent = '▶';

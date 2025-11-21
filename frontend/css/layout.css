@@ -233,7 +233,7 @@ body {
   margin-left: var(--sidebar-width);
   padding: var(--spacing-lg);
   transition: margin-left var(--transition-slow);
-  max-width: var(--container-max-width);
+  width: 100%;
 }
 
 .sidebar.collapsed ~ .main-content {

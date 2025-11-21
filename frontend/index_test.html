@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/scheduler_styles.css">
-  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="layout">
@@ -1288,125 +1287,74 @@
         </div>
         <div id="eachIssueResult" class="result-container"></div>
       </div>
-
-      <!-- +1~+20区间分析页面 -->
-      <div id="rangePage" class="hidden">
-        <h2>+1~+20区间分析</h2>
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="range-type-group">
-            <button class="range-type-btn active" data-type="am">澳门</button>
-            <button class="range-type-btn" data-type="hk">香港</button>
-          </div>
-          <label class="records-query-label" class="ml-4">选择下一期球位置：</label>
-          <div class="range-pos-group" style="display:inline-block;">
-            <button class="range-pos-btn" data-pos="1">第1位</button>
-            <button class="range-pos-btn" data-pos="2">第2位</button>
-            <button class="range-pos-btn" data-pos="3">第3位</button>
-            <button class="range-pos-btn" data-pos="4">第4位</button>
-            <button class="range-pos-btn" data-pos="5">第5位</button>
-            <button class="range-pos-btn" data-pos="6">第6位</button>
-            <button class="range-pos-btn active" data-pos="7">第7位</button>
+      <div id="colorAnalysisPage" class="hidden">
+        <h2>波色分析</h2>
+        
+        <!-- 波色定义说明 -->
+        <div class="color-definition" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
+          <h3 style="color: #2980d9; margin-bottom: 10px;">波色定义</h3>
+          <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="color-group">
+              <span style="color: #e74c3c; font-weight: bold;">红组：</span>
+              <span>01,02,07,08,12,13,18,19,23,24,29,30,34,35,40,45,46</span>
+            </div>
+            <div class="color-group">
+              <span style="color: #3498db; font-weight: bold;">蓝组：</span>
+              <span>03,04,09,10,14,15,20,25,26,31,36,37,41,42,47,48</span>
+            </div>
+            <div class="color-group">
+              <span style="color: #27ae60; font-weight: bold;">绿组：</span>
+              <span>05,06,11,16,17,21,22,27,28,32,33,38,39,43,44,49</span>
+            </div>
           </div>
         </div>
-        <div id="rangeResult" class="result-container">
+        
+        <!-- 彩种选择 -->
+        <div class="mb-3">
+          <label class="records-query-label">选择彩种：</label>
+          <div class="color-analysis-type-group">
+            <button class="color-analysis-type-btn active" data-type="am">澳门</button>
+            <button class="color-analysis-type-btn" data-type="hk">香港</button>
+          </div>
+          <button id="startColorAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="colorAnalysisResult" class="result-container">
           <div style="text-align: center; color: #888; padding: 20px;">
-            请选择彩种和位置，数据将自动加载
+            点击"开始分析"按钮开始波色分析
+          </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;">
+          <div class="stats-section">
+            <h3 class="stats-title">总体统计</h3>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stats-label">总期数：</span>
+                <span class="stats-value" id="totalColorPeriods">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中次数：</span>
+                <span class="stats-value" id="colorHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">遗漏次数：</span>
+                <span class="stats-value" id="colorMissCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">命中率：</span>
+                <span class="stats-value" id="colorHitRate">0%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- -1~-20区间分析页面 -->
-      <div id="minusRangePage" class="hidden">
-        <h2>-1~-20区间分析</h2>
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="minus-range-type-group">
-            <button class="minus-range-type-btn active" data-type="am">澳门</button>
-            <button class="minus-range-type-btn" data-type="hk">香港</button>
-          </div>
-          <label class="records-query-label" class="ml-4">选择下一期球位置：</label>
-          <div class="minus-range-pos-group" style="display:inline-block;">
-            <button class="minus-range-pos-btn" data-pos="1">第1位</button>
-            <button class="minus-range-pos-btn" data-pos="2">第2位</button>
-            <button class="minus-range-pos-btn" data-pos="3">第3位</button>
-            <button class="minus-range-pos-btn" data-pos="4">第4位</button>
-            <button class="minus-range-pos-btn" data-pos="5">第5位</button>
-            <button class="minus-range-pos-btn" data-pos="6">第6位</button>
-            <button class="minus-range-pos-btn active" data-pos="7">第7位</button>
-          </div>
-        </div>
-        <div id="minusRangeResult" class="result-container">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            请选择彩种和位置，数据将自动加载
-          </div>
         </div>
       </div>
 
-      <!-- 第N个码个位分析页面 -->
-      <div id="unitsPage" class="hidden">
-        <h2>第N个码个位分析</h2>
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="units-type-group">
-            <button class="units-type-btn active" data-type="am">澳门</button>
-            <button class="units-type-btn" data-type="hk">香港</button>
-          </div>
-          <label class="records-query-label" class="ml-4">选择位数：</label>
-          <div class="units-pos-group" style="display:inline-block;">
-            <button class="units-pos-btn active" data-pos="1">第1位</button>
-            <button class="units-pos-btn" data-pos="2">第2位</button>
-            <button class="units-pos-btn" data-pos="3">第3位</button>
-            <button class="units-pos-btn" data-pos="4">第4位</button>
-            <button class="units-pos-btn" data-pos="5">第5位</button>
-            <button class="units-pos-btn" data-pos="6">第6位</button>
-            <button class="units-pos-btn" data-pos="7">第7位</button>
-          </div>
-        </div>
-        <div id="unitsResult" class="result-container">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            数据加载中...
-          </div>
-        </div>
-      </div>
-
-      <!-- 加减前6码分析页面 -->
-      <div id="plusMinus6Page" class="hidden">
-        <h2>加减前6码分析</h2>
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="plus-minus6-type-group">
-            <button class="plus-minus6-type-btn active" data-type="am">澳门</button>
-            <button class="plus-minus6-type-btn" data-type="hk">香港</button>
-          </div>
-          <button id="startPlusMinus6AnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
-        </div>
-        <div id="plusMinus6Result" class="result-container">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            点击"开始分析"按钮开始加减前6码分析
-          </div>
-        </div>
-      </div>
-
-      <!-- 去10的最热20分析页面 -->
-      <div id="hot20Minus10Page" class="hidden">
-        <h2>去10的最热20分析</h2>
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="hot20-type-group">
-            <button class="hot20-type-btn active" data-type="am">澳门</button>
-            <button class="hot20-type-btn" data-type="hk">香港</button>
-          </div>
-          <button id="startHot20AnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
-        </div>
-        <div id="hot20Result" class="result-container">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            点击"开始分析"按钮开始去10的最热20分析
-          </div>
-        </div>
-      </div>
-
-
+     
 
       <div id="twentyRangePage" class="hidden">
         <h2>20区间分析</h2>
@@ -1468,35 +1416,7 @@
         </div>
       </div>
 
-      <!-- 波色分析页面 -->
-      <div id="colorAnalysisPage" class="hidden">
-        <h2>波色分析</h2>
-
-        <!-- 彩种选择 -->
-        <div class="mb-3">
-          <label class="records-query-label">选择彩种：</label>
-          <div class="color-type-group">
-            <button class="color-type-btn active" data-type="am">澳门</button>
-            <button class="color-type-btn" data-type="hk">香港</button>
-          </div>
-          <button id="startColorAnalysisBtn" class="btn-primary" style="margin-top: 10px;">开始分析</button>
-        </div>
-
-        <!-- 预测结果（最新预测，放在最上方） -->
-        <div id="colorAnalysisPrediction" style="margin-bottom: 20px;"></div>
-
-        <!-- 分析结果（表格） -->
-        <div id="colorAnalysisResult" class="result-container">
-          <div style="text-align: center; color: #888; padding: 20px;">
-            选择彩种后点击"开始分析"按钮查看波色分析结果
-          </div>
-        </div>
-
-        <!-- 统计信息（放在最下方） -->
-        <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;"></div>
-      </div>
-
-
+     
 
     </main>
   </div>
@@ -1528,19 +1448,14 @@
   <script src="js/modules/color-analysis.js"></script>
   <script src="js/modules/xiao-analysis.js"></script>
   <script src="js/modules/recommend-hit.js"></script>
-  <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
+  <!-- <script src="upload.js"></script> -->
   <script src="js/features/recommend16.js"></script>
   <script src="js/features/fivePeriodThreexiao.js"></script>
   <script src="js/features/seventhSmart20.js"></script>
-  <script src="js/features/seventhRangeAnalysis.js"></script>
-  <script src="js/features/front6Szz.js"></script>
-  <script src="js/features/plusMinus6.js"></script>
-  <script src="js/features/eachIssue.js"></script>
   <script src="js/features/twoGroups.js"></script>
   <script src="js/features/numberGapAnalysis.js"></script>
   <script src="js/features/numberMissingAnalysis.js"></script>
   <script src="js/features/hot20Analysis.js"></script>
-  <script src="js/features/maxMissAlert.js"></script>
 
   <!-- 主入口 -->
   <script src="js/main.js"></script>

@@ -13,8 +13,13 @@ let currentHot20Year = '';
  * 初始化去10最热20分析页面
  */
 function initHot20Minus10Page() {
-  if (document.getElementById('hot20Minus10Page')) {
-    return; // 页面已存在，不重复创建
+  console.log('🎯 初始化去10的最热20分析模块...');
+
+  const existingPage = document.getElementById('hot20Minus10Page');
+  if (existingPage) {
+    console.log('页面已存在，仅绑定事件');
+    bindHot20Events();
+    return;
   }
 
   const mainContent = document.querySelector('.main-content');
@@ -82,6 +87,8 @@ function bindHot20Events() {
   // 彩种切换
   document.querySelectorAll('.hot20-type-btn').forEach(btn => {
     btn.onclick = () => {
+      document.querySelectorAll('.hot20-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       const type = btn.dataset.type;
       loadHot20Analysis(type, null, 1, null);
     };
@@ -90,17 +97,37 @@ function bindHot20Events() {
   // 位置切换
   document.querySelectorAll('.hot20-pos-btn').forEach(btn => {
     btn.onclick = () => {
+      document.querySelectorAll('.hot20-pos-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       const pos = parseInt(btn.dataset.pos);
       loadHot20Analysis(null, pos, 1, null);
     };
   });
 
-  // 查询按钮
+  // 查询按钮（支持两种按钮ID）
   const queryBtn = document.getElementById('hot20QueryBtn');
+  const startBtn = document.getElementById('startHot20AnalysisBtn');
+
   if (queryBtn) {
+    console.log('绑定 hot20QueryBtn 按钮');
     queryBtn.onclick = () => {
+      console.log('查询按钮被点击');
       loadHot20Analysis(null, null, 1, null);
     };
+  }
+
+  if (startBtn) {
+    console.log('绑定 startHot20AnalysisBtn 按钮');
+    startBtn.onclick = () => {
+      console.log('开始分析按钮被点击');
+      loadHot20Analysis(null, null, 1, null);
+    };
+  }
+
+  if (!queryBtn && !startBtn) {
+    console.warn('⚠️ 未找到查询按钮或开始分析按钮');
+  } else {
+    console.log('✅ 事件绑定完成');
   }
 }
 
@@ -375,6 +402,9 @@ function exportHot20CSV() {
   const url = `${window.BACKEND_URL}/api/hot20_minus10/export_all?lottery_type=${currentHot20Type}&pos=${currentHot20Pos}${currentHot20Year ? '&year=' + currentHot20Year : ''}`;
   window.open(url, '_blank');
 }
+
+// 导出到全局
+window.initHot20Minus10Page = initHot20Minus10Page;
 
 // 页面加载完成后初始化
 if (document.readyState === 'loading') {
