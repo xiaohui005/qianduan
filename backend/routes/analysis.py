@@ -750,10 +750,14 @@ def each_issue_analysis_api(
     }
 
 @router.get("/color_analysis")
-def color_analysis_api(lottery_type: str = Query('am')):
+def color_analysis_api(lottery_type: str = Query('am'), export: str = Query(None)):
     """
     波色分析API
     根据当前期前6个号码的第2位波色，预测下一期第7位号码的波色
+
+    参数:
+    - lottery_type: 彩种类型 (am=澳门, hk=香港)
+    - export: 导出格式 (csv=导出CSV文件)
     """
     try:
         # 波色定义
@@ -896,6 +900,44 @@ def color_analysis_api(lottery_type: str = Query('am')):
         total_periods = len(analysis_results)
         hit_count = sum(1 for r in analysis_results if r['is_hit'])
         hit_rate = (hit_count / total_periods * 100) if total_periods > 0 else 0
+
+        # CSV导出（继承项目的导出封装方案）
+        if export == 'csv':
+            # 按期号倒序排列（最新的在前）
+            sorted_results = sorted(analysis_results, key=lambda x: x['current_period'], reverse=True)
+
+            headers = [
+                '当前期数', '开奖时间', '当前期开奖号码', '第2个号码', '第2个号码波色',
+                '下一期期数', '下一期第7个号码', '下一期第7个号码波色',
+                '结果', '当前错误次数', '历史最大错误次数'
+            ]
+
+            # 波色名称映射
+            color_names = {
+                'red': '红波',
+                'blue': '蓝波',
+                'green': '绿波'
+            }
+
+            rows = []
+            for item in sorted_results:
+                rows.append([
+                    item.get('current_period', ''),
+                    item.get('current_open_time', ''),
+                    ','.join(str(n).zfill(2) for n in item.get('current_numbers', [])),
+                    str(item.get('second_number', '')).zfill(2),
+                    color_names.get(item.get('second_color', ''), ''),
+                    item.get('next_period', ''),
+                    str(item.get('next_seventh_number', '')).zfill(2),
+                    color_names.get(item.get('next_seventh_color', ''), ''),
+                    '对' if item.get('is_hit') else '错',
+                    item.get('current_miss', 0),
+                    item.get('max_miss', 0)
+                ])
+
+            lottery_name = "澳门" if lottery_type == "am" else "香港"
+            filename = f"波色分析_{lottery_name}.csv"
+            return create_csv_response(headers, rows, filename)
 
         return {
             "success": True,

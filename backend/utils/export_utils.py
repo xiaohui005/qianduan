@@ -17,6 +17,7 @@ CSV导出工具模块
 import io
 import csv
 from typing import List, Any
+from urllib.parse import quote
 from fastapi.responses import StreamingResponse
 
 
@@ -128,24 +129,32 @@ def create_csv_response(
     # 获取CSV内容
     csv_content = output.getvalue()
 
-    # 处理编码（如果需要）
-    if encoding != 'utf-8':
-        csv_bytes = csv_content.encode(encoding)
-        content = csv_bytes
-        media_type = "text/csv"
-    else:
-        # UTF-8-sig 需要添加BOM
-        if encoding == 'utf-8-sig':
-            csv_content = '\ufeff' + csv_content  # 添加BOM
-        content = csv_content
+    # 处理编码
+    if encoding == 'utf-8-sig':
+        # UTF-8-sig：添加BOM并编码为UTF-8
+        csv_content = '\ufeff' + csv_content
+        content = csv_content.encode('utf-8')
         media_type = "text/csv; charset=utf-8"
+    elif encoding == 'utf-8':
+        # 标准UTF-8：编码为UTF-8字节
+        content = csv_content.encode('utf-8')
+        media_type = "text/csv; charset=utf-8"
+    else:
+        # 其他编码（如 gbk）
+        content = csv_content.encode(encoding)
+        media_type = f"text/csv; charset={encoding}"
 
     # 创建流式响应
+    # 使用 RFC 2231 格式支持 UTF-8 文件名
+    # filename*=UTF-8''encoded_filename 是标准的 UTF-8 文件名编码方式
+    # 不使用 filename 参数,避免中文字符导致 HTTP 头编码失败
+    encoded_filename = quote(filename, encoding='utf-8')
+
     response = StreamingResponse(
         iter([content]),
         media_type=media_type,
         headers={
-            "Content-Disposition": f"attachment; filename={filename}"
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
         }
     )
 

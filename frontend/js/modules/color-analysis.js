@@ -471,8 +471,9 @@ function exportColorAnalysis() {
     return;
   }
 
+  // 使用window.location.href触发下载（更可靠）
   const url = `${window.BACKEND_URL}/color_analysis?lottery_type=${currentColorType}&export=csv`;
-  window.open(url, '_blank');
+  window.location.href = url;
 }
 
 /**
