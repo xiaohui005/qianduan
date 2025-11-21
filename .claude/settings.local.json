@@ -54,7 +54,11 @@
       "Bash(cmd /c \"dir /b frontend\\js\\modules\")",
       "Bash(cmd /c:*)",
       "Bash(start /b python -m http.server 8080)",
-      "Bash(timeout /t 2)"
+      "Bash(timeout /t 2)",
+      "Bash(timeout 2 bash:*)",
+      "mcp__chrome-devtools__press_key",
+      "Bash(start \"\" python -m http.server 8080 -d C:UsersAdministratorDesktopsix666frontend)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

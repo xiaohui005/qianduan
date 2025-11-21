@@ -37,10 +37,15 @@ function initRecordsModule() {
   const queryBtn = document.getElementById('queryRecordsBtn');
   if (queryBtn) {
     queryBtn.addEventListener('click', handleQueryClick);
+    console.log('[初始化] 查询按钮事件已绑定');
+  } else {
+    console.warn('[初始化] 未找到查询按钮 queryRecordsBtn');
   }
 
   // 页面加载时自动查询第一页
+  console.log('[初始化] 准备调用 queryRecords(澳门)');
   queryRecords('recordsTableAreaAm', 1);
+  console.log('[初始化] 准备调用 queryRecords(香港)');
   queryRecords('recordsTableAreaHk', 1);
 
   console.log('✅ 开奖记录模块初始化完成');
@@ -67,13 +72,17 @@ function handleQueryClick() {
  * @param {number} page - 页码（默认为1）
  */
 async function queryRecords(areaId, page = 1) {
+  console.log(`[查询] queryRecords 被调用，areaId=${areaId}, page=${page}`);
+
   const type = areaId === 'recordsTableAreaAm' ? 'am' : 'hk';
   const area = document.getElementById(areaId);
 
   if (!area) {
-    console.warn(`未找到元素: ${areaId}`);
+    console.warn(`[查询] 未找到元素: ${areaId}`);
     return;
   }
+
+  console.log(`[查询] 找到区域元素，彩种=${type}`);
 
   // 显示加载状态
   area.innerHTML = '<div style="padding: 20px; text-align: center;">加载中...</div>';
@@ -81,9 +90,11 @@ async function queryRecords(areaId, page = 1) {
   try {
     // 获取筛选条件
     const filters = getQueryFilters();
+    console.log(`[查询] 筛选条件:`, filters);
 
     // 构建请求URL
     const url = buildQueryURL(type, page, filters);
+    console.log(`[查询] 请求URL: ${url}`);
 
     // 发送请求
     const response = await fetch(url);
@@ -92,6 +103,7 @@ async function queryRecords(areaId, page = 1) {
     }
 
     const data = await response.json();
+    console.log(`[查询] 获取到数据，记录数: ${data.records?.length}, 总数: ${data.total}`);
 
     // 更新缓存
     recordsData[type] = data;
@@ -102,7 +114,7 @@ async function queryRecords(areaId, page = 1) {
     renderRecordsTable(data, areaId, title);
 
   } catch (error) {
-    console.error('查询开奖记录失败:', error);
+    console.error('[查询] 查询开奖记录失败:', error);
     area.innerHTML = `<div style="color: red; padding: 20px;">查询失败: ${error.message}</div>`;
   }
 }
@@ -150,6 +162,8 @@ function buildQueryURL(type, page, filters) {
  * @param {string} title - 表格标题
  */
 function renderRecordsTable(data, areaId, title) {
+  console.log(`[渲染] 开始渲染表格，区域: ${areaId}, 记录数: ${data.records?.length}`);
+
   const area = document.getElementById(areaId);
   if (!area) {
     console.warn(`未找到元素: ${areaId}`);
@@ -165,9 +179,11 @@ function renderRecordsTable(data, areaId, title) {
   // 构建HTML
   let html = buildTableHTML(data, areaId, title);
   area.innerHTML = html;
+  console.log(`[渲染] HTML已设置，准备绑定事件`);
 
   // 绑定事件
   bindTableEvents(area, areaId, data);
+  console.log(`[渲染] 表格渲染完成`);
 }
 
 /**
@@ -286,31 +302,49 @@ function buildPagination(data, areaId) {
  * @param {Object} data - 开奖记录数据
  */
 function bindTableEvents(area, areaId, data) {
+  console.log(`[事件] 开始绑定表格事件，区域: ${areaId}`);
+
   // 绑定分页按钮事件
-  bindPaginationEvents(area, areaId, data);
+  console.log(`[事件] 准备绑定分页事件`);
+  bindRecordsPaginationEvents(area, areaId, data);
 
   // 绑定导出按钮事件
+  console.log(`[事件] 准备绑定导出事件`);
   bindExportEvents(area, areaId, data);
+
+  console.log(`[事件] 表格事件绑定完成`);
 }
 
 /**
- * 绑定分页按钮事件
+ * 绑定分页按钮事件（开奖记录专用）
  * @param {HTMLElement} area - 表格容器元素
  * @param {string} areaId - 目标区域ID
  * @param {Object} data - 开奖记录数据
  */
-function bindPaginationEvents(area, areaId, data) {
+function bindRecordsPaginationEvents(area, areaId, data) {
+  console.log(`[分页] 开始绑定分页事件，区域: ${areaId}，当前页: ${data.page}`);
+
   // 上一页
   const prevButtons = area.querySelectorAll('.recordsPrevPage');
+  console.log(`[分页] 找到${prevButtons.length}个上一页按钮`);
   prevButtons.forEach(btn => {
-    btn.onclick = () => queryRecords(areaId, data.page - 1);
+    btn.onclick = () => {
+      console.log(`[分页] 上一页按钮被点击，跳转到第${data.page - 1}页`);
+      queryRecords(areaId, data.page - 1);
+    };
   });
 
   // 下一页
   const nextButtons = area.querySelectorAll('.recordsNextPage');
+  console.log(`[分页] 找到${nextButtons.length}个下一页按钮`);
   nextButtons.forEach(btn => {
-    btn.onclick = () => queryRecords(areaId, data.page + 1);
+    btn.onclick = () => {
+      console.log(`[分页] 下一页按钮被点击，跳转到第${data.page + 1}页`);
+      queryRecords(areaId, data.page + 1);
+    };
   });
+
+  console.log(`[分页] 分页事件绑定完成`);
 }
 
 /**
