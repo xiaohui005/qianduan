@@ -62,7 +62,8 @@
       "Bash(start chrome http://localhost:8080)",
       "Bash(timeout /t 3)",
       "Bash(powershell Get-Content 'C:\\Users\\Administrator\\Desktop\\six666\\frontend\\index.html')",
-      "Bash(Select-Object -Last 80)"
+      "Bash(Select-Object -Last 80)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

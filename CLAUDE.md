@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Python**: 3.13.5+ (推荐 3.7+)
 - **前端**: 纯 HTML/CSS/JavaScript，单页应用架构
 - **数据库**: MySQL 5.7+（支持连接池）
-- **配置**: 外部 config.json 文件（支持 PyInstaller 打包后读取）
+- **配置**: 外部 config.json 文件
 - **定时任务**: APScheduler 实现自动采集
 
 ### 模块化路由设计
@@ -67,31 +67,14 @@ from backend.utils import number_utils, db_utils
 - 工具箱已在 `analysis.py` 和其他模块中广泛使用
 - 详细文档见 `backend/utils/README.md`
 
-### 托盘服务（Windows）
-项目提供了后台托盘服务，方便在 Windows 系统上运行：
-- `tray_app.py`: 系统托盘主程序（绿色"彩"字图标）
-- `service_manager.py`: 前后端服务管理模块
-- 支持开机自启动
-- 支持系统托盘菜单：打开网页、查看状态、重启服务、退出
-- 单实例检测，防止重复启动
-- 详细文档见 `托盘服务使用说明.md`
-
 ## 开发命令
 
 ### 启动项目
 ```bash
-# 方式1：使用托盘服务（推荐用于 Windows）
-# 双击运行 启动托盘服务.bat 或 启动托盘服务.vbs
-# 或命令行启动：
-pythonw tray_app.py
-
-# 方式2：标准启动
+# 方式1：使用 launcher.py（推荐）
 python launcher.py
 
-# 方式3：批处理启动（Windows）
-一键启动.bat
-
-# 方式4：手动启动各服务
+# 方式2：手动启动各服务
 # 后端
 cd backend
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
@@ -104,7 +87,6 @@ python -m http.server 8080 -d frontend
 - 后端 API: http://localhost:8000
 - 前端界面: http://localhost:8080
 - API 文档: http://localhost:8000/docs
-- 托盘图标：系统托盘右下角绿色"彩"字图标（托盘服务方式）
 
 ### 数据库初始化
 ```bash
@@ -113,36 +95,6 @@ python -c "from backend.config import create_default_config; create_default_conf
 
 # 修改 config.json 中的数据库配置后，运行初始化脚本
 python backend/init_database.py
-```
-
-### 托盘服务依赖安装（仅Windows）
-```bash
-# 运行安装脚本
-安装依赖.bat
-
-# 或手动安装
-pip install -r requirements_tray.txt
-# 包含：pystray、Pillow、psutil、requests
-```
-
-### 打包 EXE
-```bash
-# 使用 PyInstaller
-pyinstaller build.spec
-
-# 生成的 EXE 位于 dist/ 目录
-```
-
-### 服务管理命令（Windows）
-```bash
-# 停止所有服务
-停止所有服务.bat
-
-# 清理占用的端口（8000和8080）
-清理端口.bat
-
-# 重启前端服务
-重启前端.bat
 ```
 
 ## 核心业务逻辑
@@ -216,14 +168,12 @@ if period.endswith(('0', '5')):
 }
 ```
 
-配置读取支持 PyInstaller 打包后的 EXE 运行（使用 `sys.frozen` 检测）。
-
 实现位置: `backend/config.py`
 
 **配置项说明**:
 - `MYSQL_*`: 数据库连接配置
 - `API_HOST/API_PORT`: 后端服务地址和端口
-- `backend_port/frontend_port`: 后端和前端端口（托盘服务使用）
+- `backend_port/frontend_port`: 后端和前端端口
 - `COLLECT_URLS`: 主数据采集源（澳门/香港）
 - `COLLECT_HISTORY_URLS`: 历史数据采集源
 - `WENLONGZHU_URLS`: 备用数据采集源
@@ -416,12 +366,6 @@ if period.endswith(('0', '5')):
 - 连接池初始化在 `backend/db.py`
 - 启动时会自动测试连接：`launcher.py`
 
-### 配置托盘服务
-1. 安装托盘依赖：运行 `安装依赖.bat`
-2. 启动托盘服务：运行 `启动托盘服务.bat` 或 `启动托盘服务.vbs`
-3. 配置开机自启：参考 `开机自启动配置.md`
-4. 查看日志：`logs/tray_app.log`
-
 ## 重要约定和最佳实践
 
 ### 代码复用原则
@@ -504,12 +448,6 @@ python launcher.py
 
 # 初始化/更新数据库
 python backend/init_database.py
-
-# 安装托盘服务依赖（Windows）
-安装依赖.bat
-
-# 打包EXE
-pyinstaller build.spec
 ```
 
 ## 最新功能说明
