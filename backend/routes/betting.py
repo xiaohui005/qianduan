@@ -388,16 +388,16 @@ def get_bet_report(
 
             where_clause = " WHERE " + " AND ".join(where_conditions) if where_conditions else ""
 
-            # 1. 总体统计
+            # 1. 总体统计（修复：使用IFNULL处理NULL值）
             overall_sql = f"""
             SELECT
                 COUNT(*) as total_bets,
-                SUM(b.bet_amount) as total_bet_amount,
-                SUM(b.win_amount) as total_win_amount,
-                SUM(b.win_amount - b.bet_amount) as total_profit_loss,
-                AVG(b.bet_amount) as avg_bet_amount,
-                AVG(b.win_amount) as avg_win_amount,
-                AVG(b.win_amount - b.bet_amount) as avg_profit_loss,
+                IFNULL(SUM(b.bet_amount), 0) as total_bet_amount,
+                IFNULL(SUM(b.win_amount), 0) as total_win_amount,
+                IFNULL(SUM(b.win_amount - b.bet_amount), 0) as total_profit_loss,
+                IFNULL(AVG(b.bet_amount), 0) as avg_bet_amount,
+                IFNULL(AVG(b.win_amount), 0) as avg_win_amount,
+                IFNULL(AVG(b.win_amount - b.bet_amount), 0) as avg_profit_loss,
                 SUM(CASE WHEN b.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
                 SUM(CASE WHEN b.is_correct = 0 THEN 1 ELSE 0 END) as wrong_count,
                 SUM(CASE WHEN b.is_correct IS NULL THEN 1 ELSE 0 END) as unjudged_count
@@ -412,19 +412,19 @@ def get_bet_report(
             print(f"Debug - Params: {params}")
             print(f"Debug - Overall stats: {overall_stats}")
 
-            # 2. 按关注点统计
+            # 2. 按关注点统计（修复：使用IFNULL处理NULL值）
             place_stats_sql = f"""
             SELECT
                 p.id as place_id,
                 p.name as place_name,
                 p.description as place_description,
                 COUNT(b.id) as bet_count,
-                SUM(b.bet_amount) as total_bet_amount,
-                SUM(b.win_amount) as total_win_amount,
-                SUM(b.win_amount - b.bet_amount) as total_profit_loss,
-                AVG(b.bet_amount) as avg_bet_amount,
-                AVG(b.win_amount) as avg_win_amount,
-                AVG(b.win_amount - b.bet_amount) as avg_profit_loss,
+                IFNULL(SUM(b.bet_amount), 0) as total_bet_amount,
+                IFNULL(SUM(b.win_amount), 0) as total_win_amount,
+                IFNULL(SUM(b.win_amount - b.bet_amount), 0) as total_profit_loss,
+                IFNULL(AVG(b.bet_amount), 0) as avg_bet_amount,
+                IFNULL(AVG(b.win_amount), 0) as avg_win_amount,
+                IFNULL(AVG(b.win_amount - b.bet_amount), 0) as avg_profit_loss,
                 SUM(CASE WHEN b.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
                 SUM(CASE WHEN b.is_correct = 0 THEN 1 ELSE 0 END) as wrong_count,
                 SUM(CASE WHEN b.is_correct IS NULL THEN 1 ELSE 0 END) as unjudged_count,
@@ -439,17 +439,17 @@ def get_bet_report(
             cursor.execute(place_stats_sql, params)
             place_stats = cursor.fetchall()
 
-            # 3. 按时间统计（按月）
+            # 3. 按时间统计（按月）（修复：使用IFNULL处理NULL值）
             time_stats_sql = f"""
             SELECT
                 DATE_FORMAT(b.created_at, '%Y-%m') as month,
                 COUNT(b.id) as bet_count,
-                SUM(b.bet_amount) as total_bet_amount,
-                SUM(b.win_amount) as total_win_amount,
-                SUM(b.win_amount - b.bet_amount) as total_profit_loss,
-                AVG(b.bet_amount) as avg_bet_amount,
-                AVG(b.win_amount) as avg_win_amount,
-                AVG(b.win_amount - b.bet_amount) as avg_profit_loss
+                IFNULL(SUM(b.bet_amount), 0) as total_bet_amount,
+                IFNULL(SUM(b.win_amount), 0) as total_win_amount,
+                IFNULL(SUM(b.win_amount - b.bet_amount), 0) as total_profit_loss,
+                IFNULL(AVG(b.bet_amount), 0) as avg_bet_amount,
+                IFNULL(AVG(b.win_amount), 0) as avg_win_amount,
+                IFNULL(AVG(b.win_amount - b.bet_amount), 0) as avg_profit_loss
             FROM bets b
             {where_clause}
             GROUP BY DATE_FORMAT(b.created_at, '%Y-%m')
@@ -458,14 +458,14 @@ def get_bet_report(
             cursor.execute(time_stats_sql, params)
             time_stats = cursor.fetchall()
 
-            # 4. 按时间统计（按日）
+            # 4. 按时间统计（按日）（修复：使用IFNULL处理NULL值）
             daily_stats_sql = f"""
             SELECT
                 DATE(b.created_at) as date,
                 COUNT(b.id) as bet_count,
-                SUM(b.bet_amount) as total_bet_amount,
-                SUM(b.win_amount) as total_win_amount,
-                SUM(b.win_amount - b.bet_amount) as total_profit_loss
+                IFNULL(SUM(b.bet_amount), 0) as total_bet_amount,
+                IFNULL(SUM(b.win_amount), 0) as total_win_amount,
+                IFNULL(SUM(b.win_amount - b.bet_amount), 0) as total_profit_loss
             FROM bets b
             {where_clause}
             GROUP BY DATE(b.created_at)
@@ -475,7 +475,7 @@ def get_bet_report(
             cursor.execute(daily_stats_sql, params)
             daily_stats = cursor.fetchall()
 
-            # 5. 输赢分布统计
+            # 5. 输赢分布统计（修复：使用IFNULL处理NULL值）
             profit_loss_distribution_sql = f"""
             SELECT
                 CASE
@@ -488,9 +488,9 @@ def get_bet_report(
                     ELSE '盈利1000+'
                 END as profit_loss_range,
                 COUNT(*) as count,
-                SUM(b.bet_amount) as total_bet_amount,
-                SUM(b.win_amount) as total_win_amount,
-                SUM(b.win_amount - b.bet_amount) as total_profit_loss
+                IFNULL(SUM(b.bet_amount), 0) as total_bet_amount,
+                IFNULL(SUM(b.win_amount), 0) as total_win_amount,
+                IFNULL(SUM(b.win_amount - b.bet_amount), 0) as total_profit_loss
             FROM bets b
             {where_clause}
             GROUP BY profit_loss_range

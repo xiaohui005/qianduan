@@ -259,20 +259,20 @@
       return;
     }
 
-    document.getElementById('totalBetCount').textContent = stats.total_bets || 0;
-    document.getElementById('totalBetAmount').textContent = formatCurrency(stats.total_bet_amount || 0);
-    document.getElementById('totalWinAmount').textContent = formatCurrency(stats.total_win_amount || 0);
-    document.getElementById('totalProfitLoss').textContent = formatCurrency(stats.total_profit_loss || 0);
-    document.getElementById('avgBetAmount').textContent = formatCurrency(stats.avg_bet_amount || 0);
-    document.getElementById('avgWinAmount').textContent = formatCurrency(stats.avg_win_amount || 0);
-    document.getElementById('avgProfitLoss').textContent = formatCurrency(stats.avg_profit_loss || 0);
-    document.getElementById('correctCount').textContent = stats.correct_count || 0;
-    document.getElementById('wrongCount').textContent = stats.wrong_count || 0;
-    document.getElementById('unjudgedCount').textContent = stats.unjudged_count || 0;
+    document.getElementById('reportTotalBetCount').textContent = stats.total_bets || 0;
+    document.getElementById('reportTotalBetAmount').textContent = formatCurrency(stats.total_bet_amount || 0);
+    document.getElementById('reportTotalWinAmount').textContent = formatCurrency(stats.total_win_amount || 0);
+    document.getElementById('reportTotalProfitLoss').textContent = formatCurrency(stats.total_profit_loss || 0);
+    document.getElementById('reportAvgBetAmount').textContent = formatCurrency(stats.avg_bet_amount || 0);
+    document.getElementById('reportAvgWinAmount').textContent = formatCurrency(stats.avg_win_amount || 0);
+    document.getElementById('reportAvgProfitLoss').textContent = formatCurrency(stats.avg_profit_loss || 0);
+    document.getElementById('reportCorrectCount').textContent = stats.correct_count || 0;
+    document.getElementById('reportWrongCount').textContent = stats.wrong_count || 0;
+    document.getElementById('reportUnjudgedCount').textContent = stats.unjudged_count || 0;
 
     // 设置输赢金额的颜色
-    const totalProfitLossEl = document.getElementById('totalProfitLoss');
-    const avgProfitLossEl = document.getElementById('avgProfitLoss');
+    const totalProfitLossEl = document.getElementById('reportTotalProfitLoss');
+    const avgProfitLossEl = document.getElementById('reportAvgProfitLoss');
 
     totalProfitLossEl.className = 'stats-value ' + getProfitLossClass(stats.total_profit_loss);
     avgProfitLossEl.className = 'stats-value ' + getProfitLossClass(stats.avg_profit_loss);
