@@ -21,6 +21,7 @@
         <h2 class="sidebar-title">🎰 彩票分析系统</h2>
       </div>
       <button class="menu-btn" id="menuCollectBtn">📥 采集</button>
+      <button class="menu-btn" id="menuAutoCollectBtn">⏰ 自动采集设置</button>
       <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
       <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
@@ -147,6 +148,10 @@
           </div>
         </div>
         <div id="collectResult" class="result-container"></div>
+      </div>
+      <!-- 自动采集设置页面 -->
+      <div id="autoCollectPage" class="hidden">
+        <!-- 由 auto-collect-settings.js 动态填充内容 -->
       </div>
       <div id="registerFocusPage" class="hidden">
         <h2>登记关注点</h2>
@@ -1554,6 +1559,7 @@
 
   <!-- 功能模块 -->
   <script src="js/modules/collect.js"></script>
+  <script src="js/modules/auto-collect-settings.js"></script>
   <script src="js/modules/records.js"></script>
   <script src="js/modules/recommend.js"></script>
   <script src="js/modules/tens-analysis.js"></script>
@@ -1591,6 +1597,22 @@
       console.log('页面加载完成');
       console.log('recommend16.js 加载状态:', typeof initRecommend16HitAnalysis);
       console.log('recommend16HitPage 元素:', document.getElementById('recommend16HitPage'));
+
+      // 自动采集设置页面初始化
+      const menuAutoCollectBtn = document.getElementById('menuAutoCollectBtn');
+      if (menuAutoCollectBtn) {
+        menuAutoCollectBtn.addEventListener('click', async () => {
+          try {
+            if (typeof window.initAutoCollectPage === 'function') {
+              await window.initAutoCollectPage();
+            } else {
+              console.error('initAutoCollectPage 函数未定义');
+            }
+          } catch (error) {
+            console.error('加载自动采集设置页面失败:', error);
+          }
+        });
+      }
     </script>
 </body>
 </html> 

@@ -23,7 +23,7 @@
   "AUTO_COLLECT": {
     "enabled": true,
     "retry_times": 3,
-    "am_time": "19:06",
+    "am_time": "00:19",
     "hk_time": "19:06",
     "source": "default"
   }

@@ -84,9 +84,18 @@ FALLBACK_COLLECT_URLS = WENLONGZHU_URLS
 
 # 自动采集配置（简化版：每天一次）
 AUTO_COLLECT = _config.get("AUTO_COLLECT", {
-    "enabled": False,
+    "enabled": True,
     "retry_times": 3,
-    "am_time": "21:35",  # 澳门采集时间
-    "hk_time": "21:30",  # 香港采集时间
+    "am_time": "19:06",  # 澳门采集时间
+    "hk_time": "19:06",  # 香港采集时间
     "source": "default"  # 数据源
 })
+
+# 导出可修改的自动采集配置字典（用于调度器）
+AUTO_COLLECT_CONFIG = AUTO_COLLECT.copy()
+
+def update_auto_collect_config(key, value):
+    """更新自动采集配置并保存到文件"""
+    AUTO_COLLECT_CONFIG[key] = value
+    _config['AUTO_COLLECT'] = AUTO_COLLECT_CONFIG
+    return save_config(_config)
