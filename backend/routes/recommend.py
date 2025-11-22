@@ -7,9 +7,15 @@ except ImportError:
     import collect
     from utils import get_db_cursor
 
+# 导入性能优化工具
+from backend.utils.performance_utils import monitor_performance
+from backend.utils.cache_utils import cache_result
+
 router = APIRouter()
 
 @router.get("/recommend")
+@monitor_performance  # 添加性能监控
+@cache_result(timeout_minutes=10)  # 缓存10分钟
 def recommend_api(lottery_type: str = Query('am')):
     print(f"收到推荐请求，彩种: {lottery_type}")
     with get_db_cursor() as cursor:
@@ -70,9 +76,11 @@ def recommend_api(lottery_type: str = Query('am')):
     }
 
 @router.get("/recommend16")
+@monitor_performance  # 添加性能监控
+@cache_result(timeout_minutes=10)  # 缓存10分钟
 def recommend16_api(lottery_type: str = Query('am')):
     try:
-        print(f"收到推荐16码请求，彩种: {lottery_type}")
+        print(f"收到推荐16码请荐，彩种: {lottery_type}")
 
         # 检查recommend16_result表是否存在
         with get_db_cursor() as cursor:

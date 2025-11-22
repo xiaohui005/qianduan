@@ -7,9 +7,14 @@ except ImportError:
     import collect
     import config
 
+# 导入性能优化工具
+from backend.utils.performance_utils import monitor_performance
+from backend.utils.cache_utils import cache_clear_on_update
+
 router = APIRouter()
 
 @router.get("/collect")
+@monitor_performance  # 添加性能监控
 def collect_api(type: str = None):
     urls = config.COLLECT_URLS
     result = {}
@@ -32,7 +37,9 @@ def collect_api(type: str = None):
         print(f"采集到{len(data)}条数据: {data[:1] if data else '[]'}")
         collect.save_results(data)
 
+        # 采集成功后清除该彩种的缓存
         if data:
+            cache_clear_on_update(t)  # 清除相关缓存
             new_periods = [item['period'] for item in data]
             target_periods = [period for period in new_periods if period.endswith(('0', '5'))]
 
@@ -74,6 +81,7 @@ def collect_api(type: str = None):
     return result
 
 @router.get("/collect_wenlongzhu")
+@monitor_performance  # 添加性能监控
 def collect_wenlongzhu_api(type: str = None):
     """文龙珠源头采集API"""
     wenlongzhu_urls = getattr(config, 'WENLONGZHU_URLS', {})
@@ -134,6 +142,7 @@ def collect_wenlongzhu_api(type: str = None):
     return result
 
 @router.get("/records")
+@monitor_performance  # 添加性能监控
 def get_records(
     lottery_type: Optional[str] = Query(None),
     start_time: Optional[str] = Query(None),
@@ -142,7 +151,7 @@ def get_records(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=10000)
 ):
-    """获取开奖记录,支持分页,最大page_size=10000"""
+    """获取开奖记录,支持分页,最大page_size=10000（已优化性能监控）"""
     try:
         from backend.utils import get_db_cursor
     except ImportError:
