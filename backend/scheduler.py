@@ -241,6 +241,11 @@ def update_schedule(am_time: str = None, hk_time: str = None):
         AUTO_COLLECT_CONFIG['hk_time'] = hk_time
         logger.info(f"香港采集时间已更新为: {hk_time}")
 
+    # 检查自动采集是否启用，如果未启用则自动启用
+    if not AUTO_COLLECT_CONFIG.get('enabled', False):
+        logger.info("自动采集未启用，将自动启用")
+        AUTO_COLLECT_CONFIG['enabled'] = True
+
     # 重新配置任务（不需要重启调度器）
     if scheduler.running:
         try:
@@ -256,24 +261,56 @@ def update_schedule(am_time: str = None, hk_time: str = None):
             if TIMEZONE is not None:
                 cron_kwargs['timezone'] = TIMEZONE
 
-            # 重新调度澳门任务
-            scheduler.reschedule_job(
-                'auto_collect_am',
-                trigger=CronTrigger(hour=am_hour, minute=am_minute, **cron_kwargs)
-            )
-            logger.info(f"澳门采集任务已重新调度至 {new_am_time}")
+            # 检查任务是否存在，不存在则添加
+            existing_jobs = {job.id for job in scheduler.get_jobs()}
 
-            # 重新调度香港任务
-            scheduler.reschedule_job(
-                'auto_collect_hk',
-                trigger=CronTrigger(hour=hk_hour, minute=hk_minute, **cron_kwargs)
-            )
-            logger.info(f"香港采集任务已重新调度至 {new_hk_time}")
+            if 'auto_collect_am' in existing_jobs:
+                # 重新调度澳门任务
+                scheduler.reschedule_job(
+                    'auto_collect_am',
+                    trigger=CronTrigger(hour=am_hour, minute=am_minute, **cron_kwargs)
+                )
+                logger.info(f"澳门采集任务已重新调度至 {new_am_time}")
+            else:
+                # 添加澳门任务
+                scheduler.add_job(
+                    auto_collect_lottery,
+                    CronTrigger(hour=am_hour, minute=am_minute, **cron_kwargs),
+                    args=['am'],
+                    id='auto_collect_am',
+                    name='澳门自动采集',
+                    replace_existing=True
+                )
+                logger.info(f"已添加澳门自动采集任务，每天 {new_am_time} 执行")
+
+            if 'auto_collect_hk' in existing_jobs:
+                # 重新调度香港任务
+                scheduler.reschedule_job(
+                    'auto_collect_hk',
+                    trigger=CronTrigger(hour=hk_hour, minute=hk_minute, **cron_kwargs)
+                )
+                logger.info(f"香港采集任务已重新调度至 {new_hk_time}")
+            else:
+                # 添加香港任务
+                scheduler.add_job(
+                    auto_collect_lottery,
+                    CronTrigger(hour=hk_hour, minute=hk_minute, **cron_kwargs),
+                    args=['hk'],
+                    id='auto_collect_hk',
+                    name='香港自动采集',
+                    replace_existing=True
+                )
+                logger.info(f"已添加香港自动采集任务，每天 {new_hk_time} 执行")
+
+            logger.info("采集时间更新成功，任务已重新调度")
         except Exception as e:
             logger.error(f"重新调度任务时出错: {e}，将重启调度器")
             # 如果重新调度失败，则重启调度器
             stop_scheduler()
             start_scheduler()
+    else:
+        logger.warning("调度器未运行，将启动调度器")
+        start_scheduler()
 
 def enable_auto_collect():
     """启用自动采集"""

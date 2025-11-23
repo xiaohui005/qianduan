@@ -93,11 +93,16 @@ def update_collect_time(am_time: Optional[str] = None, hk_time: Optional[str] = 
                 return error_response("香港时间格式错误，应为 HH:MM")
             update_auto_collect_config('hk_time', hk_time)
 
+        # 自动启用自动采集（如果未启用）
+        from backend.config import AUTO_COLLECT_CONFIG
+        if not AUTO_COLLECT_CONFIG.get('enabled', False):
+            update_auto_collect_config('enabled', True)
+
         # 更新调度器
         update_schedule(am_time, hk_time)
 
         return success_response(
-            "采集时间已更新",
+            "采集时间已更新，自动采集已启用",
             am_time=am_time,
             hk_time=hk_time
         )

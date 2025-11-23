@@ -220,16 +220,26 @@ function updateBetsPagination(bets, bettingCurrentPage) {
   const startRecord = (bettingCurrentPage - 1) * pageSize + 1;
   const endRecord = Math.min(bettingCurrentPage * pageSize, bets.length);
 
+  // 检查分页元素是否存在
+  const paginationInfo = document.getElementById('paginationInfo');
+  const prevPageBtn = document.getElementById('prevPageBtn');
+  const nextPageBtn = document.getElementById('nextPageBtn');
+  const pageNumbersContainer = document.getElementById('pageNumbers');
+
+  if (!paginationInfo || !prevPageBtn || !nextPageBtn || !pageNumbersContainer) {
+    console.warn('分页元素未找到，跳过更新分页控件');
+    return;
+  }
+
   // 更新分页信息
-  document.getElementById('paginationInfo').textContent =
+  paginationInfo.textContent =
     `显示 ${startRecord}-${endRecord} 条，共 ${bets.length} 条记录`;
 
   // 更新按钮状态
-  document.getElementById('prevPageBtn').disabled = bettingCurrentPage <= 1;
-  document.getElementById('nextPageBtn').disabled = bettingCurrentPage >= totalPages;
+  prevPageBtn.disabled = bettingCurrentPage <= 1;
+  nextPageBtn.disabled = bettingCurrentPage >= totalPages;
 
   // 生成页码按钮
-  const pageNumbersContainer = document.getElementById('pageNumbers');
   pageNumbersContainer.innerHTML = '';
 
   const maxVisiblePages = 5;

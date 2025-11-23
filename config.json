@@ -25,8 +25,8 @@
     "retry_times": 3,
     "retry_interval": 180,
     "normal_interval": 60,
-    "am_time": "19:06",
-    "hk_time": "19:06",
+    "am_time": "21:36",
+    "hk_time": "21:36",
     "source": "default"
   }
 }
