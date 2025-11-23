@@ -1,118 +1,243 @@
+"""
+投注管理 API 路由 - 重构版
+
+使用统一的错误处理和响应格式化工具，保持API响应格式不变
+"""
+
 from fastapi import APIRouter, Query, Request
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from pydantic import BaseModel
 try:
     from backend import collect
-    from backend.utils import get_db_cursor
+    from backend.utils import (
+        get_db_cursor,
+        success_response,
+        operation_response,
+        error_response,
+        handle_db_error,
+        validate_required_params,
+        get_logger
+    )
 except ImportError:
     import collect
-    from utils import get_db_cursor
+    from utils import (
+        get_db_cursor,
+        success_response,
+        operation_response,
+        error_response,
+        handle_db_error,
+        validate_required_params,
+        get_logger
+    )
 
 router = APIRouter()
+logger = get_logger(__name__)
 
+
+# ====================
 # Pydantic 模型定义
+# ====================
+
 class PlaceData(BaseModel):
+    """关注点数据模型"""
     name: str
     description: Optional[str] = ""
 
+
 class BetData(BaseModel):
+    """投注数据模型"""
     place_id: int
     qishu: str
     bet_amount: float
     win_amount: float
     is_correct: Optional[int] = None
 
+
 class PlaceResultData(BaseModel):
+    """关注点登记结果数据模型"""
     place_id: int
     qishu: str
     is_correct: Optional[int] = None
 
-# --- 关注点 places 表的增删改查 API ---
+
+# ====================
+# 关注点 places 表的增删改查 API
+# ====================
 
 @router.get("/api/places")
 def get_places():
-    with get_db_cursor() as cursor:
-        cursor.execute("SELECT * FROM places ORDER BY created_at DESC, id DESC")
-        rows = cursor.fetchall()
-    return jsonable_encoder(rows)
+    """获取所有关注点"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT * FROM places ORDER BY created_at DESC, id DESC")
+            rows = cursor.fetchall()
+        return jsonable_encoder(rows)
+    except Exception as e:
+        logger.error(f"获取关注点列表失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "获取关注点列表")
 
-# 别名端点，用于前端兼容
+
 @router.get("/api/betting_places")
 def get_betting_places():
+    """获取所有关注点（别名端点，用于前端兼容）"""
     return get_places()
+
 
 @router.post("/api/places")
 def add_place(data: PlaceData):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute(
-            "INSERT INTO places (name, description) VALUES (%s, %s)",
-            (data.name, data.description)
-        )
-    return {"success": True}
+    """添加关注点"""
+    try:
+        # 验证必需参数
+        error = validate_required_params({"name": data.name}, ["name"])
+        if error:
+            return error
 
-# 别名端点，用于前端兼容
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "INSERT INTO places (name, description) VALUES (%s, %s)",
+                (data.name, data.description)
+            )
+
+        logger.info(f"添加关注点成功: {data.name}")
+        return operation_response(True, "添加成功")
+
+    except Exception as e:
+        logger.error(f"添加关注点失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "添加关注点")
+
+
 @router.post("/api/betting_places")
 def add_betting_place(data: PlaceData):
+    """添加关注点（别名端点）"""
     return add_place(data)
+
 
 @router.put("/api/places/{place_id}")
 def update_place(place_id: int, data: PlaceData):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute(
-            "UPDATE places SET name=%s, description=%s WHERE id=%s",
-            (data.name, data.description, place_id)
-        )
-    return {"success": True}
+    """更新关注点"""
+    try:
+        # 验证必需参数
+        error = validate_required_params({"name": data.name}, ["name"])
+        if error:
+            return error
+
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE places SET name=%s, description=%s WHERE id=%s",
+                (data.name, data.description, place_id)
+            )
+
+        logger.info(f"更新关注点成功: ID={place_id}")
+        return operation_response(True, "更新成功")
+
+    except Exception as e:
+        logger.error(f"更新关注点失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "更新关注点")
+
 
 @router.delete("/api/places/{place_id}")
 def delete_place(place_id: int):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute("DELETE FROM places WHERE id=%s", (place_id,))
-    return {"success": True}
+    """删除关注点"""
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("DELETE FROM places WHERE id=%s", (place_id,))
 
-# 别名端点，用于前端兼容
+        logger.info(f"删除关注点成功: ID={place_id}")
+        return operation_response(True, "删除成功")
+
+    except Exception as e:
+        logger.error(f"删除关注点失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "删除关注点")
+
+
 @router.delete("/api/betting_places/{place_id}")
 def delete_betting_place(place_id: int):
+    """删除关注点（别名端点）"""
     return delete_place(place_id)
 
-# --- 投注记录 bets 表的增删改查 API ---
+
+# ====================
+# 投注记录 bets 表的增删改查 API
+# ====================
 
 @router.get("/api/bets")
 def get_bets(place_id: int = None):
-    with get_db_cursor() as cursor:
-        if place_id:
-            cursor.execute("SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id WHERE b.place_id=%s ORDER BY b.created_at DESC, b.id DESC", (place_id,))
-        else:
-            cursor.execute("SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id ORDER BY b.created_at DESC, b.id DESC")
-        rows = cursor.fetchall()
-    return jsonable_encoder(rows)
+    """获取投注记录"""
+    try:
+        with get_db_cursor() as cursor:
+            if place_id:
+                cursor.execute(
+                    "SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id WHERE b.place_id=%s ORDER BY b.created_at DESC, b.id DESC",
+                    (place_id,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT b.*, p.name as place_name FROM bets b LEFT JOIN places p ON b.place_id=p.id ORDER BY b.created_at DESC, b.id DESC"
+                )
+            rows = cursor.fetchall()
+
+        return jsonable_encoder(rows)
+
+    except Exception as e:
+        logger.error(f"获取投注记录失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "获取投注记录")
+
 
 @router.post("/api/bets")
 def add_bet(data: BetData):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute(
-            "INSERT INTO bets (place_id, qishu, bet_amount, win_amount, is_correct) VALUES (%s, %s, %s, %s, %s)",
-            (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct)
-        )
-    return {"success": True}
+    """添加投注记录"""
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "INSERT INTO bets (place_id, qishu, bet_amount, win_amount, is_correct) VALUES (%s, %s, %s, %s, %s)",
+                (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct)
+            )
+
+        logger.info(f"添加投注记录成功: 期数={data.qishu}, 金额={data.bet_amount}")
+        return operation_response(True, "添加成功")
+
+    except Exception as e:
+        logger.error(f"添加投注记录失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "添加投注记录")
+
 
 @router.put("/api/bets/{bet_id}")
 def update_bet(bet_id: int, data: BetData):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute(
-            "UPDATE bets SET place_id=%s, qishu=%s, bet_amount=%s, win_amount=%s, is_correct=%s WHERE id=%s",
-            (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct, bet_id)
-        )
-    return {"success": True}
+    """更新投注记录"""
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE bets SET place_id=%s, qishu=%s, bet_amount=%s, win_amount=%s, is_correct=%s WHERE id=%s",
+                (data.place_id, data.qishu, data.bet_amount, data.win_amount, data.is_correct, bet_id)
+            )
+
+        logger.info(f"更新投注记录成功: ID={bet_id}")
+        return operation_response(True, "更新成功")
+
+    except Exception as e:
+        logger.error(f"更新投注记录失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "更新投注记录")
+
 
 @router.delete("/api/bets/{bet_id}")
 def delete_bet(bet_id: int):
-    with get_db_cursor(commit=True) as cursor:
-        cursor.execute("DELETE FROM bets WHERE id=%s", (bet_id,))
-    return {"success": True}
+    """删除投注记录"""
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("DELETE FROM bets WHERE id=%s", (bet_id,))
 
-# --- 关注点登记结果 place_results 表的增删改查 API ---
+        logger.info(f"删除投注记录成功: ID={bet_id}")
+        return operation_response(True, "删除成功")
+
+    except Exception as e:
+        logger.error(f"删除投注记录失败: {str(e)}", exc_info=True)
+        return handle_db_error(e, "删除投注记录")
+
+
+# ====================
+# 关注点登记结果 place_results 表的增删改查 API
+# ====================
 
 @router.get("/api/place_results")
 def get_place_results(
@@ -124,7 +249,7 @@ def get_place_results(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=1000)
 ):
-    """获取关注点登记结果列表"""
+    """获取关注点登记结果列表（支持分页和筛选）"""
     try:
         with get_db_cursor() as cursor:
             sql = """
@@ -135,6 +260,7 @@ def get_place_results(
             """
             params = []
 
+            # 构建筛选条件
             if place_id and place_id.strip():
                 try:
                     place_id_int = int(place_id)
@@ -142,12 +268,13 @@ def get_place_results(
                     params.append(place_id_int)
                 except ValueError:
                     pass
+
             if qishu and qishu.strip():
                 sql += " AND pr.qishu LIKE %s"
                 params.append(f"%{qishu.strip()}%")
+
             if is_correct and is_correct.strip():
                 if is_correct == 'null':
-                    # 查询未判断的记录
                     sql += " AND pr.is_correct IS NULL"
                 else:
                     try:
@@ -156,9 +283,11 @@ def get_place_results(
                         params.append(is_correct_int)
                     except ValueError:
                         pass
+
             if start_date and start_date.strip():
                 sql += " AND DATE(pr.created_at) >= %s"
                 params.append(start_date.strip())
+
             if end_date and end_date.strip():
                 sql += " AND DATE(pr.created_at) <= %s"
                 params.append(end_date.strip())
@@ -186,40 +315,63 @@ def get_place_results(
                 "page_size": page_size,
                 "total_pages": (total + page_size - 1) // page_size
             }
+
     except Exception as e:
-        return {"success": False, "message": f"查询失败: {str(e)}"}
+        logger.error(f"查询关注点登记结果失败: {str(e)}", exc_info=True)
+        return error_response(f"查询失败: {str(e)}")
+
 
 @router.post("/api/place_results")
 def add_place_result(data: PlaceResultData):
     """添加关注点登记结果"""
     try:
-        if not data.place_id or not data.qishu:
-            return {"success": False, "message": "关注点ID和期数不能为空"}
+        # 验证必需参数
+        error = validate_required_params(
+            {"place_id": data.place_id, "qishu": data.qishu},
+            ["place_id", "qishu"]
+        )
+        if error:
+            return error
 
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(
                 "INSERT INTO place_results (place_id, qishu, is_correct) VALUES (%s, %s, %s)",
                 (data.place_id, data.qishu, data.is_correct)
             )
-        return {"success": True, "message": "添加成功"}
+
+        logger.info(f"添加关注点登记结果成功: 期数={data.qishu}")
+        return operation_response(True, "添加成功")
+
     except Exception as e:
-        return {"success": False, "message": f"请求解析失败: {str(e)}"}
+        logger.error(f"添加关注点登记结果失败: {str(e)}", exc_info=True)
+        return error_response(f"请求解析失败: {str(e)}")
+
 
 @router.put("/api/place_results/{result_id}")
 def update_place_result(result_id: int, data: PlaceResultData):
     """更新关注点登记结果"""
     try:
-        if not data.place_id or not data.qishu:
-            return {"success": False, "message": "关注点ID和期数不能为空"}
+        # 验证必需参数
+        error = validate_required_params(
+            {"place_id": data.place_id, "qishu": data.qishu},
+            ["place_id", "qishu"]
+        )
+        if error:
+            return error
 
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(
                 "UPDATE place_results SET place_id = %s, qishu = %s, is_correct = %s WHERE id = %s",
                 (data.place_id, data.qishu, data.is_correct, result_id)
             )
-        return {"success": True, "message": "更新成功"}
+
+        logger.info(f"更新关注点登记结果成功: ID={result_id}")
+        return operation_response(True, "更新成功")
+
     except Exception as e:
-        return {"success": False, "message": f"请求解析失败: {str(e)}"}
+        logger.error(f"更新关注点登记结果失败: {str(e)}", exc_info=True)
+        return error_response(f"请求解析失败: {str(e)}")
+
 
 @router.delete("/api/place_results/{result_id}")
 def delete_place_result(result_id: int):
@@ -227,13 +379,22 @@ def delete_place_result(result_id: int):
     try:
         with get_db_cursor(commit=True) as cursor:
             cursor.execute("DELETE FROM place_results WHERE id = %s", (result_id,))
-        return {"success": True, "message": "删除成功"}
+
+        logger.info(f"删除关注点登记结果成功: ID={result_id}")
+        return operation_response(True, "删除成功")
+
     except Exception as e:
-        return {"success": False, "message": f"删除失败: {str(e)}"}
+        logger.error(f"删除关注点登记结果失败: {str(e)}", exc_info=True)
+        return error_response(f"删除失败: {str(e)}")
+
+
+# ====================
+# 关注点分析 API
+# ====================
 
 @router.get("/api/place_analysis")
 def get_place_analysis():
-    """获取关注点分析数据"""
+    """获取关注点分析数据（包含遗漏和连中统计）"""
     try:
         with get_db_cursor() as cursor:
             # 获取所有关注点及其统计信息
@@ -269,79 +430,78 @@ def get_place_analysis():
                 """, (place_id,))
                 records = cursor.fetchall()
 
-            # 计算遗漏统计
-            current_miss = 0
-            max_miss = 0
-            max_miss_start = None
-            max_miss_end = None
-            current_miss_start = None
-
-            # 计算连中统计
-            current_streak = 0
-            max_streak = 0
-            max_streak_start = None
-            max_streak_end = None
-            current_streak_start = None
-
-            for i, record in enumerate(records):
-                if record['is_correct'] == 1:  # 正确
-                    # 结束当前遗漏
-                    if current_miss > 0:
-                        if current_miss > max_miss:
-                            max_miss = current_miss
-                            max_miss_start = current_miss_start
-                            max_miss_end = record['created_at']
-                        current_miss = 0
-                        current_miss_start = None
-
-                    # 更新连中统计
-                    if current_streak == 0:
-                        current_streak_start = record['created_at']
-                    current_streak += 1
-
-                elif record['is_correct'] == 0:  # 错误
-                    # 结束当前连中
-                    if current_streak > 0:
-                        if current_streak > max_streak:
-                            max_streak = current_streak
-                            max_streak_start = current_streak_start
-                            max_streak_end = record['created_at']
-                        current_streak = 0
-                        current_streak_start = None
-
-                    # 更新遗漏统计
-                    if current_miss == 0:
-                        current_miss_start = record['created_at']
-                    current_miss += 1
-
-                else:  # 未判断
-                    # 结束当前遗漏和连中
-                    if current_miss > 0:
-                        if current_miss > max_miss:
-                            max_miss = current_miss
-                            max_miss_start = current_miss_start
-                            max_miss_end = record['created_at']
-                        current_miss = 0
-                        current_miss_start = None
-
-                    if current_streak > 0:
-                        if current_streak > max_streak:
-                            max_streak = current_streak
-                            max_streak_start = current_streak_start
-                            max_streak_end = record['created_at']
-                        current_streak = 0
-                        current_streak_start = None
-
-            # 处理最后一段
-            if current_miss > max_miss:
-                max_miss = current_miss
-                max_miss_start = current_miss_start
+                # 计算遗漏和连中统计
+                current_miss = 0
+                max_miss = 0
+                max_miss_start = None
                 max_miss_end = None
+                current_miss_start = None
 
-            if current_streak > max_streak:
-                max_streak = current_streak
-                max_streak_start = current_streak_start
+                current_streak = 0
+                max_streak = 0
+                max_streak_start = None
                 max_streak_end = None
+                current_streak_start = None
+
+                for record in records:
+                    if record['is_correct'] == 1:  # 正确
+                        # 结束当前遗漏
+                        if current_miss > 0:
+                            if current_miss > max_miss:
+                                max_miss = current_miss
+                                max_miss_start = current_miss_start
+                                max_miss_end = record['created_at']
+                            current_miss = 0
+                            current_miss_start = None
+
+                        # 更新连中统计
+                        if current_streak == 0:
+                            current_streak_start = record['created_at']
+                        current_streak += 1
+
+                    elif record['is_correct'] == 0:  # 错误
+                        # 结束当前连中
+                        if current_streak > 0:
+                            if current_streak > max_streak:
+                                max_streak = current_streak
+                                max_streak_start = current_streak_start
+                                max_streak_end = record['created_at']
+                            current_streak = 0
+                            current_streak_start = None
+
+                        # 更新遗漏统计
+                        if current_miss == 0:
+                            current_miss_start = record['created_at']
+                        current_miss += 1
+
+                    else:  # 未判断
+                        # 结束当前遗漏和连中
+                        if current_miss > 0:
+                            if current_miss > max_miss:
+                                max_miss = current_miss
+                                max_miss_start = current_miss_start
+                                max_miss_end = record['created_at']
+                            current_miss = 0
+                            current_miss_start = None
+
+                        if current_streak > 0:
+                            if current_streak > max_streak:
+                                max_streak = current_streak
+                                max_streak_start = current_streak_start
+                                max_streak_end = record['created_at']
+                            current_streak = 0
+                            current_streak_start = None
+
+                # 处理最后一段
+                if current_miss > max_miss:
+                    max_miss = current_miss
+                    max_miss_start = current_miss_start
+                    max_miss_end = None
+
+                if current_streak > max_streak:
+                    max_streak = current_streak
+                    max_streak_start = current_streak_start
+                    max_streak_end = None
 
                 # 添加到结果中
                 place['current_miss'] = current_miss
@@ -354,12 +514,16 @@ def get_place_analysis():
                 place['max_streak_end'] = max_streak_end
                 place['records'] = records
 
-            return {
-                "success": True,
-                "data": places
-            }
+            return success_response(places)
+
     except Exception as e:
-        return {"success": False, "message": f"分析失败: {str(e)}"}
+        logger.error(f"关注点分析失败: {str(e)}", exc_info=True)
+        return error_response(f"分析失败: {str(e)}")
+
+
+# ====================
+# 投注报表 API
+# ====================
 
 @router.get("/api/bet_report")
 def get_bet_report(
@@ -388,7 +552,7 @@ def get_bet_report(
 
             where_clause = " WHERE " + " AND ".join(where_conditions) if where_conditions else ""
 
-            # 1. 总体统计（修复：使用IFNULL处理NULL值）
+            # 1. 总体统计（使用IFNULL处理NULL值）
             overall_sql = f"""
             SELECT
                 COUNT(*) as total_bets,
@@ -407,12 +571,9 @@ def get_bet_report(
             cursor.execute(overall_sql, params)
             overall_stats = cursor.fetchone()
 
-            # 调试信息
-            print(f"Debug - SQL: {overall_sql}")
-            print(f"Debug - Params: {params}")
-            print(f"Debug - Overall stats: {overall_stats}")
+            logger.debug(f"总体统计查询完成: {overall_stats}")
 
-            # 2. 按关注点统计（修复：使用IFNULL处理NULL值）
+            # 2. 按关注点统计
             place_stats_sql = f"""
             SELECT
                 p.id as place_id,
@@ -439,7 +600,7 @@ def get_bet_report(
             cursor.execute(place_stats_sql, params)
             place_stats = cursor.fetchall()
 
-            # 3. 按时间统计（按月）（修复：使用IFNULL处理NULL值）
+            # 3. 按时间统计（按月）
             time_stats_sql = f"""
             SELECT
                 DATE_FORMAT(b.created_at, '%Y-%m') as month,
@@ -458,7 +619,7 @@ def get_bet_report(
             cursor.execute(time_stats_sql, params)
             time_stats = cursor.fetchall()
 
-            # 4. 按时间统计（按日）（修复：使用IFNULL处理NULL值）
+            # 4. 按时间统计（按日）
             daily_stats_sql = f"""
             SELECT
                 DATE(b.created_at) as date,
@@ -475,7 +636,7 @@ def get_bet_report(
             cursor.execute(daily_stats_sql, params)
             daily_stats = cursor.fetchall()
 
-            # 5. 输赢分布统计（修复：使用IFNULL处理NULL值）
+            # 5. 输赢分布统计
             profit_loss_distribution_sql = f"""
             SELECT
                 CASE
@@ -518,18 +679,21 @@ def get_bet_report(
                     "profit_loss_distribution": profit_loss_distribution
                 }
             }
-    except Exception as e:
-        return {"success": False, "message": f"报表生成失败: {str(e)}"}
 
-# 别名端点，用于前端兼容
+    except Exception as e:
+        logger.error(f"报表生成失败: {str(e)}", exc_info=True)
+        return error_response(f"报表生成失败: {str(e)}")
+
+
 @router.get("/api/betting_report")
 def get_betting_report(
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     place_id: Optional[int] = Query(None)
 ):
-    """获取投注点报表统计数据（别名）"""
+    """获取投注点报表统计数据（别名端点）"""
     return get_bet_report(start_date, end_date, place_id)
+
 
 @router.get("/api/debug/bets")
 def debug_bets():
@@ -554,5 +718,7 @@ def debug_bets():
                 "recent_bets": recent_bets,
                 "table_structure": table_structure
             }
+
     except Exception as e:
-        return {"success": False, "message": f"调试失败: {str(e)}"}
+        logger.error(f"调试失败: {str(e)}", exc_info=True)
+        return error_response(f"调试失败: {str(e)}")

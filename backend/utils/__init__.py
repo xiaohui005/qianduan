@@ -7,10 +7,13 @@
 - export_utils: CSV导出工具
 - pagination_utils: 分页工具
 - validators: 输入验证工具
-- cache_utils: 智能缓存工具（新增）
-- query_optimizer: 数据库查询优化器（新增）
-- performance_utils: 性能监控工具（新增）
-- logger: 结构化日志工具（新增）
+- cache_utils: 智能缓存工具
+- query_optimizer: 数据库查询优化器
+- performance_utils: 性能监控工具
+- logger: 结构化日志工具
+- error_handler: 统一错误处理工具（新增）
+- response_utils: API响应格式化工具（新增）
+- recommend_utils: 通用推荐算法工具（新增）
 """
 
 from .number_utils import (
@@ -69,6 +72,47 @@ from .logger import (
     get_logger
 )
 
+# 新增工具导入
+from .error_handler import (
+    handle_errors,
+    error_response,
+    handle_db_error,
+    validate_required_params,
+    check_data_exists,
+    handle_external_api_error,
+    safe_execute,
+    BaseAPIException,
+    DataNotFoundException,
+    ValidationException,
+    DatabaseException,
+    ExternalAPIException,
+    BusinessLogicException
+)
+
+from .response_utils import (
+    success_response,
+    data_response,
+    paginated_response,
+    list_response,
+    recommend_response,
+    stats_response,
+    empty_response,
+    operation_response,
+    collection_response,
+    batch_operation_response
+)
+
+from .recommend_utils import (
+    RecommendEngine,
+    generate_recommend_8,
+    generate_recommend_16,
+    save_recommend_8,
+    save_recommend_16,
+    get_recommend_history,
+    get_recommend_by_period,
+    get_recommend_stats
+)
+
 __all__ = [
     # 数值工具
     'plus49_wrap',
@@ -93,18 +137,52 @@ __all__ = [
     'validate_number',
     'validate_page_params',
     'validate_numbers_string',
-    # 缓存工具（新增）
+    # 缓存工具
     'cache_result',
     'clear_cache',
     'get_cache_stats',
     'cache_clear_on_update',
-    # 查询优化器（新增）
+    # 查询优化器
     'QueryOptimizer',
-    # 性能监控（新增）
+    # 性能监控
     'monitor_performance',
     'get_performance_report',
     'get_performance_summary',
     'PerformanceMonitor',
-    # 日志工具（新增）
+    # 日志工具
     'get_logger',
+    # 错误处理工具（新增）
+    'handle_errors',
+    'error_response',
+    'handle_db_error',
+    'validate_required_params',
+    'check_data_exists',
+    'handle_external_api_error',
+    'safe_execute',
+    'BaseAPIException',
+    'DataNotFoundException',
+    'ValidationException',
+    'DatabaseException',
+    'ExternalAPIException',
+    'BusinessLogicException',
+    # 响应格式化工具（新增）
+    'success_response',
+    'data_response',
+    'paginated_response',
+    'list_response',
+    'recommend_response',
+    'stats_response',
+    'empty_response',
+    'operation_response',
+    'collection_response',
+    'batch_operation_response',
+    # 推荐算法工具（新增）
+    'RecommendEngine',
+    'generate_recommend_8',
+    'generate_recommend_16',
+    'save_recommend_8',
+    'save_recommend_16',
+    'get_recommend_history',
+    'get_recommend_by_period',
+    'get_recommend_stats',
 ]
