@@ -51,6 +51,14 @@ async function initAutoCollectPage() {
                         <span class="status-label">重试次数：</span>
                         <span id="retryTimesStatus" class="status-value">-</span>
                     </div>
+                    <div class="status-item">
+                        <span class="status-label">重试间隔：</span>
+                        <span id="retryIntervalStatus" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">正常采集间隔：</span>
+                        <span id="normalIntervalStatus" class="status-value">-</span>
+                    </div>
                 </div>
             </div>
 
@@ -95,8 +103,26 @@ async function initAutoCollectPage() {
                 <div class="control-section">
                     <h4>设置重试次数</h4>
                     <div class="retry-settings">
-                        <input type="number" id="retryTimesInput" min="1" max="10" class="retry-input">
+                        <input type="number" id="retryTimesInput" min="1" max="10" class="retry-input" placeholder="重试次数">
                         <button id="updateRetryBtn" class="btn btn-primary">更新重试次数</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h4>设置重试间隔</h4>
+                    <div class="retry-settings">
+                        <input type="number" id="retryIntervalInput" min="1" max="300" class="retry-input" placeholder="秒">
+                        <button id="updateRetryIntervalBtn" class="btn btn-primary">更新重试间隔</button>
+                        <span class="hint-text">采集失败后等待多久再重试（1-300秒）</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h4>设置正常采集间隔</h4>
+                    <div class="retry-settings">
+                        <input type="number" id="normalIntervalInput" min="1" max="3600" class="retry-input" placeholder="秒">
+                        <button id="updateNormalIntervalBtn" class="btn btn-primary">更新正常间隔</button>
+                        <span class="hint-text">正常采集的时间间隔（1-3600秒，预留扩展）</span>
                     </div>
                 </div>
 
@@ -135,6 +161,8 @@ function bindEvents() {
     document.getElementById('updateAmTimeBtn').addEventListener('click', () => updateTime('am'));
     document.getElementById('updateHkTimeBtn').addEventListener('click', () => updateTime('hk'));
     document.getElementById('updateRetryBtn').addEventListener('click', updateRetryTimes);
+    document.getElementById('updateRetryIntervalBtn').addEventListener('click', updateRetryInterval);
+    document.getElementById('updateNormalIntervalBtn').addEventListener('click', updateNormalInterval);
     document.getElementById('triggerAmBtn').addEventListener('click', () => triggerCollect('am'));
     document.getElementById('triggerHkBtn').addEventListener('click', () => triggerCollect('hk'));
 }
@@ -155,11 +183,15 @@ async function loadStatus() {
         document.getElementById('amTimeStatus').textContent = data.am_time || '-';
         document.getElementById('hkTimeStatus').textContent = data.hk_time || '-';
         document.getElementById('retryTimesStatus').textContent = data.retry_times || '-';
+        document.getElementById('retryIntervalStatus').textContent = (data.retry_interval || '-') + (data.retry_interval ? ' 秒' : '');
+        document.getElementById('normalIntervalStatus').textContent = (data.normal_interval || '-') + (data.normal_interval ? ' 秒' : '');
 
         // 更新输入框值
         document.getElementById('amTimeInput').value = data.am_time || '21:30';
         document.getElementById('hkTimeInput').value = data.hk_time || '21:35';
         document.getElementById('retryTimesInput').value = data.retry_times || 3;
+        document.getElementById('retryIntervalInput').value = data.retry_interval || 10;
+        document.getElementById('normalIntervalInput').value = data.normal_interval || 60;
 
         // 更新任务列表
         updateJobsList(data.jobs || []);
@@ -279,6 +311,58 @@ async function updateRetryTimes() {
 
         if (data.success) {
             showMessage(`重试次数已更新为 ${retryTimes}`, 'success');
+            await loadStatus();
+        } else {
+            showMessage('更新失败: ' + data.msg, 'error');
+        }
+    } catch (error) {
+        showMessage('操作失败: ' + error.message, 'error');
+    }
+}
+
+// 更新重试间隔
+async function updateRetryInterval() {
+    const retryInterval = parseInt(document.getElementById('retryIntervalInput').value);
+
+    if (isNaN(retryInterval) || retryInterval < 1 || retryInterval > 300) {
+        showMessage('重试间隔必须在 1-300 秒之间', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auto_collect/retry_interval?retry_interval=${retryInterval}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showMessage(`重试间隔已更新为 ${retryInterval} 秒`, 'success');
+            await loadStatus();
+        } else {
+            showMessage('更新失败: ' + data.msg, 'error');
+        }
+    } catch (error) {
+        showMessage('操作失败: ' + error.message, 'error');
+    }
+}
+
+// 更新正常采集间隔
+async function updateNormalInterval() {
+    const normalInterval = parseInt(document.getElementById('normalIntervalInput').value);
+
+    if (isNaN(normalInterval) || normalInterval < 1 || normalInterval > 3600) {
+        showMessage('正常采集间隔必须在 1-3600 秒之间', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auto_collect/normal_interval?normal_interval=${normalInterval}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showMessage(`正常采集间隔已更新为 ${normalInterval} 秒`, 'success');
             await loadStatus();
         } else {
             showMessage('更新失败: ' + data.msg, 'error');
@@ -477,6 +561,7 @@ function addStyles() {
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .retry-input {
@@ -485,6 +570,14 @@ function addStyles() {
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+        }
+
+        .hint-text {
+            color: #666;
+            font-size: 12px;
+            font-style: italic;
+            flex-basis: 100%;
+            margin-top: -5px;
         }
 
         .btn {

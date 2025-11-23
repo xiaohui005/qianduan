@@ -1,5 +1,6 @@
 """定时任务调度器 - 自动采集开奖数据"""
 import logging
+import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -42,6 +43,7 @@ def auto_collect_lottery(lottery_type: str):
         logger.info(f"开始自动采集 {lottery_type} 彩票数据...")
 
         retry_times = AUTO_COLLECT_CONFIG.get('retry_times', 3)
+        retry_interval = AUTO_COLLECT_CONFIG.get('retry_interval', 10)
 
         for attempt in range(retry_times):
             try:
@@ -100,11 +102,19 @@ def auto_collect_lottery(lottery_type: str):
                     return  # 采集成功，退出重试循环
                 else:
                     logger.warning(f"第 {attempt + 1} 次采集 {lottery_type} 未获取到数据")
+                    # 如果不是最后一次尝试，等待后再重试
+                    if attempt < retry_times - 1:
+                        logger.info(f"等待 {retry_interval} 秒后进行第 {attempt + 2} 次尝试...")
+                        time.sleep(retry_interval)
 
             except Exception as e:
                 logger.error(f"第 {attempt + 1} 次采集 {lottery_type} 时出错: {e}")
                 if attempt == retry_times - 1:
                     logger.error(f"自动采集 {lottery_type} 失败，已重试 {retry_times} 次")
+                else:
+                    # 等待后再重试
+                    logger.info(f"等待 {retry_interval} 秒后进行第 {attempt + 2} 次尝试...")
+                    time.sleep(retry_interval)
 
     except Exception as e:
         logger.error(f"自动采集任务 {lottery_type} 发生严重错误: {e}", exc_info=True)
@@ -192,6 +202,8 @@ def get_scheduler_status():
         'am_time': AUTO_COLLECT_CONFIG.get('am_time', '21:30'),
         'hk_time': AUTO_COLLECT_CONFIG.get('hk_time', '21:35'),
         'retry_times': AUTO_COLLECT_CONFIG.get('retry_times', 3),
+        'retry_interval': AUTO_COLLECT_CONFIG.get('retry_interval', 10),
+        'normal_interval': AUTO_COLLECT_CONFIG.get('normal_interval', 60),
         'jobs': jobs
     }
 

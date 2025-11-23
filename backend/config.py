@@ -86,6 +86,8 @@ FALLBACK_COLLECT_URLS = WENLONGZHU_URLS
 AUTO_COLLECT = _config.get("AUTO_COLLECT", {
     "enabled": True,
     "retry_times": 3,
+    "retry_interval": 180,  # 重试间隔（秒）
+    "normal_interval": 60,  # 正常采集间隔（秒，预留扩展）
     "am_time": "19:06",  # 澳门采集时间
     "hk_time": "19:06",  # 香港采集时间
     "source": "default"  # 数据源
