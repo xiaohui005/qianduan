@@ -24,6 +24,7 @@
       <button class="menu-btn" id="menuAutoCollectBtn">⏰ 自动采集设置</button>
       <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
       <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
+      <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
       <div id="sidebarMenuBtns" style="display: none;">
         <!-- 推荐功能 -->
@@ -1540,7 +1541,10 @@
         <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;"></div>
       </div>
 
-
+      <!-- 数据库视图查看器页面 -->
+      <div id="databaseViewsPage" class="hidden">
+        <!-- 由 database-views.js 动态填充内容 -->
+      </div>
 
     </main>
   </div>
@@ -1576,6 +1580,7 @@
   <script src="js/modules/color-analysis.js"></script>
   <script src="js/modules/xiao-analysis.js"></script>
   <script src="js/modules/recommend-hit.js"></script>
+  <script src="js/modules/database-views.js"></script>
   <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
   <script src="js/features/recommend16.js"></script>
   <script src="js/features/fivePeriodThreexiao.js"></script>

@@ -49,7 +49,8 @@ from backend.routes import (
     analysis_number_gap,
     betting,
     analysis_hot20,
-    auto_collect
+    auto_collect,
+    database_views
 )
 
 # ==================== 注册路由 ====================
@@ -69,6 +70,9 @@ app.include_router(analysis_hot20.router, tags=["去10分析"])
 
 # 自动采集管理路由
 app.include_router(auto_collect.router, tags=["自动采集"])
+
+# 数据库视图管理路由
+app.include_router(database_views.router, tags=["数据库视图"])
 
 # ==================== 导入系统监控模块 ====================
 

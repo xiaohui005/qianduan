@@ -40,7 +40,10 @@ const PAGE_CONFIG = {
   'menuRegisterBetReportBtn': { pageId: 'registerBetReportPage', title: '投注点报表' },
 
   // 提醒
-  'menuMaxMissAlertBtn': { pageId: 'maxMissAlertPage', title: '关注点登记最大遗漏提醒' }
+  'menuMaxMissAlertBtn': { pageId: 'maxMissAlertPage', title: '关注点登记最大遗漏提醒' },
+
+  // 数据库管理
+  'menuDatabaseViewsBtn': { pageId: 'databaseViewsPage', title: '数据库视图' }
 };
 
 /**
@@ -217,6 +220,17 @@ function showOnlyPage(pageId) {
         window.initBetReport();
       } else {
         console.error('[页面管理] ✗ initBetReport 函数不存在');
+      }
+    }
+
+    // 如果是数据库视图页面,初始化
+    if (pageId === 'databaseViewsPage') {
+      console.log('[页面管理] 检测到数据库视图页面');
+      if (typeof window.initDatabaseViewsPage === 'function') {
+        console.log('[页面管理] 调用 initDatabaseViewsPage()');
+        window.initDatabaseViewsPage();
+      } else {
+        console.error('[页面管理] ✗ initDatabaseViewsPage 函数不存在');
       }
     }
 
