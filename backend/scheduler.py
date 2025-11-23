@@ -15,6 +15,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 尝试导入 pytz，如果不可用则使用系统时区
+try:
+    import pytz
+    TIMEZONE = pytz.timezone('Asia/Shanghai')
+except ImportError:
+    # pytz 不可用，使用 None（系统本地时区）
+    TIMEZONE = None
+    logger.warning("pytz 库未安装，使用系统本地时区")
+
 # 配置执行器和调度器
 executors = {
     'default': ThreadPoolExecutor(max_workers=5)
@@ -26,11 +35,15 @@ job_defaults = {
 }
 
 # 创建后台调度器（带配置）
-scheduler = BackgroundScheduler(
-    executors=executors,
-    job_defaults=job_defaults,
-    timezone='Asia/Shanghai'  # 设置时区
-)
+scheduler_kwargs = {
+    'executors': executors,
+    'job_defaults': job_defaults
+}
+# 仅在 pytz 可用时设置时区
+if TIMEZONE is not None:
+    scheduler_kwargs['timezone'] = TIMEZONE
+
+scheduler = BackgroundScheduler(**scheduler_kwargs)
 
 def auto_collect_lottery(lottery_type: str):
     """
@@ -136,10 +149,15 @@ def start_scheduler():
     am_hour, am_minute = map(int, am_time.split(':'))
     hk_hour, hk_minute = map(int, hk_time.split(':'))
 
+    # 创建 CronTrigger 参数
+    cron_kwargs_base = {}
+    if TIMEZONE is not None:
+        cron_kwargs_base['timezone'] = TIMEZONE
+
     # 添加澳门采集任务
     scheduler.add_job(
         auto_collect_lottery,
-        CronTrigger(hour=am_hour, minute=am_minute),
+        CronTrigger(hour=am_hour, minute=am_minute, **cron_kwargs_base),
         args=['am'],
         id='auto_collect_am',
         name='澳门自动采集',
@@ -150,7 +168,7 @@ def start_scheduler():
     # 添加香港采集任务
     scheduler.add_job(
         auto_collect_lottery,
-        CronTrigger(hour=hk_hour, minute=hk_minute),
+        CronTrigger(hour=hk_hour, minute=hk_minute, **cron_kwargs_base),
         args=['hk'],
         id='auto_collect_hk',
         name='香港自动采集',
@@ -233,17 +251,22 @@ def update_schedule(am_time: str = None, hk_time: str = None):
             am_hour, am_minute = map(int, new_am_time.split(':'))
             hk_hour, hk_minute = map(int, new_hk_time.split(':'))
 
+            # 创建 CronTrigger 参数（与 start_scheduler 保持一致）
+            cron_kwargs = {}
+            if TIMEZONE is not None:
+                cron_kwargs['timezone'] = TIMEZONE
+
             # 重新调度澳门任务
             scheduler.reschedule_job(
                 'auto_collect_am',
-                trigger=CronTrigger(hour=am_hour, minute=am_minute)
+                trigger=CronTrigger(hour=am_hour, minute=am_minute, **cron_kwargs)
             )
             logger.info(f"澳门采集任务已重新调度至 {new_am_time}")
 
             # 重新调度香港任务
             scheduler.reschedule_job(
                 'auto_collect_hk',
-                trigger=CronTrigger(hour=hk_hour, minute=hk_minute)
+                trigger=CronTrigger(hour=hk_hour, minute=hk_minute, **cron_kwargs)
             )
             logger.info(f"香港采集任务已重新调度至 {new_hk_time}")
         except Exception as e:
