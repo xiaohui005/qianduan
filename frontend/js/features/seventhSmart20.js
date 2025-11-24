@@ -309,6 +309,11 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
 
     // 格式化该期的推荐号码，命中的号码高亮显示
     const recommendNumbers = detail.recommend_numbers || [];
+
+    // 生成逗号分隔的号码列表（方便复制）
+    const commaNumbers = recommendNumbers.map(num => num.toString().padStart(2, '0')).join(',');
+
+    // 生成可视化展示
     const formattedNumbers = recommendNumbers.map(num => {
       const isHitNumber = hasNextPeriod && detail.is_hit && num === detail.next_seventh;
       if (isHitNumber) {
@@ -336,7 +341,12 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
       <tr style="background: ${bgColor}; border-bottom: 1px solid #dee2e6;">
         <td style="padding: 8px; text-align: center; font-weight: bold;">${detail.current_period}</td>
         <td style="padding: 8px; text-align: left; line-height: 1.8;">
-          ${formattedNumbers}
+          <div style="margin-bottom: 6px; padding: 4px 8px; background: #f8f9fa; border-radius: 4px; font-family: monospace; font-size: 13px; color: #333;">
+            ${commaNumbers}
+          </div>
+          <div>
+            ${formattedNumbers}
+          </div>
         </td>
         <td style="padding: 8px; text-align: center;">${detail.next_period || '<span style="color: #999;">-</span>'}</td>
         <td style="padding: 8px; text-align: center;">
