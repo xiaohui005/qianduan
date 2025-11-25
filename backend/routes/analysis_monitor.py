@@ -45,8 +45,13 @@ ANALYSIS_TYPE_LABELS = {
 }
 
 
-def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查去10的最热20分析的遗漏情况（只检查第7位）"""
+def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查去10的最热20分析的遗漏情况（只检查第7位）
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -55,10 +60,15 @@ def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int):
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         if len(rows) < 10:
@@ -119,8 +129,13 @@ def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int):
     return alerts
 
 
-def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查加减前6码分析的遗漏情况"""
+def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查加减前6码分析的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -129,10 +144,16 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        # 排除指定期号
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         if len(rows) < 2:
@@ -180,7 +201,9 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
                     group_history[group_id]['max_omission'] = current
 
         # 检查每组的最新遗漏情况
-        latest_period = all_rows[-2]['period']
+        # 如果传了exclude_period,基准期是最后一期(已排除最新期)
+        # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
+        latest_period = all_rows[-1 if exclude_period else -2]['period']
         for group_id in range(1, 7):
             current = group_history[group_id]['current_omission']
             max_miss = group_history[group_id]['max_omission']
@@ -200,10 +223,11 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
     return alerts
 
 
-def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: int, is_plus: bool = True):
+def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: int, is_plus: bool = True, exclude_period: str = None):
     """
     检查区间分析的遗漏情况（只检查第7位）
     is_plus: True为+1~+20区间，False为-1~-20区间
+    exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
 
@@ -212,10 +236,15 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         # 反转成升序（从旧到新）
@@ -293,7 +322,9 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
                     range_history[range_idx]['max_omission'] = current
 
         # 检查所有区间的最新遗漏情况
-        latest_period = all_rows[-2]['period']
+        # 如果传了exclude_period,基准期是最后一期(已排除最新期)
+        # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
+        latest_period = all_rows[-1 if exclude_period else -2]['period']
         for range_idx, (start, end, range_name) in enumerate(ranges):
             current = range_history[range_idx]['current_omission']
             max_miss = range_history[range_idx]['max_omission']
@@ -313,8 +344,13 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
     return alerts
 
 
-def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7):
-    """检查关注号码管理的遗漏情况"""
+def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7, exclude_period: str = None):
+    """
+    检查关注号码管理的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -329,13 +365,19 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
             return alerts
 
         # 获取最新的300期开奖记录
-        cursor.execute("""
+        sql = """
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type = %s
-            ORDER BY period DESC
-            LIMIT 300
-        """, (lottery_type,))
+        """
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         if not rows:
@@ -386,13 +428,16 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
     return alerts
 
 
-def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7):
+def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7, exclude_period: str = None):
     """
     检查每期分析的遗漏情况
     使用与"每期分析"页面相同的逻辑：
     - 每期计算 miss_count（从该期往后找，直到后续某期的第7个号码在本期7个号码中出现）
     - current_max_miss: 所有未命中期中的最大 miss_count
     - history_max_miss: 所有已命中期中的最大 miss_count
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
 
@@ -402,10 +447,15 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         if len(rows) < 2:
@@ -475,8 +525,13 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
     return alerts
 
 
-def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查前6码三中三的遗漏情况"""
+def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查前6码三中三的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -484,10 +539,15 @@ def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int)
             SELECT period, numbers, open_time
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         # 反转成升序（从旧到新）
@@ -555,8 +615,13 @@ def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int)
     return alerts
 
 
-def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查第7码+1~+20区间的遗漏情况"""
+def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查第7码+1~+20区间的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -564,10 +629,15 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         # 反转成升序（从旧到新）
@@ -622,7 +692,9 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
                     range_history[range_idx]['max_omission'] = current
 
         # 检查所有区间的最新遗漏情况
-        latest_period = all_rows[-2]['period']
+        # 如果传了exclude_period,基准期是最后一期(已排除最新期)
+        # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
+        latest_period = all_rows[-1 if exclude_period else -2]['period']
         for range_idx, (start, end, range_name) in enumerate(ranges):
             current = range_history[range_idx]['current_omission']
             max_miss = range_history[range_idx]['max_omission']
@@ -642,8 +714,13 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
     return alerts
 
 
-def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 2):
-    """检查第二码4肖分析的遗漏情况"""
+def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 2, exclude_period: str = None):
+    """
+    检查第二码4肖分析的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -651,10 +728,15 @@ def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap:
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         # 反转成升序（从旧到新）
@@ -762,8 +844,13 @@ def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap:
     return alerts
 
 
-def check_five_period_threexiao_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查5期3肖计算的遗漏情况"""
+def check_five_period_threexiao_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查5期3肖计算的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -771,10 +858,15 @@ def check_five_period_threexiao_omission(lottery_type: str, min_current: int, ma
             SELECT period, numbers
             FROM lottery_result
             WHERE lottery_type=%s
-            ORDER BY period DESC
-            LIMIT 300
         """
-        cursor.execute(sql, [lottery_type])
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period DESC LIMIT 300"
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
         # 反转成升序（从旧到新）
@@ -880,8 +972,13 @@ def check_five_period_threexiao_omission(lottery_type: str, min_current: int, ma
     return alerts
 
 
-def check_place_results_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查关注点登记结果的遗漏情况"""
+def check_place_results_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查关注点登记结果的遗漏情况
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -902,12 +999,19 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
             place_name = place['name']
 
             # 获取该关注点的所有登记结果(按创建时间正序)
-            cursor.execute("""
+            sql = """
                 SELECT is_correct, qishu, created_at
                 FROM place_results
                 WHERE place_id = %s
-                ORDER BY created_at ASC
-            """, (place_id,))
+            """
+            params = [place_id]
+
+            if exclude_period:
+                sql += " AND qishu < %s"
+                params.append(exclude_period)
+
+            sql += " ORDER BY created_at ASC"
+            cursor.execute(sql, params)
             records = cursor.fetchall()
 
             if not records:
@@ -951,8 +1055,13 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
     return alerts
 
 
-def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查推荐8码的遗漏情况（只检查第7位）"""
+def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查推荐8码的遗漏情况（只检查第7位）
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -961,9 +1070,15 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int)
             SELECT DISTINCT period
             FROM recommend_result
             WHERE lottery_type=%s
-            ORDER BY period ASC
         """
-        cursor.execute(sql, (lottery_type,))
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, params)
         recommend_periods = cursor.fetchall()
 
         if not recommend_periods:
@@ -1037,8 +1152,13 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int)
     return alerts
 
 
-def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int):
-    """检查推荐16码的遗漏情况（只检查第7位）"""
+def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+    """
+    检查推荐16码的遗漏情况（只检查第7位）
+
+    Args:
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
     alerts = []
 
     with get_db_cursor() as cursor:
@@ -1047,9 +1167,15 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
             SELECT DISTINCT period
             FROM recommend16_result
             WHERE lottery_type=%s
-            ORDER BY period ASC
         """
-        cursor.execute(sql, (lottery_type,))
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, params)
         recommend_periods = cursor.fetchall()
 
         if not recommend_periods:
@@ -1419,7 +1545,8 @@ def delete_monitor_config(config_id: int):
 
 @router.get("/api/monitor/omission_alerts_v2")
 def get_omission_alerts_with_config(
-    lottery_type: str = Query('am', description='彩种类型: am=澳门, hk=香港')
+    lottery_type: str = Query('am', description='彩种类型: am=澳门, hk=香港'),
+    exclude_period: str = None
 ):
     """
     遗漏监控V2 - 使用数据库中每个监控点的独立配置
@@ -1478,28 +1605,28 @@ def get_omission_alerts_with_config(
         # 使用最宽松的条件调用检查函数（min=0, max=999）
         # 这样可以获取所有可能的预警，然后再用具体配置过滤
         if analysis_type == 'hot20':
-            raw_alerts.extend(check_hot20_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_hot20_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'plus_minus6':
-            raw_alerts.extend(check_plus_minus6_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_plus_minus6_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'plus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=True))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=True, exclude_period=exclude_period))
 
         elif analysis_type == 'minus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=False))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=False, exclude_period=exclude_period))
 
         elif analysis_type == 'favorite_numbers':
-            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'each_issue':
-            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'front6_szz':
-            raw_alerts.extend(check_front6_szz_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_front6_szz_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'seventh_range':
-            raw_alerts.extend(check_seventh_range_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_seventh_range_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'second_fourxiao':
             # 为每个配置的位置分别检查
@@ -1509,22 +1636,22 @@ def get_omission_alerts_with_config(
                 # 从detail中提取位置号 (如 "第1位" -> 1)
                 try:
                     position = int(detail.replace('第', '').replace('位', ''))
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=position))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=position, exclude_period=exclude_period))
                 except:
                     # 如果解析失败,使用默认位置2
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=2))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=2, exclude_period=exclude_period))
 
         elif analysis_type == 'five_period_threexiao':
-            raw_alerts.extend(check_five_period_threexiao_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_five_period_threexiao_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'place_results':
-            raw_alerts.extend(check_place_results_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_place_results_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'recommend8':
-            raw_alerts.extend(check_recommend8_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_recommend8_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
         elif analysis_type == 'recommend16':
-            raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999))
+            raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999, exclude_period=exclude_period))
 
     # 根据配置过滤预警：每个预警必须匹配一个启用的配置，并且满足该配置的条件
     filtered_alerts = []
@@ -1709,10 +1836,26 @@ def sync_config_am_to_hk():
 # 监控命中记录功能
 # ====================
 
+def _get_omission_alerts_before_period(lottery_type: str, exclude_period: str):
+    """
+    获取开奖前的预警（排除指定期号）
+
+    Args:
+        lottery_type: 彩种类型
+        exclude_period: 要排除的期号（通常是最新期）
+
+    Returns:
+        预警数据字典
+    """
+    return get_omission_alerts_with_config(lottery_type, exclude_period=exclude_period)
+
+
 def check_and_record_monitor_hits(lottery_type: str, latest_period: str):
     """
     检查并记录监控命中情况
     在每次采集新数据后调用，检查是否有监控项命中
+
+    重要：预警应该基于开奖前的数据（最新期的上一期），而不是开奖后的数据
 
     Args:
         lottery_type: 彩种类型
@@ -1722,8 +1865,26 @@ def check_and_record_monitor_hits(lottery_type: str, latest_period: str):
     logger = logging.getLogger(__name__)
 
     try:
-        # 1. 获取当前所有预警
-        alerts_data = get_omission_alerts_with_config(lottery_type)
+        # 1. 获取最新期的上一期（作为预警基准期）
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT period
+                FROM lottery_result
+                WHERE lottery_type=%s AND period < %s
+                ORDER BY period DESC
+                LIMIT 1
+            """, (lottery_type, latest_period))
+            previous_row = cursor.fetchone()
+
+            if not previous_row:
+                logger.warning(f"未找到期号 {latest_period} 的上一期")
+                return
+
+            base_period = previous_row['period']
+            logger.info(f"基于期号 {base_period}（开奖前）生成预警，检查期号 {latest_period} 是否命中")
+
+        # 2. 获取基于上一期的预警（模拟开奖前的状态）
+        alerts_data = _get_omission_alerts_before_period(lottery_type, latest_period)
         alerts = alerts_data.get('alerts', [])
 
         if not alerts:
@@ -1841,15 +2002,218 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
             return {'position': 7, 'number': hit_number}
 
     elif analysis_type == 'plus_minus6':
-        # 加减前6码：需要获取前6码并计算
-        # 这里简化处理，标记为命中但不记录具体号码
-        return {'position': 7, 'number': latest_numbers[6] if len(latest_numbers) >= 7 else None}
-
-    elif analysis_type in ['plus_range', 'minus_range', 'seventh_range']:
-        # 区间分析：检查第7位是否在区间中
+        # 加减前6码：需要获取前6码并计算对应组的号码，检查第7位是否命中
         if len(latest_numbers) < 7:
             return None
-        return {'position': 7, 'number': latest_numbers[6]}
+
+        # 从detail中提取组号（如"第1组" -> 1）
+        import re
+        match = re.search(r'第(\d+)组', detail)
+        if not match:
+            return None
+
+        group_id = int(match.group(1))
+
+        # 获取预警基准期的前6个号码（不是最新期的前6码！）
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT numbers FROM lottery_result
+                WHERE lottery_type=%s AND period=%s
+            """, (lottery_type, alert['period']))
+            alert_row = cursor.fetchone()
+
+            if not alert_row:
+                return None
+
+            alert_numbers = alert_row['numbers'].split(',')
+            if len(alert_numbers) < 6:
+                return None
+
+            base_nums = [int(n) for n in alert_numbers[:6]]
+
+        # 计算该组的号码（前6码±group_id）
+        from backend.utils import wrap_in_range
+        group_nums = []
+        for base_num in base_nums:
+            plus_val = wrap_in_range(base_num + group_id, 1, 49)
+            minus_val = wrap_in_range(base_num - group_id, 1, 49)
+            group_nums.extend([plus_val, minus_val])
+
+        # 检查第7位是否在该组中
+        hit_number = int(latest_numbers[6])
+        if hit_number in group_nums:
+            return {'position': 7, 'number': latest_numbers[6]}
+
+    elif analysis_type in ['plus_range', 'minus_range', 'seventh_range']:
+        # 区间分析：需要获取预警期号的第7位作为base，计算区间，检查当前期第7位是否在区间内
+        if len(latest_numbers) < 7:
+            return None
+
+        # 获取预警期的第7位号码作为base
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT numbers FROM lottery_result
+                WHERE lottery_type=%s AND period=%s
+            """, (lottery_type, alert['period']))
+            alert_row = cursor.fetchone()
+
+            if not alert_row:
+                return None
+
+            alert_numbers = alert_row['numbers'].split(',')
+            if len(alert_numbers) < 7:
+                return None
+
+            base_num = int(alert_numbers[6])
+
+        # 从detail解析区间范围（如"第7位+1~+20" -> "+1~+20"）
+        import re
+        match = re.search(r'([+-]\d+~[+-]\d+)', detail)
+        if not match:
+            return None
+
+        range_str = match.group(1)  # 如"+1~+20"或"-1~-20"
+
+        # 解析起始和结束值
+        parts = range_str.replace('+', '').split('~')
+        if len(parts) != 2:
+            return None
+
+        start = int(parts[0])
+        end = int(parts[1])
+
+        # 生成区间号码
+        from backend.utils import wrap_in_range
+        if start > 0:  # 正向区间
+            range_nums = [wrap_in_range(base_num + offset, 1, 49)
+                        for offset in range(start, end + 1)]
+        else:  # 负向区间
+            range_nums = [wrap_in_range(base_num + offset, 1, 49)
+                        for offset in range(start, end - 1, -1)]
+
+        # 检查当前期第7位是否在区间内
+        hit_number = int(latest_numbers[6])
+        if hit_number in range_nums:
+            return {'position': 7, 'number': latest_numbers[6]}
+
+    elif analysis_type == 'favorite_numbers':
+        # 关注号码管理：检查第7位是否在关注号码中
+        if len(latest_numbers) < 7:
+            return None
+
+        favorite_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in favorite_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'each_issue':
+        # 每期分析：检查当前期第7位是否在预警期的7个号码中
+        if len(latest_numbers) < 7:
+            return None
+
+        # 获取预警期的7个号码
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT numbers FROM lottery_result
+                WHERE lottery_type=%s AND period=%s
+            """, (lottery_type, alert['period']))
+            alert_row = cursor.fetchone()
+
+            if not alert_row:
+                return None
+
+            alert_numbers = alert_row['numbers'].split(',')
+
+        # 检查当前期第7位是否在预警期的7个号码中
+        hit_number = latest_numbers[6]
+        if hit_number in alert_numbers:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'second_fourxiao':
+        # 第N位4肖：检查指定位置的号码对应的肖是否在预警的4个肖中
+        import re
+        match = re.search(r'第(\d+)位', detail)
+        if not match:
+            return None
+
+        position = int(match.group(1))
+        if len(latest_numbers) < position:
+            return None
+
+        # 号码到生肖的映射
+        number_to_xiao = {
+            '01': '猪', '02': '鼠', '03': '牛', '04': '虎', '05': '兔', '06': '龙',
+            '07': '蛇', '08': '马', '09': '羊', '10': '猴', '11': '鸡', '12': '狗',
+            '13': '猪', '14': '鼠', '15': '牛', '16': '虎', '17': '兔', '18': '龙',
+            '19': '蛇', '20': '马', '21': '羊', '22': '猴', '23': '鸡', '24': '狗',
+            '25': '猪', '26': '鼠', '27': '牛', '28': '虎', '29': '兔', '30': '龙',
+            '31': '蛇', '32': '马', '33': '羊', '34': '猴', '35': '鸡', '36': '狗',
+            '37': '猪', '38': '鼠', '39': '牛', '40': '虎', '41': '兔', '42': '龙',
+            '43': '蛇', '44': '马', '45': '羊', '46': '猴', '47': '鸡', '48': '狗', '49': '猪'
+        }
+
+        hit_number = latest_numbers[position - 1]
+        hit_xiao = number_to_xiao.get(hit_number.zfill(2))
+
+        # 从numbers字段解析4个肖（格式如"猪/鼠/牛/虎"）
+        alert_xiaos = alert.get('numbers', '').split('/')
+
+        if hit_xiao and hit_xiao in alert_xiaos:
+            return {'position': position, 'number': hit_number}
+
+    elif analysis_type == 'front6_szz':
+        # 前6码三中三：检查前6码中是否有至少3个在预警推荐的码中
+        if len(latest_numbers) < 6:
+            return None
+
+        recommended_nums = set(alert.get('numbers', '').split(','))
+        front6 = latest_numbers[:6]
+        hit_count = sum(1 for num in front6 if num in recommended_nums)
+
+        if hit_count >= 3:
+            # 记录命中的号码
+            hit_numbers = [num for num in front6 if num in recommended_nums]
+            return {'position': 0, 'number': ','.join(hit_numbers)}  # position=0表示前6码
+
+    elif analysis_type == 'five_period_threexiao':
+        # 5期3肖：检查当前期的7个号码对应的肖是否覆盖了预警的3个肖中的至少3个
+        number_to_xiao = {
+            '01': '猪', '02': '鼠', '03': '牛', '04': '虎', '05': '兔', '06': '龙',
+            '07': '蛇', '08': '马', '09': '羊', '10': '猴', '11': '鸡', '12': '狗',
+            '13': '猪', '14': '鼠', '15': '牛', '16': '虎', '17': '兔', '18': '龙',
+            '19': '蛇', '20': '马', '21': '羊', '22': '猴', '23': '鸡', '24': '狗',
+            '25': '猪', '26': '鼠', '27': '牛', '28': '虎', '29': '兔', '30': '龙',
+            '31': '蛇', '32': '马', '33': '羊', '34': '猴', '35': '鸡', '36': '狗',
+            '37': '猪', '38': '鼠', '39': '牛', '40': '虎', '41': '兔', '42': '龙',
+            '43': '蛇', '44': '马', '45': '羊', '46': '猴', '47': '鸡', '48': '狗', '49': '猪'
+        }
+
+        # 获取当前期7个号码对应的肖
+        current_xiaos = set()
+        for num in latest_numbers:
+            xiao = number_to_xiao.get(num.zfill(2))
+            if xiao:
+                current_xiaos.add(xiao)
+
+        # 从numbers字段解析3个肖
+        alert_xiaos = set(alert.get('numbers', '').split('/'))
+
+        # 检查当前期的肖是否覆盖了预警的3个肖
+        hit_xiaos = alert_xiaos & current_xiaos
+        if len(hit_xiaos) >= 3:
+            return {'position': 0, 'number': '/'.join(hit_xiaos)}
+
+    elif analysis_type == 'place_results':
+        # 关注点登记结果：检查当前期是否命中关注点的号码
+        # numbers字段是关注点的号码（逗号分隔）
+        place_nums = set(alert.get('numbers', '').split(','))
+
+        # 检查7个号码中是否有命中
+        hit_numbers = [num for num in latest_numbers if num in place_nums]
+
+        if hit_numbers:
+            return {'position': 0, 'number': ','.join(hit_numbers)}
 
     # 其他类型暂时不处理，返回None
     return None

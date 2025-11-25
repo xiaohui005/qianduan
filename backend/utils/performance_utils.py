@@ -61,9 +61,9 @@ def monitor_performance(func: Callable) -> Callable:
 
             # 慢查询告警（超过1秒）
             if elapsed > 1.0:
-                print(f"⚠️ [慢查询告警] {func.__name__} 执行时间: {elapsed:.2f}秒")
+                print(f"[慢查询告警] {func.__name__} 执行时间: {elapsed:.2f}秒")
             elif elapsed > 0.5:
-                print(f"⏱️ [性能提示] {func.__name__} 执行时间: {elapsed:.3f}秒")
+                print(f"[性能提示] {func.__name__} 执行时间: {elapsed:.3f}秒")
 
     return wrapper
 
@@ -252,8 +252,8 @@ class PerformanceMonitor:
         elapsed = time.time() - self.start_time
 
         if exc_type is not None:
-            print(f"❌ [性能] {self.name} 失败，耗时: {elapsed:.3f}秒")
+            print(f"[性能-失败] {self.name} 失败，耗时: {elapsed:.3f}秒")
         elif elapsed >= self.threshold:
-            print(f"⚠️ [性能] {self.name} 完成，耗时: {elapsed:.3f}秒 (超过阈值 {self.threshold}秒)")
+            print(f"[性能-告警] {self.name} 完成，耗时: {elapsed:.3f}秒 (超过阈值 {self.threshold}秒)")
         else:
-            print(f"✅ [性能] {self.name} 完成，耗时: {elapsed:.3f}秒")
+            print(f"[性能-完成] {self.name} 完成，耗时: {elapsed:.3f}秒")

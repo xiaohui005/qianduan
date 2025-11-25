@@ -70,7 +70,10 @@
       "Bash(timeout:*)",
       "Bash(mysql:*)",
       "Bash(del add_recommend_monitor_config.py test_recommend_monitor.py test_recommend_monitor_detail.py)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(iconv:*)",
+      "Bash(del test_monitor_hits.py test_all_monitor_types.py)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []
