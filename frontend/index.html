@@ -54,6 +54,7 @@
             <button class="menu-btn menu-btn-sub" id="menuMinusRangeBtn">-1~-20区间分析</button>
             <button class="menu-btn menu-btn-sub" id="menuSeventhRangeBtn">第7码+1~+20区间</button>
             <button class="menu-btn menu-btn-sub" id="menuHot20Minus10Btn">去10的最热20分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuRecommend30Btn">推荐30码分析</button>
           </div>
         </div>
 
@@ -1456,7 +1457,8 @@
         </div>
       </div>
 
-
+      <!-- 推荐30码分析页面 -->
+      <div id="recommend30Page" class="hidden"></div>
 
       <div id="twentyRangePage" class="hidden">
         <h2>20区间分析</h2>
@@ -1706,6 +1708,12 @@
   <script src="js/features/numberMissingAnalysis.js"></script>
   <script src="js/features/hot20Analysis.js"></script>
   <script src="js/features/maxMissAlert.js"></script>
+
+  <!-- 推荐30码模块 -->
+  <script type="module">
+    import { initRecommend30Page } from './js/modules/recommend30.js';
+    window.initRecommend30Page = initRecommend30Page;
+  </script>
 
   <!-- 主入口 -->
   <script src="js/main.js"></script>
