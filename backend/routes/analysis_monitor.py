@@ -39,7 +39,9 @@ ANALYSIS_TYPE_LABELS = {
     'seventh_range': '第7码区间',
     'second_fourxiao': '第二码4肖',
     'five_period_threexiao': '5期3肖',
-    'place_results': '关注点登记结果'
+    'place_results': '关注点登记结果',
+    'recommend8': '推荐8码',
+    'recommend16': '推荐16码'
 }
 
 
@@ -949,6 +951,178 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
     return alerts
 
 
+def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int):
+    """检查推荐8码的遗漏情况（只检查第7位）"""
+    alerts = []
+
+    with get_db_cursor() as cursor:
+        # 获取所有推荐8码记录（期号尾数为0或5）
+        sql = """
+            SELECT DISTINCT period
+            FROM recommend_result
+            WHERE lottery_type=%s
+            ORDER BY period ASC
+        """
+        cursor.execute(sql, (lottery_type,))
+        recommend_periods = cursor.fetchall()
+
+        if not recommend_periods:
+            return alerts
+
+        # 遍历每个推荐期号
+        current_miss = 0
+        max_miss = 0
+
+        for rec_row in recommend_periods:
+            period = rec_row['period']
+
+            # 获取第7位的推荐号码
+            cursor.execute("""
+                SELECT numbers
+                FROM recommend_result
+                WHERE lottery_type=%s AND period=%s AND position=7
+                ORDER BY period DESC
+                LIMIT 1
+            """, (lottery_type, period))
+            rec_data = cursor.fetchone()
+
+            if not rec_data:
+                continue
+
+            # 推荐号码列表
+            recommended_nums = set(rec_data['numbers'].split(','))
+
+            # 获取下一期的开奖数据
+            cursor.execute("""
+                SELECT numbers
+                FROM lottery_result
+                WHERE lottery_type=%s AND period > %s
+                ORDER BY period ASC
+                LIMIT 1
+            """, (lottery_type, period))
+            next_period = cursor.fetchone()
+
+            if next_period:
+                # 获取下一期第7个号码
+                next_nums = next_period['numbers'].split(',')
+                if len(next_nums) >= 7:
+                    next_7th = next_nums[6]
+
+                    # 检查是否命中
+                    if next_7th in recommended_nums:
+                        if current_miss > max_miss:
+                            max_miss = current_miss
+                        current_miss = 0
+                    else:
+                        current_miss += 1
+
+        # 遍历结束后，更新最大遗漏
+        if current_miss > max_miss:
+            max_miss = current_miss
+
+        # 检查是否满足条件
+        if recommend_periods and current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+            last_period = recommend_periods[-1]['period']
+            alerts.append({
+                'analysis_type': 'recommend8',
+                'detail': '第7位',
+                'period': last_period,
+                'numbers': '推荐8码',
+                'current_omission': current_miss,
+                'max_omission': max_miss,
+                'gap_from_max': max_miss - current_miss,
+                'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+            })
+
+    return alerts
+
+
+def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int):
+    """检查推荐16码的遗漏情况（只检查第7位）"""
+    alerts = []
+
+    with get_db_cursor() as cursor:
+        # 获取所有推荐16码记录（期号尾数为0或5）
+        sql = """
+            SELECT DISTINCT period
+            FROM recommend16_result
+            WHERE lottery_type=%s
+            ORDER BY period ASC
+        """
+        cursor.execute(sql, (lottery_type,))
+        recommend_periods = cursor.fetchall()
+
+        if not recommend_periods:
+            return alerts
+
+        # 遍历每个推荐期号
+        current_miss = 0
+        max_miss = 0
+
+        for rec_row in recommend_periods:
+            period = rec_row['period']
+
+            # 获取第7位的推荐号码
+            cursor.execute("""
+                SELECT numbers
+                FROM recommend16_result
+                WHERE lottery_type=%s AND period=%s AND position=7
+                ORDER BY period DESC
+                LIMIT 1
+            """, (lottery_type, period))
+            rec_data = cursor.fetchone()
+
+            if not rec_data:
+                continue
+
+            # 推荐号码列表
+            recommended_nums = set(rec_data['numbers'].split(','))
+
+            # 获取下一期的开奖数据
+            cursor.execute("""
+                SELECT numbers
+                FROM lottery_result
+                WHERE lottery_type=%s AND period > %s
+                ORDER BY period ASC
+                LIMIT 1
+            """, (lottery_type, period))
+            next_period = cursor.fetchone()
+
+            if next_period:
+                # 获取下一期第7个号码
+                next_nums = next_period['numbers'].split(',')
+                if len(next_nums) >= 7:
+                    next_7th = next_nums[6]
+
+                    # 检查是否命中
+                    if next_7th in recommended_nums:
+                        if current_miss > max_miss:
+                            max_miss = current_miss
+                        current_miss = 0
+                    else:
+                        current_miss += 1
+
+        # 遍历结束后，更新最大遗漏
+        if current_miss > max_miss:
+            max_miss = current_miss
+
+        # 检查是否满足条件
+        if recommend_periods and current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+            last_period = recommend_periods[-1]['period']
+            alerts.append({
+                'analysis_type': 'recommend16',
+                'detail': '第7位',
+                'period': last_period,
+                'numbers': '推荐16码',
+                'current_omission': current_miss,
+                'max_omission': max_miss,
+                'gap_from_max': max_miss - current_miss,
+                'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+            })
+
+    return alerts
+
+
 @router.get("/api/monitor/omission_alerts")
 def get_omission_alerts(
     lottery_type: str = Query('am', description='彩种类型: am=澳门, hk=香港'),
@@ -976,7 +1150,8 @@ def get_omission_alerts(
         enabled_types = {
             'hot20', 'plus_minus6', 'plus_range', 'minus_range',
             'favorite_numbers', 'each_issue', 'front6_szz', 'seventh_range',
-            'second_fourxiao', 'five_period_threexiao', 'place_results'
+            'second_fourxiao', 'five_period_threexiao', 'place_results',
+            'recommend8', 'recommend16'
         }
 
     # 检查各种分析
@@ -1013,6 +1188,12 @@ def get_omission_alerts(
     if 'place_results' in enabled_types:
         all_alerts.extend(check_place_results_omission(lottery_type, min_current_omission, max_gap_from_max))
 
+    if 'recommend8' in enabled_types:
+        all_alerts.extend(check_recommend8_omission(lottery_type, min_current_omission, max_gap_from_max))
+
+    if 'recommend16' in enabled_types:
+        all_alerts.extend(check_recommend16_omission(lottery_type, min_current_omission, max_gap_from_max))
+
     # 按优先级和遗漏期数排序
     priority_order = {'high': 1, 'medium': 2, 'low': 3}
     all_alerts.sort(key=lambda x: (priority_order.get(x['priority'], 99), -x['current_omission']))
@@ -1046,7 +1227,9 @@ def get_monitor_config():
             {'value': 'seventh_range', 'label': '第7码区间', 'description': '第7个号码的6个区间'},
             {'value': 'second_fourxiao', 'label': '第二码4肖', 'description': '期号3/8尾触发，后5期第7码'},
             {'value': 'five_period_threexiao', 'label': '5期3肖', 'description': '期号0/5尾触发，前3码生成'},
-            {'value': 'place_results', 'label': '关注点登记结果', 'description': '关注点登记的命中遗漏统计'}
+            {'value': 'place_results', 'label': '关注点登记结果', 'description': '关注点登记的命中遗漏统计'},
+            {'value': 'recommend8', 'label': '推荐8码', 'description': '期号0/5尾触发，第7位推荐8码'},
+            {'value': 'recommend16', 'label': '推荐16码', 'description': '期号0/5尾触发，第7位推荐16码'}
         ],
         'default_min_current_omission': 8,
         'default_max_gap_from_max': 3,
@@ -1336,6 +1519,12 @@ def get_omission_alerts_with_config(
 
         elif analysis_type == 'place_results':
             raw_alerts.extend(check_place_results_omission(lottery_type, 0, 999))
+
+        elif analysis_type == 'recommend8':
+            raw_alerts.extend(check_recommend8_omission(lottery_type, 0, 999))
+
+        elif analysis_type == 'recommend16':
+            raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999))
 
     # 根据配置过滤预警：每个预警必须匹配一个启用的配置，并且满足该配置的条件
     filtered_alerts = []

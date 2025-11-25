@@ -311,7 +311,9 @@ function getAnalysisTypeName(type) {
         'seventh_range': '7️⃣ 第7码区间',
         'second_fourxiao': '2️⃣ 第二码4肖',
         'five_period_threexiao': '5️⃣ 5期3肖',
-        'place_results': '📍 关注点登记结果'
+        'place_results': '📍 关注点登记结果',
+        'recommend8': '8️⃣ 推荐8码',
+        'recommend16': '🔢 推荐16码'
     };
     return names[type] || type;
 }

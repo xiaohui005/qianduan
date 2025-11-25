@@ -68,7 +68,8 @@
       "Bash(start /b python:*)",
       "Bash(timeout 5 bash:*)",
       "Bash(timeout:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(del add_recommend_monitor_config.py test_recommend_monitor.py test_recommend_monitor_detail.py)"
     ],
     "deny": [],
     "ask": []
