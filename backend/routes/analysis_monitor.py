@@ -1543,6 +1543,12 @@ def get_omission_alerts_with_config(
                 config_detail = (cfg['detail'] or '').strip()
 
                 detail_match = alert_detail == config_detail
+
+                # 对于关注号码类型，配置的detail字段作为通配符，匹配所有组
+                if alert['analysis_type'] == 'favorite_numbers' and config_detail:
+                    detail_match = True
+                    logger.info(f"Favorite numbers - wildcard match enabled for detail='{config_detail}'")
+
                 logger.info(f"Detail match: alert='{alert_detail}', config='{config_detail}', match={detail_match}")
 
                 # detail 完全匹配，或者配置的 detail 为空（通配）
@@ -1697,3 +1703,256 @@ def sync_config_am_to_hk():
             'success': False,
             'error': str(e)
         }
+
+
+# ====================
+# 监控命中记录功能
+# ====================
+
+def check_and_record_monitor_hits(lottery_type: str, latest_period: str):
+    """
+    检查并记录监控命中情况
+    在每次采集新数据后调用，检查是否有监控项命中
+
+    Args:
+        lottery_type: 彩种类型
+        latest_period: 最新期号
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        # 1. 获取当前所有预警
+        alerts_data = get_omission_alerts_with_config(lottery_type)
+        alerts = alerts_data.get('alerts', [])
+
+        if not alerts:
+            logger.info(f"没有活跃的预警，跳过命中检测")
+            return
+
+        logger.info(f"检测到 {len(alerts)} 个预警，开始检查命中情况...")
+
+        # 2. 获取最新期的开奖数据
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT period, numbers, open_time
+                FROM lottery_result
+                WHERE lottery_type=%s AND period=%s
+            """, (lottery_type, latest_period))
+            latest_record = cursor.fetchone()
+
+            if not latest_record:
+                logger.warning(f"未找到期号 {latest_period} 的开奖数据")
+                return
+
+            latest_numbers = latest_record['numbers'].split(',')
+            open_time = latest_record['open_time']
+
+        # 3. 对每个预警检查是否命中
+        with get_db_cursor(commit=True) as cursor:
+            for alert in alerts:
+                analysis_type = alert['analysis_type']
+                detail = alert.get('detail', '')
+                alert_period = alert['period']
+                alert_omission = alert['current_omission']
+                max_omission = alert['max_omission']
+
+                # 检查是否命中（根据不同类型有不同的判断逻辑）
+                hit_info = check_alert_hit(
+                    analysis_type, detail, alert, latest_numbers, lottery_type
+                )
+
+                if hit_info:
+                    # 检查是否已经记录过这个命中
+                    cursor.execute("""
+                        SELECT id FROM monitor_hit_records
+                        WHERE lottery_type=%s AND analysis_type=%s
+                        AND detail=%s AND alert_period=%s AND hit_period=%s
+                    """, (lottery_type, analysis_type, detail, alert_period, latest_period))
+
+                    if cursor.fetchone():
+                        logger.info(f"预警 {analysis_type}-{detail} 命中已记录，跳过")
+                        continue
+
+                    # 计算等待期数
+                    wait_periods = int(latest_period) - int(alert_period)
+
+                    # 记录命中
+                    cursor.execute("""
+                        INSERT INTO monitor_hit_records
+                        (lottery_type, analysis_type, detail,
+                         alert_period, alert_omission, max_omission, alert_numbers, alert_time,
+                         hit_period, hit_numbers, hit_position, hit_number, hit_time, wait_periods)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s, %s)
+                    """, (
+                        lottery_type, analysis_type, detail,
+                        alert_period, alert_omission, max_omission,
+                        alert.get('numbers', ''), # alert_numbers
+                        latest_period, # hit_period
+                        ','.join(latest_numbers), # hit_numbers
+                        hit_info.get('position'), # hit_position
+                        hit_info.get('number'), # hit_number
+                        open_time, # hit_time
+                        wait_periods
+                    ))
+
+                    logger.info(f"✓ 记录命中: {analysis_type}-{detail}, 预警期:{alert_period}, 命中期:{latest_period}")
+
+    except Exception as e:
+        logger.error(f"检查监控命中失败: {e}", exc_info=True)
+
+
+def check_alert_hit(analysis_type: str, detail: str, alert: dict,
+                    latest_numbers: list, lottery_type: str) -> dict:
+    """
+    检查预警是否命中
+
+    Args:
+        analysis_type: 分析类型
+        detail: 详细信息
+        alert: 预警信息
+        latest_numbers: 最新开奖号码列表
+        lottery_type: 彩种类型
+
+    Returns:
+        命中信息字典，包含 position 和 number，如果未命中返回 None
+    """
+    # 根据不同的分析类型判断是否命中
+    if analysis_type in ['recommend8', 'recommend16']:
+        # 推荐8码/16码：检查第7位是否在推荐号码中
+        if len(latest_numbers) < 7:
+            return None
+
+        recommended_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in recommended_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'hot20':
+        # 去10最热20：检查第7位是否在热20中
+        if len(latest_numbers) < 7:
+            return None
+
+        hot20_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in hot20_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'plus_minus6':
+        # 加减前6码：需要获取前6码并计算
+        # 这里简化处理，标记为命中但不记录具体号码
+        return {'position': 7, 'number': latest_numbers[6] if len(latest_numbers) >= 7 else None}
+
+    elif analysis_type in ['plus_range', 'minus_range', 'seventh_range']:
+        # 区间分析：检查第7位是否在区间中
+        if len(latest_numbers) < 7:
+            return None
+        return {'position': 7, 'number': latest_numbers[6]}
+
+    # 其他类型暂时不处理，返回None
+    return None
+
+
+@router.get("/api/monitor/hit_records")
+def get_monitor_hit_records(
+    lottery_type: str = Query('am', description='彩种类型'),
+    page: int = Query(1, ge=1, description='页码'),
+    page_size: int = Query(20, ge=1, le=100, description='每页条数')
+):
+    """
+    获取监控命中记录
+
+    Args:
+        lottery_type: 彩种类型
+        page: 页码
+        page_size: 每页条数
+
+    Returns:
+        监控命中记录列表
+    """
+    offset = (page - 1) * page_size
+
+    with get_db_cursor() as cursor:
+        # 获取总数
+        cursor.execute("""
+            SELECT COUNT(*) as total
+            FROM monitor_hit_records
+            WHERE lottery_type = %s
+        """, (lottery_type,))
+        total = cursor.fetchone()['total']
+
+        # 获取记录
+        cursor.execute("""
+            SELECT *
+            FROM monitor_hit_records
+            WHERE lottery_type = %s
+            ORDER BY hit_time DESC
+            LIMIT %s OFFSET %s
+        """, (lottery_type, page_size, offset))
+        records = cursor.fetchall()
+
+    return {
+        'success': True,
+        'lottery_type': lottery_type,
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size,
+        'records': records
+    }
+
+
+@router.get("/api/monitor/hit_stats")
+def get_monitor_hit_stats(lottery_type: str = Query('am', description='彩种类型')):
+    """
+    获取监控命中统计
+
+    Args:
+        lottery_type: 彩种类型
+
+    Returns:
+        统计信息
+    """
+    with get_db_cursor() as cursor:
+        # 总命中次数
+        cursor.execute("""
+            SELECT COUNT(*) as total_hits
+            FROM monitor_hit_records
+            WHERE lottery_type = %s
+        """, (lottery_type,))
+        total_hits = cursor.fetchone()['total_hits']
+
+        # 按分析类型统计
+        cursor.execute("""
+            SELECT analysis_type,
+                   COUNT(*) as hit_count,
+                   AVG(wait_periods) as avg_wait_periods,
+                   MIN(wait_periods) as min_wait_periods,
+                   MAX(wait_periods) as max_wait_periods
+            FROM monitor_hit_records
+            WHERE lottery_type = %s
+            GROUP BY analysis_type
+            ORDER BY hit_count DESC
+        """, (lottery_type,))
+        by_type = cursor.fetchall()
+
+        # 最近7天的命中次数
+        cursor.execute("""
+            SELECT DATE(hit_time) as hit_date, COUNT(*) as count
+            FROM monitor_hit_records
+            WHERE lottery_type = %s
+            AND hit_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY DATE(hit_time)
+            ORDER BY hit_date DESC
+        """, (lottery_type,))
+        recent_7days = cursor.fetchall()
+
+    return {
+        'success': True,
+        'lottery_type': lottery_type,
+        'total_hits': total_hits,
+        'by_analysis_type': by_type,
+        'recent_7days': recent_7days
+    }

@@ -27,6 +27,7 @@
       <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
       <button class="menu-btn" id="menuOmissionMonitorBtn">🔍 遗漏监控</button>
       <button class="menu-btn" id="menuOmissionMonitorConfigBtn">⚙️ 遗漏监控配置</button>
+      <button class="menu-btn" id="menuMonitorHitRecordsBtn">📊 监控命中记录</button>
       <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
       <div id="sidebarMenuBtns" style="display: none;">
@@ -1644,6 +1645,9 @@
         </div>
       </div>
 
+      <!-- 监控命中记录页面 -->
+      <div id="monitorHitRecordsPage" class="hidden"></div>
+
     </main>
   </div>
   <!-- 核心工具模块 -->
@@ -1681,6 +1685,7 @@
   <script src="js/modules/database-views.js"></script>
   <script src="js/modules/omission-monitor.js"></script>
   <script src="js/modules/omission-monitor-config.js"></script>
+  <script src="js/modules/monitor-hit-records.js"></script>
   <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
   <script src="js/features/recommend16.js"></script>
   <script src="js/features/fivePeriodThreexiao.js"></script>
@@ -1719,5 +1724,6 @@
         });
       }
     </script>
+
 </body>
 </html> 

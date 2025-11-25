@@ -137,6 +137,14 @@ def collect_api(type: str = None):
             new_periods = [item['period'] for item in data]
             recommend_msg = auto_generate_recommendations(t, new_periods)
 
+            # 检查并记录监控命中（仅检查最新期）
+            if new_periods:
+                try:
+                    from backend.routes.analysis_monitor import check_and_record_monitor_hits
+                    check_and_record_monitor_hits(t, new_periods[-1])
+                except Exception as e:
+                    logger.error(f"检测监控命中失败: {e}", exc_info=True)
+
             result[t] = f"采集{len(data)}条,{recommend_msg}" if recommend_msg else f"采集{len(data)}条"
         else:
             result[t] = "无新数据"
@@ -174,6 +182,14 @@ def collect_wenlongzhu_api(type: str = None):
                 # 自动生成推荐
                 new_periods = [item['period'] for item in data]
                 recommend_msg = auto_generate_recommendations(t, new_periods)
+
+                # 检查并记录监控命中（仅检查最新期）
+                if new_periods:
+                    try:
+                        from backend.routes.analysis_monitor import check_and_record_monitor_hits
+                        check_and_record_monitor_hits(t, new_periods[-1])
+                    except Exception as e:
+                        logger.error(f"检测监控命中失败: {e}", exc_info=True)
 
                 result[t] = f"文龙珠采集{len(data)}条,{recommend_msg}" if recommend_msg else f"文龙珠采集{len(data)}条"
             else:

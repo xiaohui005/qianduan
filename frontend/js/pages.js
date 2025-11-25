@@ -43,6 +43,7 @@ const PAGE_CONFIG = {
   'menuMaxMissAlertBtn': { pageId: 'maxMissAlertPage', title: '关注点登记最大遗漏提醒' },
   'menuOmissionMonitorBtn': { pageId: 'omissionMonitorPage', title: '遗漏监控' },
   'menuOmissionMonitorConfigBtn': { pageId: 'omissionMonitorConfigPage', title: '遗漏监控配置' },
+  'menuMonitorHitRecordsBtn': { pageId: 'monitorHitRecordsPage', title: '监控命中记录' },
 
   // 数据库管理
   'menuDatabaseViewsBtn': { pageId: 'databaseViewsPage', title: '数据库视图' }
@@ -123,6 +124,17 @@ function showOnlyPage(pageId) {
         window.OmissionMonitorConfig.init();
       } else {
         console.error('[页面管理] ✗ OmissionMonitorConfig.init 函数不存在');
+      }
+    }
+
+    // 如果是监控命中记录页面,初始化
+    if (pageId === 'monitorHitRecordsPage') {
+      console.log('[页面管理] 检测到监控命中记录页面');
+      if (typeof window.MonitorHitRecords !== 'undefined' && typeof window.MonitorHitRecords.init === 'function') {
+        console.log('[页面管理] 调用 MonitorHitRecords.init()');
+        window.MonitorHitRecords.init();
+      } else {
+        console.error('[页面管理] ✗ MonitorHitRecords.init 函数不存在');
       }
     }
 
