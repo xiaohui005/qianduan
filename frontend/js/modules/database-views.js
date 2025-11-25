@@ -87,14 +87,27 @@ async function initDatabaseViewsPage() {
  */
 function bindEvents() {
     // 刷新按钮
-    document.getElementById('refreshViewsBtn').addEventListener('click', loadViewsList);
+    const refreshBtn = document.getElementById('refreshViewsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadViewsList);
+    }
 
     // 搜索框
-    document.getElementById('viewSearchInput').addEventListener('input', filterViews);
+    const searchInput = document.getElementById('viewSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterViews);
+    }
 
     // 批量操作按钮
-    document.getElementById('openAllViewsBtn').addEventListener('click', openAllViews);
-    document.getElementById('closeAllViewsBtn').addEventListener('click', closeAllViews);
+    const openAllBtn = document.getElementById('openAllViewsBtn');
+    if (openAllBtn) {
+        openAllBtn.addEventListener('click', openAllViews);
+    }
+
+    const closeAllBtn = document.getElementById('closeAllViewsBtn');
+    if (closeAllBtn) {
+        closeAllBtn.addEventListener('click', closeAllViews);
+    }
 }
 
 /**

@@ -28,6 +28,7 @@
       <button class="menu-btn" id="menuOmissionMonitorBtn">🔍 遗漏监控</button>
       <button class="menu-btn" id="menuOmissionMonitorConfigBtn">⚙️ 遗漏监控配置</button>
       <button class="menu-btn" id="menuMonitorHitRecordsBtn">📊 监控命中记录</button>
+      <button class="menu-btn" id="menuSimulationBettingBtn">💰 模拟倍投测试</button>
       <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
       <div id="sidebarMenuBtns" style="display: none;">
@@ -1545,6 +1546,11 @@
         <div id="colorAnalysisStats" class="stats-container" style="display: none; margin-top: 20px;"></div>
       </div>
 
+      <!-- 模拟倍投测试页面 -->
+      <div id="simulationBettingPage" class="hidden">
+        <!-- 由 simulation-betting.js 动态填充内容 -->
+      </div>
+
       <!-- 数据库视图查看器页面 -->
       <div id="databaseViewsPage" class="hidden">
         <!-- 由 database-views.js 动态填充内容 -->
@@ -1683,6 +1689,7 @@
   <script src="js/modules/xiao-analysis.js"></script>
   <script src="js/modules/recommend-hit.js"></script>
   <script src="js/modules/database-views.js"></script>
+  <script src="js/modules/simulation-betting.js?v=20251125004"></script>
   <script src="js/modules/omission-monitor.js"></script>
   <script src="js/modules/omission-monitor-config.js"></script>
   <script src="js/modules/monitor-hit-records.js"></script>

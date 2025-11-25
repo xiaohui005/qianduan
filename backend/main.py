@@ -51,7 +51,8 @@ from backend.routes import (
     analysis_hot20,
     auto_collect,
     database_views,
-    analysis_monitor
+    analysis_monitor,
+    simulation_betting
 )
 
 # ==================== 注册路由 ====================
@@ -69,6 +70,7 @@ app.include_router(analysis_two_groups.router, tags=["2组观察"])
 app.include_router(analysis_number_gap.router, tags=["号码间隔分析"])
 app.include_router(analysis_hot20.router, tags=["去10分析"])
 app.include_router(analysis_monitor.router, tags=["遗漏监控"])
+app.include_router(simulation_betting.router, tags=["模拟倍投测试"])
 
 # 自动采集管理路由
 app.include_router(auto_collect.router, tags=["自动采集"])

@@ -45,6 +45,9 @@ const PAGE_CONFIG = {
   'menuOmissionMonitorConfigBtn': { pageId: 'omissionMonitorConfigPage', title: '遗漏监控配置' },
   'menuMonitorHitRecordsBtn': { pageId: 'monitorHitRecordsPage', title: '监控命中记录' },
 
+  // 模拟倍投测试
+  'menuSimulationBettingBtn': { pageId: 'simulationBettingPage', title: '模拟倍投测试' },
+
   // 数据库管理
   'menuDatabaseViewsBtn': { pageId: 'databaseViewsPage', title: '数据库视图' }
 };
@@ -135,6 +138,17 @@ function showOnlyPage(pageId) {
         window.MonitorHitRecords.init();
       } else {
         console.error('[页面管理] ✗ MonitorHitRecords.init 函数不存在');
+      }
+    }
+
+    // 如果是模拟倍投测试页面,初始化
+    if (pageId === 'simulationBettingPage') {
+      console.log('[页面管理] 检测到模拟倍投测试页面');
+      if (typeof initSimulationBetting === 'function') {
+        console.log('[页面管理] 调用 initSimulationBetting()');
+        initSimulationBetting();
+      } else {
+        console.error('[页面管理] ✗ initSimulationBetting 函数不存在');
       }
     }
 

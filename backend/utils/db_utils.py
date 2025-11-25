@@ -17,7 +17,7 @@
 
 from contextlib import contextmanager
 from typing import List, Dict, Tuple, Optional, Any
-from backend import collect
+from backend.db import get_connection
 
 
 @contextmanager
@@ -60,7 +60,7 @@ def get_db_cursor(dictionary: bool = True, commit: bool = False):
 
     替换前后对比：
         # 旧代码（14行）
-        conn = collect.get_connection()
+        conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         try:
             cursor.execute("INSERT ...")
@@ -74,7 +74,7 @@ def get_db_cursor(dictionary: bool = True, commit: bool = False):
             cursor.execute("INSERT ...")
             # 自动提交并关闭
     """
-    conn = collect.get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=dictionary)
     try:
         yield cursor
@@ -209,7 +209,7 @@ def execute_update(
         - 每次调用自动提交事务
         - 如需批量操作，请使用 execute_batch()
     """
-    conn = collect.get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(sql, params)
@@ -253,7 +253,7 @@ def execute_batch(
         - 单次事务提交，减少IO开销
         - 比循环调用 execute_update() 快5-10倍
     """
-    conn = collect.get_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     total_affected = 0
     try:

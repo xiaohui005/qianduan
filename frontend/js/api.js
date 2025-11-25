@@ -666,6 +666,42 @@ async function exportHot20Minus10(lotteryType, pos, year = '') {
 }
 
 
+// ==================== 模拟倍投测试相关 API ====================
+
+/**
+ * 执行模拟倍投测试
+ * @param {Object} config - 配置参数
+ * @returns {Promise<Object>} 测试结果
+ */
+async function simulationBettingTest(config) {
+  const params = new URLSearchParams();
+  Object.keys(config).forEach(key => {
+    if (config[key] !== undefined && config[key] !== null && config[key] !== '') {
+      params.append(key, config[key]);
+    }
+  });
+  const url = `${API_BASE}/api/simulation/test?${params.toString()}`;
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 导出模拟倍投测试结果CSV
+ * @param {Object} config - 配置参数
+ * @returns {Promise<Blob>} CSV文件
+ */
+async function exportSimulationResult(config) {
+  const params = new URLSearchParams();
+  Object.keys(config).forEach(key => {
+    if (config[key] !== undefined && config[key] !== null && config[key] !== '') {
+      params.append(key, config[key]);
+    }
+  });
+  const url = `${API_BASE}/api/simulation/export?${params.toString()}`;
+  const response = await fetch(url);
+  return await response.blob();
+}
+
 // ==================== 导出 API 对象 ====================
 
 /**
@@ -686,7 +722,11 @@ window.API = {
 
   // 分析相关（按需添加其他导出）
   getHot20Minus10,
-  exportHot20Minus10
+  exportHot20Minus10,
+
+  // 模拟倍投测试
+  simulationBettingTest,
+  exportSimulationResult
 };
 
 console.log('API 请求模块已加载');
