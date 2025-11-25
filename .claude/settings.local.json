@@ -64,7 +64,11 @@
       "Bash(powershell Get-Content 'C:\\Users\\Administrator\\Desktop\\six666\\frontend\\index.html')",
       "Bash(Select-Object -Last 80)",
       "Bash(rm:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(start /b python:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(timeout:*)",
+      "Bash(mysql:*)"
     ],
     "deny": [],
     "ask": []

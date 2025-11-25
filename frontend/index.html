@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/scheduler_styles.css">
+  <link rel="stylesheet" href="css/monitor-config.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,6 +25,8 @@
       <button class="menu-btn" id="menuAutoCollectBtn">⏰ 自动采集设置</button>
       <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
       <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
+      <button class="menu-btn" id="menuOmissionMonitorBtn">🔍 遗漏监控</button>
+      <button class="menu-btn" id="menuOmissionMonitorConfigBtn">⚙️ 遗漏监控配置</button>
       <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
       <div id="sidebarMenuBtns" style="display: none;">
@@ -1546,6 +1549,101 @@
         <!-- 由 database-views.js 动态填充内容 -->
       </div>
 
+      <!-- 遗漏监控页面 -->
+      <div id="omissionMonitorPage" class="hidden">
+        <h2>遗漏监控</h2>
+
+        <!-- 彩种选择和操作按钮 -->
+        <div class="mb-3">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div>
+              <label class="records-query-label">选择彩种：</label>
+              <div style="display: flex; gap: 10px;">
+                <button class="lottery-type-btn active" data-type="am" onclick="OmissionMonitor.switchType('am')">澳门</button>
+                <button class="lottery-type-btn" data-type="hk" onclick="OmissionMonitor.switchType('hk')">香港</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button onclick="OmissionMonitor.refreshMonitor()" class="btn-primary" style="padding: 10px 20px;">
+                🔄 刷新监控
+              </button>
+              <button onclick="showOnlyPage('omissionMonitorConfigPage')" class="btn-secondary" style="padding: 10px 20px;">
+                ⚙️ 配置管理
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 配置说明 -->
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #1976d2;">
+          <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #1976d2;">
+            ℹ️ 使用说明
+          </h3>
+          <ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.8;">
+            <li>监控参数已从数据库配置中读取，每个监控点有独立的触发条件</li>
+            <li>点击"刷新监控"查看当前符合条件的预警</li>
+            <li>点击"配置管理"可以调整每个监控点的参数（最小遗漏、距离最大遗漏等）</li>
+            <li>只有启用的监控点才会参与扫描</li>
+          </ul>
+        </div>
+
+        <!-- 监控结果 -->
+        <div id="omissionMonitorResult" style="min-height: 300px;">
+          <div style="text-align: center; color: #888; padding: 40px;">
+            点击"刷新监控"按钮开始扫描
+          </div>
+        </div>
+      </div>
+
+      <!-- 遗漏监控配置页面 -->
+      <div id="omissionMonitorConfigPage" class="hidden">
+        <h2>遗漏监控配置管理</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+          为每个监控点单独设置不同的监控参数，因为每个分析的规律不一样。
+        </p>
+
+        <!-- 彩种选择和操作按钮 -->
+        <div class="mb-3">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div>
+              <label class="records-query-label">选择彩种：</label>
+              <div style="display: flex; gap: 10px;">
+                <button class="lottery-type-btn active" data-type="am" onclick="OmissionMonitorConfig.switchType('am')">澳门</button>
+                <button class="lottery-type-btn" data-type="hk" onclick="OmissionMonitorConfig.switchType('hk')">香港</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button onclick="syncConfigToHK()" class="btn-secondary" style="padding: 10px 20px;">
+                📋 同步到香港
+              </button>
+              <button onclick="OmissionMonitorConfig.refresh()" class="btn-primary" style="padding: 10px 20px;">
+                🔄 刷新配置列表
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 配置说明 -->
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #1976d2;">
+          <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #1976d2;">配置说明</h3>
+          <ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.8;">
+            <li><strong>最小当前遗漏：</strong>只有当当前遗漏期数 ≥ 此值时才会触发预警</li>
+            <li><strong>距离最大遗漏：</strong>当前遗漏距离历史最大遗漏的差值 ≤ 此值时才会触发预警</li>
+            <li><strong>启用：</strong>勾选后该监控点才会生效</li>
+            <li><strong>建议：</strong>根据每个分析的历史规律调整参数，短期规律可设置较小值，长期规律可设置较大值</li>
+          </ul>
+        </div>
+
+        <!-- 配置表格容器 -->
+        <div id="monitorConfigTable" style="min-height: 400px;">
+          <div style="text-align: center; padding: 40px; color: #888;">
+            正在加载配置数据...
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
   <!-- 核心工具模块 -->
@@ -1581,6 +1679,8 @@
   <script src="js/modules/xiao-analysis.js"></script>
   <script src="js/modules/recommend-hit.js"></script>
   <script src="js/modules/database-views.js"></script>
+  <script src="js/modules/omission-monitor.js"></script>
+  <script src="js/modules/omission-monitor-config.js"></script>
   <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
   <script src="js/features/recommend16.js"></script>
   <script src="js/features/fivePeriodThreexiao.js"></script>

@@ -34,12 +34,10 @@ def init_pool():
                 use_unicode=True
             )
             _pool_stats['total_created'] += 1
-            logger.info("✅ 数据库连接池初始化成功 (pool_size=10)")
-            print("✅ 数据库连接池初始化成功 (pool_size=10)")
+            logger.info("数据库连接池初始化成功 (pool_size=10)")
         except Error as e:
             _pool_stats['errors'] += 1
-            logger.error(f"❌ 连接池初始化失败: {e}")
-            print(f"❌ 连接池初始化失败: {e}")
+            logger.error(f"连接池初始化失败: {e}")
             _connection_pool = None
 
 def get_connection():

@@ -41,6 +41,8 @@ const PAGE_CONFIG = {
 
   // 提醒
   'menuMaxMissAlertBtn': { pageId: 'maxMissAlertPage', title: '关注点登记最大遗漏提醒' },
+  'menuOmissionMonitorBtn': { pageId: 'omissionMonitorPage', title: '遗漏监控' },
+  'menuOmissionMonitorConfigBtn': { pageId: 'omissionMonitorConfigPage', title: '遗漏监控配置' },
 
   // 数据库管理
   'menuDatabaseViewsBtn': { pageId: 'databaseViewsPage', title: '数据库视图' }
@@ -99,6 +101,28 @@ function showOnlyPage(pageId) {
         initNumberMissingAnalysisPage();
       } else {
         console.error('[页面管理] ✗ initNumberMissingAnalysisPage 函数不存在');
+      }
+    }
+
+    // 如果是遗漏监控页面,初始化
+    if (pageId === 'omissionMonitorPage') {
+      console.log('[页面管理] 检测到遗漏监控页面');
+      if (typeof window.OmissionMonitor !== 'undefined' && typeof window.OmissionMonitor.init === 'function') {
+        console.log('[页面管理] 调用 OmissionMonitor.init()');
+        window.OmissionMonitor.init();
+      } else {
+        console.error('[页面管理] ✗ OmissionMonitor.init 函数不存在');
+      }
+    }
+
+    // 如果是遗漏监控配置页面,初始化
+    if (pageId === 'omissionMonitorConfigPage') {
+      console.log('[页面管理] 检测到遗漏监控配置页面');
+      if (typeof window.OmissionMonitorConfig !== 'undefined' && typeof window.OmissionMonitorConfig.init === 'function') {
+        console.log('[页面管理] 调用 OmissionMonitorConfig.init()');
+        window.OmissionMonitorConfig.init();
+      } else {
+        console.error('[页面管理] ✗ OmissionMonitorConfig.init 函数不存在');
       }
     }
 
@@ -359,6 +383,17 @@ function showOnlyPage(pageId) {
         window.initHot20Minus10Page();
       } else {
         console.error('[页面管理] ✗ initHot20Minus10Page 函数不存在');
+      }
+    }
+
+    // 如果是遗漏监控页面,初始化
+    if (pageId === 'omissionMonitorPage') {
+      console.log('[页面管理] 检测到遗漏监控页面');
+      if (typeof OmissionMonitor !== 'undefined' && typeof OmissionMonitor.init === 'function') {
+        console.log('[页面管理] 调用 OmissionMonitor.init()');
+        OmissionMonitor.init();
+      } else {
+        console.error('[页面管理] ✗ OmissionMonitor.init 函数不存在');
       }
     }
 
