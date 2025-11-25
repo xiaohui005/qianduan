@@ -136,6 +136,7 @@ function renderConfigTable(configs) {
                             <th style="padding:12px;text-align:center;width:200px;color:white;font-weight:600;font-size:14px;">详情</th>
                             <th style="padding:12px;text-align:center;width:150px;color:white;font-weight:600;font-size:14px;">最小当前遗漏</th>
                             <th style="padding:12px;text-align:center;width:150px;color:white;font-weight:600;font-size:14px;">距离最大遗漏</th>
+                            <th style="padding:12px;text-align:center;width:120px;color:white;font-weight:600;font-size:14px;">近期期数</th>
                             <th style="padding:12px;text-align:center;width:100px;color:white;font-weight:600;font-size:14px;">启用</th>
                             <th style="padding:12px;text-align:center;width:120px;color:white;font-weight:600;font-size:14px;">操作</th>
                         </tr>
@@ -168,6 +169,17 @@ function renderConfigTable(configs) {
                                min="0"
                                max="20"
                                style="width:80px;padding:6px;border:1px solid #ddd;border-radius:4px;text-align:center;">
+                    </td>
+                    <td style="padding:12px;text-align:center;">
+                        <input type="number"
+                               class="config-input"
+                               data-config-id="${cfg.id}"
+                               data-field="recent_periods"
+                               value="${cfg.recent_periods || 200}"
+                               min="50"
+                               max="500"
+                               step="50"
+                               style="width:90px;padding:6px;border:1px solid #ddd;border-radius:4px;text-align:center;">
                     </td>
                     <td style="padding:12px;text-align:center;">
                         <label class="switch">
@@ -235,6 +247,7 @@ function handleSaveSingleConfig(event) {
     // 获取输入值
     const minInput = document.querySelector(`input[data-config-id="${configId}"][data-field="min_current_omission"]`);
     const maxInput = document.querySelector(`input[data-config-id="${configId}"][data-field="max_gap_from_max"]`);
+    const recentPeriodsInput = document.querySelector(`input[data-config-id="${configId}"][data-field="recent_periods"]`);
     const enabledInput = document.querySelector(`input.config-enabled[data-config-id="${configId}"]`);
 
     const updatedConfig = {
@@ -243,6 +256,7 @@ function handleSaveSingleConfig(event) {
         detail: config.detail,
         min_current_omission: parseInt(minInput.value),
         max_gap_from_max: parseInt(maxInput.value),
+        recent_periods: parseInt(recentPeriodsInput.value),
         enabled: enabledInput.checked ? 1 : 0,
         priority_level: config.priority_level
     };
@@ -259,6 +273,7 @@ function batchSaveAllConfigs() {
     allConfigs.forEach(cfg => {
         const minInput = document.querySelector(`input[data-config-id="${cfg.id}"][data-field="min_current_omission"]`);
         const maxInput = document.querySelector(`input[data-config-id="${cfg.id}"][data-field="max_gap_from_max"]`);
+        const recentPeriodsInput = document.querySelector(`input[data-config-id="${cfg.id}"][data-field="recent_periods"]`);
         const enabledInput = document.querySelector(`input.config-enabled[data-config-id="${cfg.id}"]`);
 
         updatedConfigs.push({
@@ -267,6 +282,7 @@ function batchSaveAllConfigs() {
             detail: cfg.detail,
             min_current_omission: parseInt(minInput.value),
             max_gap_from_max: parseInt(maxInput.value),
+            recent_periods: parseInt(recentPeriodsInput.value),
             enabled: enabledInput.checked ? 1 : 0,
             priority_level: cfg.priority_level
         });
@@ -279,7 +295,7 @@ function batchSaveAllConfigs() {
  * 恢复默认值
  */
 function resetToDefaults() {
-    if (!confirm('确定要将所有配置恢复为默认值吗？\n\n默认值：最小当前遗漏=8，距离最大遗漏=3')) {
+    if (!confirm('确定要将所有配置恢复为默认值吗？\n\n默认值：最小当前遗漏=8，距离最大遗漏=3，近期期数=200')) {
         return;
     }
 
@@ -289,6 +305,7 @@ function resetToDefaults() {
         detail: cfg.detail,
         min_current_omission: 8,
         max_gap_from_max: 3,
+        recent_periods: 200,
         enabled: 1,
         priority_level: 'medium'
     }));

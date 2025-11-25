@@ -73,7 +73,8 @@
       "Bash(copy:*)",
       "Bash(iconv:*)",
       "Bash(del test_monitor_hits.py test_all_monitor_types.py)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": []

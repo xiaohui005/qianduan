@@ -104,7 +104,9 @@ function renderOmissionAlerts(data, type) {
                     <th style="padding:12px;color:white;font-weight:700;font-size:14px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">推荐号码</th>
                     <th style="padding:12px;width:80px;color:white;font-weight:700;font-size:14px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">当前遗漏</th>
                     <th style="padding:12px;width:80px;color:white;font-weight:700;font-size:14px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">最大遗漏</th>
-                    <th style="padding:12px;width:80px;color:white;font-weight:700;font-size:14px;text-align:center;">距离最大</th>
+                    <th style="padding:12px;width:80px;color:white;font-weight:700;font-size:14px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">距离最大</th>
+                    <th style="padding:12px;width:90px;color:white;font-weight:700;font-size:14px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">历史总数</th>
+                    <th style="padding:12px;width:100px;color:white;font-weight:700;font-size:14px;text-align:center;">近期次数</th>
                 </tr>
             </thead>
             <tbody>
@@ -114,6 +116,9 @@ function renderOmissionAlerts(data, type) {
     data.alerts.forEach((alert, index) => {
         const priorityColor = getPriorityColor(alert.priority);
         const priorityLabel = getPriorityLabel(alert.priority);
+        const totalReach = alert.historical_reach_count || 0;
+        const recentReach = alert.recent_reach_count || 0;
+        const recentPeriods = alert.recent_periods || 200;
 
         html += `
             <tr style="border-bottom:1px solid #e0e0e0;${index % 2 === 0 ? 'background:#fafafa;' : ''}">
@@ -142,6 +147,13 @@ function renderOmissionAlerts(data, type) {
                 </td>
                 <td style="padding:12px;text-align:center;font-size:18px;font-weight:600;color:#ff9800;">
                     ${alert.gap_from_max}
+                </td>
+                <td style="padding:12px;text-align:center;font-size:16px;font-weight:600;color:#2196f3;">
+                    ${totalReach}次
+                </td>
+                <td style="padding:12px;text-align:center;font-size:16px;font-weight:600;color:#9c27b0;">
+                    ${recentReach}次
+                    <div style="font-size:11px;color:#999;margin-top:2px;">(${recentPeriods}期)</div>
                 </td>
             </tr>
         `;

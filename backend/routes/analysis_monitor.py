@@ -45,11 +45,13 @@ ANALYSIS_TYPE_LABELS = {
 }
 
 
-def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int,
+                         recent_periods: int = 200, exclude_period: str = None):
     """
     检查去10的最热20分析的遗漏情况（只检查第7位）
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -108,10 +110,27 @@ def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int, excl
             item['max_omission'] = max_omission
             current_omission = period_omission
 
+        # 新增：统计历史达到次数（两个维度）
+        omission_values = [item['current_omission'] for item in results_asc]
+
+        for idx, item in enumerate(results_asc):
+            target = item['current_omission']
+
+            # 统计1：历史总次数（只看当前期之前，不包括当前期）
+            total_reach_count = sum(1 for i in range(idx) if omission_values[i] >= target > 0)
+            item['historical_reach_count'] = total_reach_count
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, idx - recent_periods)
+            recent_reach_count = sum(1 for i in range(start_idx, idx) if omission_values[i] >= target > 0)
+            item['recent_reach_count'] = recent_reach_count
+
         # 取最新一期检查
         latest = results_asc[-1]
         current = latest.get('current_omission', 0)
         max_miss = latest.get('max_omission', 0)
+        total_reach = latest.get('historical_reach_count', 0)
+        recent_reach = latest.get('recent_reach_count', 0)
 
         if current >= min_current and (max_miss - current) <= max_gap:
             hot20_str = ','.join(str(h['number']) for h in latest['hot20'])
@@ -123,17 +142,22 @@ def check_hot20_omission(lottery_type: str, min_current: int, max_gap: int, excl
                 'current_omission': current,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current) <= 1 else 'medium'
             })
 
     return alerts
 
 
-def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int,
+                               recent_periods: int = 200, exclude_period: str = None):
     """
     检查加减前6码分析的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -162,8 +186,8 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
         # 反转成升序（从旧到新）
         all_rows = rows[::-1]
 
-        # 存储每组的遗漏历史
-        group_history = {i: {'current_omission': 0, 'max_omission': 0} for i in range(1, 7)}
+        # 存储每组的遗漏历史（包含遗漏历史列表）
+        group_history = {i: {'current_omission': 0, 'max_omission': 0, 'omission_history': []} for i in range(1, 7)}
 
         # 遍历每个期号
         for idx in range(len(all_rows) - 1):
@@ -200,6 +224,27 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
                 if current > group_history[group_id]['max_omission']:
                     group_history[group_id]['max_omission'] = current
 
+                # 记录每期的遗漏值
+                group_history[group_id]['omission_history'].append(current)
+
+        # 为每组计算历史达到次数
+        for group_id in range(1, 7):
+            omission_values = group_history[group_id]['omission_history']
+            current = group_history[group_id]['current_omission']
+
+            # 当前期是最后一期，索引为 len(omission_values) - 1
+            current_idx = len(omission_values) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_values[i] >= current > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_values[i] >= current > 0)
+
+            group_history[group_id]['historical_reach_count'] = total_reach
+            group_history[group_id]['recent_reach_count'] = recent_reach
+
         # 检查每组的最新遗漏情况
         # 如果传了exclude_period,基准期是最后一期(已排除最新期)
         # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
@@ -207,6 +252,8 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
         for group_id in range(1, 7):
             current = group_history[group_id]['current_omission']
             max_miss = group_history[group_id]['max_omission']
+            total_reach = group_history[group_id]['historical_reach_count']
+            recent_reach = group_history[group_id]['recent_reach_count']
 
             if current >= min_current and (max_miss - current) <= max_gap:
                 alerts.append({
@@ -217,16 +264,21 @@ def check_plus_minus6_omission(lottery_type: str, min_current: int, max_gap: int
                     'current_omission': current,
                     'max_omission': max_miss,
                     'gap_from_max': max_miss - current,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
                     'priority': 'high' if (max_miss - current) <= 1 else 'medium'
                 })
 
     return alerts
 
 
-def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: int, is_plus: bool = True, exclude_period: str = None):
+def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: int, is_plus: bool = True,
+                                  recent_periods: int = 200, exclude_period: str = None):
     """
     检查区间分析的遗漏情况（只检查第7位）
     is_plus: True为+1~+20区间，False为-1~-20区间
+    recent_periods: 近期统计期数范围（默认200期）
     exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -281,7 +333,8 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
         for range_idx in range(6):
             range_history[range_idx] = {
                 'current_omission': 0,
-                'max_omission': 0
+                'max_omission': 0,
+                'omission_history': []
             }
 
         # 遍历每个期号
@@ -321,6 +374,27 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
                 if current > range_history[range_idx]['max_omission']:
                     range_history[range_idx]['max_omission'] = current
 
+                # 记录每期的遗漏值
+                range_history[range_idx]['omission_history'].append(current)
+
+        # 为每个区间计算历史达到次数
+        for range_idx in range(6):
+            omission_values = range_history[range_idx]['omission_history']
+            current = range_history[range_idx]['current_omission']
+
+            # 当前期是最后一期，索引为 len(omission_values) - 1
+            current_idx = len(omission_values) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_values[i] >= current > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_values[i] >= current > 0)
+
+            range_history[range_idx]['historical_reach_count'] = total_reach
+            range_history[range_idx]['recent_reach_count'] = recent_reach
+
         # 检查所有区间的最新遗漏情况
         # 如果传了exclude_period,基准期是最后一期(已排除最新期)
         # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
@@ -328,6 +402,8 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
         for range_idx, (start, end, range_name) in enumerate(ranges):
             current = range_history[range_idx]['current_omission']
             max_miss = range_history[range_idx]['max_omission']
+            total_reach = range_history[range_idx]['historical_reach_count']
+            recent_reach = range_history[range_idx]['recent_reach_count']
 
             if current >= min_current and (max_miss - current) <= max_gap:
                 alerts.append({
@@ -338,17 +414,22 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
                     'current_omission': current,
                     'max_omission': max_miss,
                     'gap_from_max': max_miss - current,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
                     'priority': 'high' if (max_miss - current) <= 1 else 'medium'
                 })
 
     return alerts
 
 
-def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7, exclude_period: str = None):
+def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7,
+                                    recent_periods: int = 200, exclude_period: str = None):
     """
     检查关注号码管理的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -391,6 +472,7 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
             fav_numbers = set(map(int, group['numbers'].split(',')))
             current_miss = 0
             max_miss = 0
+            omission_history = []
 
             # 从旧到新遍历
             for record in all_records:
@@ -407,9 +489,23 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
                     else:
                         current_miss += 1
 
+                    # 记录每期的遗漏值
+                    omission_history.append(current_miss)
+
             # 遍历结束后，如果当前遗漏大于历史最大，更新最大遗漏
             if current_miss > max_miss:
                 max_miss = current_miss
+
+            # 统计历史达到次数（两个维度）
+            # 当前期是最后一期，索引为 len(omission_history) - 1
+            current_idx = len(omission_history) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
             # 检查是否满足条件
             if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -422,13 +518,17 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
                     'current_omission': current_miss,
                     'max_omission': max_miss,
                     'gap_from_max': max_miss - current_miss,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
                     'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
                 })
 
     return alerts
 
 
-def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7, exclude_period: str = None):
+def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7,
+                              recent_periods: int = 200, exclude_period: str = None):
     """
     检查每期分析的遗漏情况
     使用与"每期分析"页面相同的逻辑：
@@ -437,6 +537,7 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
     - history_max_miss: 所有已命中期中的最大 miss_count
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -498,8 +599,10 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
     current_max_miss_period = ''
     history_max_miss = 0
     history_max_miss_period = ''
+    all_misses = []  # 收集所有遗漏值用于统计
 
     for item in result:
+        all_misses.append(item['miss_count'])
         if item['stop_reason'] == 'hit':
             if item['miss_count'] > history_max_miss:
                 history_max_miss = item['miss_count']
@@ -508,6 +611,17 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
             if item['miss_count'] > current_max_miss:
                 current_max_miss = item['miss_count']
                 current_max_miss_period = item['period']
+
+    # 统计历史达到次数（两个维度）
+    # 当前期是最后一期，索引为 len(all_misses) - 1
+    current_idx = len(all_misses) - 1
+
+    # 统计1：历史总次数（只看当前期之前）
+    total_reach = sum(1 for i in range(current_idx) if all_misses[i] >= current_max_miss > 0)
+
+    # 统计2：近期次数（最近N期，不包括当前期）
+    start_idx = max(0, current_idx - recent_periods)
+    recent_reach = sum(1 for i in range(start_idx, current_idx) if all_misses[i] >= current_max_miss > 0)
 
     # 检查是否满足条件
     if current_max_miss >= min_current and (history_max_miss - current_max_miss) <= max_gap:
@@ -519,17 +633,22 @@ def check_each_issue_omission(lottery_type: str, min_current: int, max_gap: int,
             'current_omission': current_max_miss,
             'max_omission': history_max_miss,
             'gap_from_max': history_max_miss - current_max_miss,
+            'historical_reach_count': total_reach,
+            'recent_reach_count': recent_reach,
+            'recent_periods': recent_periods,
             'priority': 'high' if (history_max_miss - current_max_miss) <= 1 else 'medium'
         })
 
     return alerts
 
 
-def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int,
+                              recent_periods: int = 200, exclude_period: str = None):
     """
     检查前6码三中三的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -562,6 +681,7 @@ def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int,
 
         current_miss = 0
         max_miss = 0
+        omission_history = []  # 收集每期遗漏值
 
         for trigger_idx in trigger_indices:
             # 生成推荐号码（基于前100期的前6码）
@@ -594,9 +714,23 @@ def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int,
             else:
                 current_miss += 1
 
+            # 记录每个触发期的遗漏值
+            omission_history.append(current_miss)
+
         # 遍历结束后，如果当前遗漏大于历史最大，更新最大遗漏
         if current_miss > max_miss:
             max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        # 当前期是最后一期，索引为 len(omission_history) - 1
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
         # 检查是否满足条件
         if trigger_indices and current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -609,17 +743,22 @@ def check_front6_szz_omission(lottery_type: str, min_current: int, max_gap: int,
                 'current_omission': current_miss,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
             })
 
     return alerts
 
 
-def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: int,
+                                 recent_periods: int = 200, exclude_period: str = None):
     """
     检查第7码+1~+20区间的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -657,7 +796,7 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
         ]
 
         # 为每个区间建立遗漏历史
-        range_history = {i: {'current_omission': 0, 'max_omission': 0} for i in range(6)}
+        range_history = {i: {'current_omission': 0, 'max_omission': 0, 'omission_history': []} for i in range(6)}
 
         # 遍历每个期号
         for idx in range(len(all_rows) - 1):
@@ -691,6 +830,27 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
                 if current > range_history[range_idx]['max_omission']:
                     range_history[range_idx]['max_omission'] = current
 
+                # 记录每期的遗漏值
+                range_history[range_idx]['omission_history'].append(current)
+
+        # 为每个区间计算历史达到次数
+        for range_idx in range(6):
+            omission_values = range_history[range_idx]['omission_history']
+            current = range_history[range_idx]['current_omission']
+
+            # 当前期是最后一期，索引为 len(omission_values) - 1
+            current_idx = len(omission_values) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_values[i] >= current > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_values[i] >= current > 0)
+
+            range_history[range_idx]['historical_reach_count'] = total_reach
+            range_history[range_idx]['recent_reach_count'] = recent_reach
+
         # 检查所有区间的最新遗漏情况
         # 如果传了exclude_period,基准期是最后一期(已排除最新期)
         # 如果没传exclude_period,基准期是倒数第二期(遍历到倒数第二,检查最后一期)
@@ -698,6 +858,8 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
         for range_idx, (start, end, range_name) in enumerate(ranges):
             current = range_history[range_idx]['current_omission']
             max_miss = range_history[range_idx]['max_omission']
+            total_reach = range_history[range_idx]['historical_reach_count']
+            recent_reach = range_history[range_idx]['recent_reach_count']
 
             if current >= min_current and (max_miss - current) <= max_gap:
                 alerts.append({
@@ -708,17 +870,22 @@ def check_seventh_range_omission(lottery_type: str, min_current: int, max_gap: i
                     'current_omission': current,
                     'max_omission': max_miss,
                     'gap_from_max': max_miss - current,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
                     'priority': 'high' if (max_miss - current) <= 1 else 'medium'
                 })
 
     return alerts
 
 
-def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 2, exclude_period: str = None):
+def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 2,
+                                   recent_periods: int = 200, exclude_period: str = None):
     """
     检查第二码4肖分析的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -768,6 +935,7 @@ def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap:
 
         current_miss = 0
         max_miss = 0
+        omission_history = []  # 收集每个触发期的遗漏值
 
         # 遍历所有期号
         for idx in range(len(all_rows) - 5):  # 保证有5期窗口
@@ -813,9 +981,23 @@ def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap:
             else:
                 current_miss += 1
 
+            # 记录每个触发期的遗漏值
+            omission_history.append(current_miss)
+
         # 遍历结束后，更新最大遗漏
         if current_miss > max_miss:
             max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        # 当前期是最后一期，索引为 len(omission_history) - 1
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
         # 检查是否满足条件
         if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -838,17 +1020,22 @@ def check_second_fourxiao_omission(lottery_type: str, min_current: int, max_gap:
                 'current_omission': current_miss,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
             })
 
     return alerts
 
 
-def check_five_period_threexiao_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_five_period_threexiao_omission(lottery_type: str, min_current: int, max_gap: int,
+                                         recent_periods: int = 200, exclude_period: str = None):
     """
     检查5期3肖计算的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -897,6 +1084,7 @@ def check_five_period_threexiao_omission(lottery_type: str, min_current: int, ma
 
         current_miss = 0
         max_miss = 0
+        omission_history = []  # 收集每个触发期的遗漏值
 
         # 遍历触发期（尾号0或5）
         for idx in range(len(all_rows) - 5):
@@ -941,9 +1129,23 @@ def check_five_period_threexiao_omission(lottery_type: str, min_current: int, ma
             else:
                 current_miss += 1
 
+            # 记录每个触发期的遗漏值
+            omission_history.append(current_miss)
+
         # 遍历结束后，更新最大遗漏
         if current_miss > max_miss:
             max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        # 当前期是最后一期，索引为 len(omission_history) - 1
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
         # 检查是否满足条件
         if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -966,17 +1168,22 @@ def check_five_period_threexiao_omission(lottery_type: str, min_current: int, ma
                 'current_omission': current_miss,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
             })
 
     return alerts
 
 
-def check_place_results_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_place_results_omission(lottery_type: str, min_current: int, max_gap: int,
+                                 recent_periods: int = 200, exclude_period: str = None):
     """
     检查关注点登记结果的遗漏情况
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -1022,6 +1229,7 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
             max_miss = 0
             temp_miss = 0
             latest_qishu = ''
+            omission_history = []  # 收集每期遗漏值
 
             for record in records:
                 latest_qishu = record['qishu']  # 记录最新期数
@@ -1034,10 +1242,24 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
                     # 遗漏,累加
                     temp_miss += 1
 
+                # 记录每期的遗漏值
+                omission_history.append(temp_miss)
+
             # 最后的连续遗漏就是当前遗漏
             current_miss = temp_miss
             if temp_miss > max_miss:
                 max_miss = temp_miss
+
+            # 统计历史达到次数（两个维度）
+            # 当前期是最后一期，索引为 len(omission_history) - 1
+            current_idx = len(omission_history) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
             # 检查是否满足条件
             if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -1049,17 +1271,22 @@ def check_place_results_omission(lottery_type: str, min_current: int, max_gap: i
                     'current_omission': current_miss,
                     'max_omission': max_miss,
                     'gap_from_max': max_miss - current_miss,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
                     'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
                 })
 
     return alerts
 
 
-def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
+                              recent_periods: int = 200, exclude_period: str = None):
     """
     检查推荐8码的遗漏情况（只检查第7位）
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -1087,6 +1314,7 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
         # 遍历每个推荐期号
         current_miss = 0
         max_miss = 0
+        omission_history = []  # 收集每个推荐期的遗漏值
 
         for rec_row in recommend_periods:
             period = rec_row['period']
@@ -1131,9 +1359,23 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
                     else:
                         current_miss += 1
 
+                    # 记录每个推荐期的遗漏值
+                    omission_history.append(current_miss)
+
         # 遍历结束后，更新最大遗漏
         if current_miss > max_miss:
             max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        # 当前期是最后一期，索引为 len(omission_history) - 1
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
         # 检查是否满足条件
         if recommend_periods and current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -1146,17 +1388,22 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
                 'current_omission': current_miss,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
             })
 
     return alerts
 
 
-def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int, exclude_period: str = None):
+def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int,
+                               recent_periods: int = 200, exclude_period: str = None):
     """
     检查推荐16码的遗漏情况（只检查第7位）
 
     Args:
+        recent_periods: 近期统计期数范围（默认200期）
         exclude_period: 要排除的期号（用于获取开奖前的预警）
     """
     alerts = []
@@ -1184,6 +1431,7 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
         # 遍历每个推荐期号
         current_miss = 0
         max_miss = 0
+        omission_history = []  # 收集每个推荐期的遗漏值
 
         for rec_row in recommend_periods:
             period = rec_row['period']
@@ -1228,9 +1476,23 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
                     else:
                         current_miss += 1
 
+                    # 记录每个推荐期的遗漏值
+                    omission_history.append(current_miss)
+
         # 遍历结束后，更新最大遗漏
         if current_miss > max_miss:
             max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        # 当前期是最后一期，索引为 len(omission_history) - 1
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
 
         # 检查是否满足条件
         if recommend_periods and current_miss >= min_current and (max_miss - current_miss) <= max_gap:
@@ -1243,6 +1505,9 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
                 'current_omission': current_miss,
                 'max_omission': max_miss,
                 'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
                 'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
             })
 
@@ -1561,7 +1826,7 @@ def get_omission_alerts_with_config(
     # 从数据库获取所有启用的监控配置
     with get_db_cursor() as cursor:
         sql = """
-            SELECT analysis_type, detail, min_current_omission, max_gap_from_max
+            SELECT analysis_type, detail, min_current_omission, max_gap_from_max, recent_periods
             FROM monitor_config
             WHERE lottery_type = %s AND enabled = 1
             ORDER BY analysis_type, detail
@@ -1604,29 +1869,32 @@ def get_omission_alerts_with_config(
         logger.info(f"Processing analysis_type: {analysis_type}")
         # 使用最宽松的条件调用检查函数（min=0, max=999）
         # 这样可以获取所有可能的预警，然后再用具体配置过滤
+        # 获取该类型的第一个配置的recent_periods（所有配置共用）
+        type_recent_periods = config_map[analysis_type][0].get('recent_periods', 200)
+
         if analysis_type == 'hot20':
-            raw_alerts.extend(check_hot20_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_hot20_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'plus_minus6':
-            raw_alerts.extend(check_plus_minus6_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_plus_minus6_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'plus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=True, exclude_period=exclude_period))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, type_recent_periods, is_plus=True, exclude_period=exclude_period))
 
         elif analysis_type == 'minus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=False, exclude_period=exclude_period))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, type_recent_periods, is_plus=False, exclude_period=exclude_period))
 
         elif analysis_type == 'favorite_numbers':
-            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'each_issue':
-            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'front6_szz':
-            raw_alerts.extend(check_front6_szz_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_front6_szz_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'seventh_range':
-            raw_alerts.extend(check_seventh_range_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_seventh_range_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'second_fourxiao':
             # 为每个配置的位置分别检查
@@ -1636,22 +1904,22 @@ def get_omission_alerts_with_config(
                 # 从detail中提取位置号 (如 "第1位" -> 1)
                 try:
                     position = int(detail.replace('第', '').replace('位', ''))
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=position, exclude_period=exclude_period))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, type_recent_periods, position=position, exclude_period=exclude_period))
                 except:
                     # 如果解析失败,使用默认位置2
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=2, exclude_period=exclude_period))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, type_recent_periods, position=2, exclude_period=exclude_period))
 
         elif analysis_type == 'five_period_threexiao':
-            raw_alerts.extend(check_five_period_threexiao_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_five_period_threexiao_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'place_results':
-            raw_alerts.extend(check_place_results_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_place_results_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'recommend8':
-            raw_alerts.extend(check_recommend8_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_recommend8_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'recommend16':
-            raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999, exclude_period=exclude_period))
+            raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
     # 根据配置过滤预警：每个预警必须匹配一个启用的配置，并且满足该配置的条件
     filtered_alerts = []
