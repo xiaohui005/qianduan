@@ -291,11 +291,35 @@ function renderHot20Result(data) {
                           item.current_omission >= 3 ? '#e67e22' :
                           item.current_omission >= 1 ? '#f39c12' : '#95a5a6';
 
+    // 格式化去10期号码（带颜色）
+    const excludeNumbersHtml = item.exclude_numbers_str ?
+      item.exclude_numbers_str.split(',').map(num => {
+        const numStr = String(num).trim().padStart(2, '0');
+        const colorClass = window.getBallColorClass ? window.getBallColorClass(numStr) : '';
+        return `<span class="${colorClass}" style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-weight:bold;">${numStr}</span>`;
+      }).join('') : '-';
+
+    // 格式化最热20号码（带颜色，并标注命中）
+    const hot20Html = item.hot20_str ?
+      item.hot20_str.split(',').map(num => {
+        const numStr = String(num).trim().padStart(2, '0');
+        const colorClass = window.getBallColorClass ? window.getBallColorClass(numStr) : '';
+        const isHit = item.next_period_number !== null && item.next_period_number !== undefined &&
+                      parseInt(numStr) === item.next_period_number;
+
+        // 命中的号码加绿色边框
+        if (isHit) {
+          return `<span class="${colorClass}" style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-weight:bold;border:2px solid #27ae60;box-shadow:0 0 6px rgba(39,174,96,0.5);">${numStr}</span>`;
+        } else {
+          return `<span class="${colorClass}" style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-weight:bold;">${numStr}</span>`;
+        }
+      }).join('') : '-';
+
     html += `
       <tr style="background:${rowBg};">
         <td style="padding:10px;text-align:center;border:1px solid #ddd;font-weight:bold;color:#2980d9;">${item.period}</td>
-        <td style="padding:10px;text-align:center;border:1px solid #ddd;color:#e67e22;font-weight:bold;">${item.exclude_numbers_str || '-'}</td>
-        <td style="padding:10px;text-align:center;border:1px solid #ddd;color:#27ae60;font-weight:bold;">${item.hot20_str}</td>
+        <td style="padding:10px;text-align:center;border:1px solid #ddd;">${excludeNumbersHtml}</td>
+        <td style="padding:10px;text-align:center;border:1px solid #ddd;">${hot20Html}</td>
         <td style="padding:10px;text-align:center;border:1px solid #ddd;">${nextResultHtml}</td>
         <td style="padding:10px;text-align:center;border:1px solid #ddd;color:${omissionColor};font-weight:bold;font-size:16px;">${item.current_omission}</td>
         <td style="padding:10px;text-align:center;border:1px solid #ddd;color:#9b59b6;font-weight:bold;font-size:16px;">${item.max_omission}</td>

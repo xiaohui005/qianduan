@@ -435,7 +435,15 @@ function displayResults(records) {
         const numbers = record.top20_numbers.split(',');
         const numbersHtml = numbers.map(num => {
             const isHit = parseInt(num) === record.hit_number;
-            return `<span class="badge ${isHit ? 'badge-success' : 'badge-secondary'}">${num}</span>`;
+            const numStr = String(num).padStart(2, '0');
+            const colorClass = window.getBallColorClass ? window.getBallColorClass(numStr) : '';
+
+            // 命中的号码显示绿色边框高亮，其他号码按波色显示
+            if (isHit) {
+                return `<span class="badge ${colorClass}" style="border:3px solid #27ae60;box-shadow:0 0 8px rgba(39,174,96,0.6);font-weight:bold;padding:6px 10px;margin:2px;border-radius:6px;">${numStr}</span>`;
+            } else {
+                return `<span class="badge ${colorClass}" style="padding:6px 10px;margin:2px;border-radius:6px;">${numStr}</span>`;
+            }
         }).join(' ');
 
         const alertHtml = record.over5_alert ?
