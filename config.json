@@ -17,8 +17,8 @@
     "hk": "https://qnjl.zkclhb.com:2025/20221.html"
   },
   "WENLONGZHU_URLS": {
-    "am": "https://hkamkl.wenlongzhu.com:2053/Macau-j-l/#dh",
-    "hk": "https://hkamkl.wenlongzhu.com:2053/hk-j-l/#dh"
+    "am": "https://hkamkl.wenlongzhu.com:2053/Macau-j-l/",
+    "hk": "https://hkamkl.wenlongzhu.com:2053/hk-j-l/"
   },
   "AUTO_COLLECT": {
     "enabled": true,

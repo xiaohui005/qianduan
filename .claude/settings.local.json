@@ -85,7 +85,12 @@
       "Bash(powershell -Command \"Stop-Process -Id 2984 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 42828,22376 -Force\")",
       "Bash(powershell Get-Content 'C:\\Users\\Administrator\\Desktop\\six666\\frontend\\js\\modules\\simulation-betting.js')",
-      "Bash(Select-Object -First 30)"
+      "Bash(Select-Object -First 30)",
+      "Bash(ping:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 12828 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 39516 -Force\")",
+      "Bash(powershell -Command \"Get-ChildItem C:\\Users\\Administrator\\Desktop\\six666 -File -Name\")",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

@@ -92,7 +92,7 @@ def collect_api(type: str = None):
     urls = config.COLLECT_URLS
     result = {}
     types = [type] if type in urls else urls.keys() if not type else []
-    fallback_urls = getattr(config, 'FALLBACK_COLLECT_URLS', {})
+    fallback_urls = getattr(config, 'WENLONGZHU_URLS', {})
 
     for t in types:
         logger.info(f"开始采集: {t}")

@@ -41,9 +41,9 @@ except Exception:
 def get_max_period(lottery_type):
     """获取指定彩种的最大期号（使用上下文管理器，防止连接泄漏）"""
     with get_db_cursor() as cursor:
-        cursor.execute("SELECT MAX(period) FROM lottery_result WHERE lottery_type=%s", (lottery_type,))
+        cursor.execute("SELECT MAX(period) as max_period FROM lottery_result WHERE lottery_type=%s", (lottery_type,))
         row = cursor.fetchone()
-        return row[0] if row and row[0] else None
+        return row['max_period'] if row and row['max_period'] else None
 
 def fetch_lottery(url, lottery_type, check_max_period=True):
     if not url:
@@ -59,27 +59,57 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
         if resp.charset_encoding:
             resp.encoding = resp.charset_encoding
         else:
-            # 如果响应头没有编码信息，使用 chardet 库检测
+            # 如果响应头没有编码信息，尝试使用 chardet 库检测
             try:
                 import chardet
                 detected = chardet.detect(resp.content)
                 if detected and detected.get('encoding'):
                     resp.encoding = detected['encoding']
                 else:
-                    # 如果 chardet 也无法检测，默认使用 UTF-8
-                    resp.encoding = 'utf-8'
+                    # 如果 chardet 也无法检测，尝试常见中文编码
+                    resp.encoding = 'gbk'
             except ImportError:
-                # 如果没有安装 chardet，默认使用 UTF-8
-                resp.encoding = 'utf-8'
+                # 如果没有安装 chardet，尝试常见中文编码
+                # 文龙珠等中文网站通常使用 GBK 编码
+                try:
+                    # 尝试 GBK 解码
+                    test_text = resp.content.decode('gbk')
+                    resp.encoding = 'gbk'
+                    print(f"使用 GBK 编码")
+                except:
+                    # GBK 失败，尝试 GB2312
+                    try:
+                        test_text = resp.content.decode('gb2312')
+                        resp.encoding = 'gb2312'
+                        print(f"使用 GB2312 编码")
+                    except:
+                        # 都失败，最后使用 UTF-8
+                        resp.encoding = 'utf-8'
+                        print(f"使用 UTF-8 编码")
     except Exception as e:
-        # 任何异常情况，使用 UTF-8 作为后备方案
-        print(f"编码检测异常: {e}，使用 UTF-8")
-        resp.encoding = 'utf-8'
+        # 任何异常情况，尝试 GBK 作为后备方案（而不是 UTF-8）
+        print(f"编码检测异常: {e}，尝试使用 GBK")
+        try:
+            test_text = resp.content.decode('gbk')
+            resp.encoding = 'gbk'
+        except:
+            resp.encoding = 'utf-8'
     soup = BeautifulSoup(resp.text, 'html.parser')
     results = []
     max_db_period = get_max_period(lottery_type) if check_max_period else None
     max_html_period = None
-    for li in soup.find_all('li'):
+
+    # 尝试定位历史记录区域（文龙珠源头的特殊结构）
+    history_div = soup.find('div', class_='history')
+    if history_div:
+        # 文龙珠源头：在history div下找ul
+        ul = history_div.find('ul')
+        li_tags = ul.find_all('li') if ul else []
+    else:
+        # 默认源头：直接查找所有li
+        li_tags = soup.find_all('li')
+
+    for li in li_tags:
         dt = li.find('dt')
         if not dt:
             continue
@@ -135,7 +165,7 @@ def fetch_lottery(url, lottery_type, check_max_period=True):
             })
     if check_max_period:
         print(f"数据库最大期号: {max_db_period}, 网页最大期号: {max_html_period}")
-        if max_db_period and max_html_period and max_db_period >= max_html_period:
+        if max_db_period and max_html_period and max_db_period > max_html_period:
             print("最新一期已采集，无需重复采集。")
             return []
     print(f"采集到{len(results)}条数据")

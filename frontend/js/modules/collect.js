@@ -169,17 +169,17 @@ function initSourceSelection() {
       // 切换显示的按钮组
       if (source === 'default') {
         if (defaultSourceButtons) {
-          defaultSourceButtons.style.display = 'block';
+          defaultSourceButtons.classList.remove('hidden');
         }
         if (wenlongzhuSourceButtons) {
-          wenlongzhuSourceButtons.style.display = 'none';
+          wenlongzhuSourceButtons.classList.add('hidden');
         }
       } else if (source === 'wenlongzhu') {
         if (defaultSourceButtons) {
-          defaultSourceButtons.style.display = 'none';
+          defaultSourceButtons.classList.add('hidden');
         }
         if (wenlongzhuSourceButtons) {
-          wenlongzhuSourceButtons.style.display = 'block';
+          wenlongzhuSourceButtons.classList.remove('hidden');
         }
       }
 
@@ -196,14 +196,12 @@ function initSourceSelection() {
 function toggleHistoryCollectArea() {
   if (!historyCollectArea || !toggleHistoryBtn) return;
 
-  if (historyCollectArea.style.display === 'none' || historyCollectArea.classList.contains('hidden')) {
+  if (historyCollectArea.classList.contains('hidden')) {
     // 显示历史采集区域
-    historyCollectArea.style.display = 'block';
     historyCollectArea.classList.remove('hidden');
     toggleHistoryBtn.innerText = '隐藏历史采集';
   } else {
     // 隐藏历史采集区域
-    historyCollectArea.style.display = 'none';
     historyCollectArea.classList.add('hidden');
     toggleHistoryBtn.innerText = '显示历史采集';
   }
@@ -286,13 +284,13 @@ function initCollectModule() {
 
   // 确保默认显示正确的按钮组
   if (defaultSourceButtons) {
-    defaultSourceButtons.style.display = 'block';
+    defaultSourceButtons.classList.remove('hidden');
   }
   if (wenlongzhuSourceButtons) {
-    wenlongzhuSourceButtons.style.display = 'none';
+    wenlongzhuSourceButtons.classList.add('hidden');
   }
   if (historyCollectArea) {
-    historyCollectArea.style.display = 'none';
+    historyCollectArea.classList.add('hidden');
   }
 
   console.log('数据采集模块初始化完成');
