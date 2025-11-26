@@ -41,7 +41,10 @@ ANALYSIS_TYPE_LABELS = {
     'five_period_threexiao': '5期3肖',
     'place_results': '关注点登记结果',
     'recommend8': '推荐8码',
-    'recommend16': '推荐16码'
+    'recommend16': '推荐16码',
+    'recommend30': '推荐30码',
+    'seventh_smart20': '第7码智能推荐20码',
+    'high20': '高20码分析'
 }
 
 
@@ -1514,6 +1517,327 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
     return alerts
 
 
+def check_recommend30_omission(lottery_type: str, min_current: int, max_gap: int,
+                                recent_periods: int = 200, exclude_period: str = None):
+    """
+    检查推荐30码的遗漏情况（检查第7位）
+
+    Args:
+        recent_periods: 近期统计期数范围（默认200期）
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
+    alerts = []
+
+    with get_db_cursor() as cursor:
+        # 获取所有推荐30码记录
+        sql = """
+            SELECT period, recommend_numbers, next_period, next_number,
+                   is_hit, miss_count, max_miss
+            FROM range_recommend30
+            WHERE lottery_type=%s AND is_hit IS NOT NULL
+        """
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, params)
+        records = cursor.fetchall()
+
+        if not records:
+            return alerts
+
+        # 直接使用最后一条记录的遗漏数据
+        latest_record = records[-1]
+        current_miss = latest_record['miss_count'] or 0
+        max_miss = latest_record['max_miss'] or 0
+
+        # 统计历史达到次数（两个维度）
+        omission_values = [rec['miss_count'] or 0 for rec in records]
+        current_idx = len(omission_values) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_values[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_values[i] >= current_miss > 0)
+
+        # 检查是否满足条件
+        if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+            alerts.append({
+                'analysis_type': 'recommend30',
+                'detail': '第7位',
+                'period': latest_record['period'],
+                'numbers': latest_record['recommend_numbers'],
+                'current_omission': current_miss,
+                'max_omission': max_miss,
+                'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
+                'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+            })
+
+    return alerts
+
+
+def check_seventh_smart20_omission(lottery_type: str, min_current: int, max_gap: int,
+                                    recent_periods: int = 200, exclude_period: str = None):
+    """
+    检查第7码智能推荐20码的遗漏情况
+
+    Args:
+        recent_periods: 近期统计期数范围（默认200期）
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
+    alerts = []
+
+    with get_db_cursor() as cursor:
+        # 获取所有智能推荐20码记录
+        sql = """
+            SELECT period, recommend_numbers
+            FROM seventh_smart20_history
+            WHERE lottery_type=%s
+        """
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, params)
+        smart20_periods = cursor.fetchall()
+
+        if not smart20_periods:
+            return alerts
+
+        # 遍历每个推荐期号，计算遗漏
+        current_miss = 0
+        max_miss = 0
+        omission_history = []
+
+        for idx, rec_row in enumerate(smart20_periods):
+            period = rec_row['period']
+            recommend_str = rec_row['recommend_numbers']
+
+            if not recommend_str:
+                continue
+
+            # 解析推荐的20个号码
+            recommended_nums = set(recommend_str.split(','))
+
+            # 获取下一期的开奖数据
+            cursor.execute("""
+                SELECT numbers
+                FROM lottery_result
+                WHERE lottery_type=%s AND period > %s
+                ORDER BY period ASC
+                LIMIT 1
+            """, (lottery_type, period))
+            next_period = cursor.fetchone()
+
+            if next_period:
+                # 获取下一期第7个号码
+                next_nums = next_period['numbers'].split(',')
+                if len(next_nums) >= 7:
+                    next_7th = next_nums[6]
+
+                    # 检查是否命中
+                    if next_7th in recommended_nums:
+                        if current_miss > max_miss:
+                            max_miss = current_miss
+                        current_miss = 0
+                    else:
+                        current_miss += 1
+
+                    # 记录每个推荐期的遗漏值
+                    omission_history.append(current_miss)
+
+        # 遍历结束后，更新最大遗漏
+        if current_miss > max_miss:
+            max_miss = current_miss
+
+        # 统计历史达到次数（两个维度）
+        if omission_history:
+            current_idx = len(omission_history) - 1
+
+            # 统计1：历史总次数（只看当前期之前）
+            total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+            # 统计2：近期次数（最近N期，不包括当前期）
+            start_idx = max(0, current_idx - recent_periods)
+            recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
+
+            # 检查是否满足条件
+            if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+                last_period = smart20_periods[-1]['period']
+                last_recommend = smart20_periods[-1]['recommend_numbers']
+
+                alerts.append({
+                    'analysis_type': 'seventh_smart20',
+                    'detail': '第7位',
+                    'period': last_period,
+                    'numbers': last_recommend,
+                    'current_omission': current_miss,
+                    'max_omission': max_miss,
+                    'gap_from_max': max_miss - current_miss,
+                    'historical_reach_count': total_reach,
+                    'recent_reach_count': recent_reach,
+                    'recent_periods': recent_periods,
+                    'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+                })
+
+    return alerts
+
+
+def check_high20_omission(lottery_type: str, min_current: int, max_gap: int,
+                          recent_periods: int = 200, exclude_period: str = None):
+    """
+    检查高20码分析的遗漏情况
+
+    策略：组合策略
+    - 近100期的热号top10
+    - 全部600期的中频号（排除top15和bottom15，取中间20个中的10个）
+
+    Args:
+        recent_periods: 近期统计期数范围（默认200期）
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
+    from collections import Counter
+
+    alerts = []
+
+    def get_seventh_number(numbers_str):
+        """获取第7个号码"""
+        if not numbers_str:
+            return None
+        numbers = [int(n) for n in numbers_str.split(',')]
+        return numbers[6] if len(numbers) >= 7 else None
+
+    with get_db_cursor() as cursor:
+        # 获取所有历史数据（按期号正序）
+        sql = """
+            SELECT period, numbers
+            FROM lottery_result
+            WHERE lottery_type=%s
+        """
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, tuple(params))
+        all_records = cursor.fetchall()
+
+    if len(all_records) < 601:
+        return alerts
+
+    # 分析每期的高20码，计算遗漏
+    results = []
+
+    for i in range(600, len(all_records)):
+        current_record = all_records[i]
+        current_period = current_record['period']
+
+        # 策略：组合近期热号和中期稳定号
+        # 1. 近100期的热号top10
+        recent_100 = all_records[i-100:i]
+        recent_nums = [get_seventh_number(r['numbers']) for r in recent_100]
+        recent_nums = [n for n in recent_nums if n is not None]
+        recent_counter = Counter(recent_nums)
+        hot_10 = [num for num, _ in recent_counter.most_common(10)]
+
+        # 2. 全部600期的中频号（排除top15和bottom15）
+        all_600 = all_records[i-600:i]
+        all_nums = [get_seventh_number(r['numbers']) for r in all_600]
+        all_nums = [n for n in all_nums if n is not None]
+        all_counter = Counter(all_nums)
+        sorted_all = sorted(all_counter.items(), key=lambda x: x[1], reverse=True)
+        middle_nums = [num for num, _ in sorted_all[15:35]]  # 取中间20个
+
+        # 3. 组合：热号10 + 中频号中选10个（不重复的）
+        combined = set(hot_10)
+        for num in middle_nums:
+            if num not in combined and len(combined) < 20:
+                combined.add(num)
+
+        final_20 = list(combined)[:20]
+
+        # 检查下一期是否命中（如果存在下一期）
+        is_hit = None
+
+        if i + 1 < len(all_records):
+            next_record = all_records[i + 1]
+            next_seventh = get_seventh_number(next_record['numbers'])
+
+            if next_seventh is not None:
+                is_hit = next_seventh in final_20
+
+        results.append({
+            'period': current_period,
+            'top20_numbers': final_20,
+            'is_hit': is_hit
+        })
+
+    # 计算遗漏值
+    current_miss = 0
+    max_miss = 0
+    omission_history = []
+
+    for result in results:
+        if result['is_hit'] is not None:
+            if result['is_hit']:
+                if current_miss > max_miss:
+                    max_miss = current_miss
+                current_miss = 0
+            else:
+                current_miss += 1
+
+            omission_history.append(current_miss)
+
+    # 遍历结束后，更新最大遗漏
+    if current_miss > max_miss:
+        max_miss = current_miss
+
+    # 统计历史达到次数（两个维度）
+    if omission_history:
+        current_idx = len(omission_history) - 1
+
+        # 统计1：历史总次数（只看当前期之前）
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 统计2：近期次数（最近N期，不包括当前期）
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 检查是否满足条件
+        if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+            last_result = results[-1]
+            top20_str = ','.join(map(str, sorted(last_result['top20_numbers'])))
+
+            alerts.append({
+                'analysis_type': 'high20',
+                'detail': '第7位',
+                'period': last_result['period'],
+                'numbers': top20_str,
+                'current_omission': current_miss,
+                'max_omission': max_miss,
+                'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
+                'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+            })
+
+    return alerts
+
+
 @router.get("/api/monitor/omission_alerts")
 def get_omission_alerts(
     lottery_type: str = Query('am', description='彩种类型: am=澳门, hk=香港'),
@@ -1542,7 +1866,7 @@ def get_omission_alerts(
             'hot20', 'plus_minus6', 'plus_range', 'minus_range',
             'favorite_numbers', 'each_issue', 'front6_szz', 'seventh_range',
             'second_fourxiao', 'five_period_threexiao', 'place_results',
-            'recommend8', 'recommend16'
+            'recommend8', 'recommend16', 'recommend30', 'seventh_smart20', 'high20'
         }
 
     # 检查各种分析
@@ -1585,6 +1909,15 @@ def get_omission_alerts(
     if 'recommend16' in enabled_types:
         all_alerts.extend(check_recommend16_omission(lottery_type, min_current_omission, max_gap_from_max))
 
+    if 'recommend30' in enabled_types:
+        all_alerts.extend(check_recommend30_omission(lottery_type, min_current_omission, max_gap_from_max))
+
+    if 'seventh_smart20' in enabled_types:
+        all_alerts.extend(check_seventh_smart20_omission(lottery_type, min_current_omission, max_gap_from_max))
+
+    if 'high20' in enabled_types:
+        all_alerts.extend(check_high20_omission(lottery_type, min_current_omission, max_gap_from_max))
+
     # 按优先级和遗漏期数排序
     priority_order = {'high': 1, 'medium': 2, 'low': 3}
     all_alerts.sort(key=lambda x: (priority_order.get(x['priority'], 99), -x['current_omission']))
@@ -1620,7 +1953,10 @@ def get_monitor_config():
             {'value': 'five_period_threexiao', 'label': '5期3肖', 'description': '期号0/5尾触发，前3码生成'},
             {'value': 'place_results', 'label': '关注点登记结果', 'description': '关注点登记的命中遗漏统计'},
             {'value': 'recommend8', 'label': '推荐8码', 'description': '期号0/5尾触发，第7位推荐8码'},
-            {'value': 'recommend16', 'label': '推荐16码', 'description': '期号0/5尾触发，第7位推荐16码'}
+            {'value': 'recommend16', 'label': '推荐16码', 'description': '期号0/5尾触发，第7位推荐16码'},
+            {'value': 'recommend30', 'label': '推荐30码', 'description': '基于最近200期最热30码推荐'},
+            {'value': 'seventh_smart20', 'label': '第7码智能推荐20码', 'description': '基于多维度评分的智能推荐20码'},
+            {'value': 'high20', 'label': '高20码分析', 'description': '基于600期组合策略：近期热号+中期稳定号'}
         ],
         'default_min_current_omission': 8,
         'default_max_gap_from_max': 3,
@@ -1920,6 +2256,15 @@ def get_omission_alerts_with_config(
 
         elif analysis_type == 'recommend16':
             raw_alerts.extend(check_recommend16_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+
+        elif analysis_type == 'recommend30':
+            raw_alerts.extend(check_recommend30_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+
+        elif analysis_type == 'seventh_smart20':
+            raw_alerts.extend(check_seventh_smart20_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+
+        elif analysis_type == 'high20':
+            raw_alerts.extend(check_high20_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
     # 根据配置过滤预警：每个预警必须匹配一个启用的配置，并且满足该配置的条件
     filtered_alerts = []

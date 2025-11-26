@@ -330,7 +330,10 @@ function getAnalysisTypeName(type) {
         'five_period_threexiao': '5️⃣ 5期3肖',
         'place_results': '📍 关注点登记结果',
         'recommend8': '8️⃣ 推荐8码',
-        'recommend16': '🔢 推荐16码'
+        'recommend16': '🔢 推荐16码',
+        'recommend30': '3️⃣0️⃣ 推荐30码',
+        'seventh_smart20': '🧠 第7码智能推荐20码',
+        'high20': '🚀 高20码分析'
     };
     return names[type] || type;
 }
