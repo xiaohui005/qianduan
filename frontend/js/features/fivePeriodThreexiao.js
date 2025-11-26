@@ -13,12 +13,15 @@ let currentData = null;
  */
 function initFivePeriodThreexiao() {
     console.log('初始化5期3肖计算功能');
-    
+
     // 绑定彩种选择按钮事件
     bindLotteryTypeButtons();
-    
+
     // 绑定开始分析按钮事件
     bindStartAnalysisButton();
+
+    // 初始化年份选择器
+    initYearSelect();
 }
 
 /**
@@ -53,6 +56,22 @@ function bindStartAnalysisButton() {
 }
 
 /**
+ * 初始化年份选择器
+ */
+function initYearSelect() {
+    const yearSelect = document.getElementById('fivePeriodThreexiaoYearSelect');
+    if (yearSelect) {
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= 2020; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y + '年';
+            yearSelect.appendChild(option);
+        }
+    }
+}
+
+/**
  * 开始5期3肖计算分析
  */
 async function startFivePeriodThreexiaoAnalysis() {
@@ -81,8 +100,16 @@ async function startFivePeriodThreexiaoAnalysis() {
     }
     
     try {
+        // 获取年份筛选
+        const yearSelect = document.getElementById('fivePeriodThreexiaoYearSelect');
+        const selectedYear = yearSelect ? yearSelect.value : '';
+
         // 调用API获取数据
-        const response = await fetch(`${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&page=${fivePeriodCurrentPage}&page_size=${currentPageSize}`);
+        let url = `${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&page=${fivePeriodCurrentPage}&page_size=${currentPageSize}`;
+        if (selectedYear) {
+            url += `&year=${selectedYear}`;
+        }
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.success) {
@@ -227,6 +254,7 @@ function displayFivePeriodThreexiaoResults(data) {
 function displayFivePeriodThreexiaoStats(data) {
     document.getElementById('fivePeriodThreexiaoTotal').textContent = data.total_triggers || 0;
     document.getElementById('fivePeriodThreexiaoHitCount').textContent = data.hit_count || 0;
+    document.getElementById('fivePeriodThreexiaoMissCount').textContent = data.miss_count || 0;
     document.getElementById('fivePeriodThreexiaoHitRate').textContent = (data.hit_rate || 0) + '%';
     document.getElementById('fivePeriodThreexiaoCurrentMiss').textContent = data.current_miss || 0;
     document.getElementById('fivePeriodThreexiaoMaxMiss').textContent = data.max_miss || 0;
@@ -321,7 +349,14 @@ function changePageSize() {
  */
 async function exportToCSV() {
     try {
-        const response = await fetch(`${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&export=csv`);
+        const yearSelect = document.getElementById('fivePeriodThreexiaoYearSelect');
+        const selectedYear = yearSelect ? yearSelect.value : '';
+
+        let url = `${window.BACKEND_URL}/api/five_period_threexiao?lottery_type=${currentLotteryType}&export=csv`;
+        if (selectedYear) {
+            url += `&year=${selectedYear}`;
+        }
+        const response = await fetch(url);
         
         if (response.ok) {
             const blob = await response.blob();

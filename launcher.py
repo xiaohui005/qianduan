@@ -36,8 +36,8 @@ def ensure_venv():
 print(f"当前Python环境: {sys.executable}")
 print("跳过虚拟环境检查，直接在当前环境运行...\n")
 
-# 添加backend到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+# 注释掉会导致导入问题的代码
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 
 def check_database():
     """检查数据库连接"""

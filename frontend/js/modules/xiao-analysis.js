@@ -29,11 +29,26 @@ function initSecondFourxiaoAnalysis() {
     });
   }
 
+  // 初始化年份选择器
+  const yearSelect = document.getElementById('secondFourxiaoYearSelect');
+  if (yearSelect) {
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 2020; y--) {
+      const option = document.createElement('option');
+      option.value = y;
+      option.textContent = y + '年';
+      yearSelect.appendChild(option);
+    }
+  }
+
   const startBtn = document.getElementById('startSecondFourxiaoAnalysisBtn');
   if (startBtn) {
     startBtn.addEventListener('click', function() {
       window.secondFourxiaoPage = 1;
-      loadSecondFourxiaoAnalysis(window.currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2, window.secondFourxiaoPage || 1, 30);
+      const yearSelect = document.getElementById('secondFourxiaoYearSelect');
+      const selectedYear = yearSelect ? yearSelect.value : '';
+      window.secondFourxiaoSelectedYear = selectedYear;
+      loadSecondFourxiaoAnalysis(window.currentSeventhRangeType || 'am', window.secondFourxiaoPos || 2, window.secondFourxiaoPage || 1, 30, selectedYear);
     });
   }
 }
@@ -41,7 +56,7 @@ function initSecondFourxiaoAnalysis() {
 /**
  * 加载第二个号码四肖分析数据
  */
-async function loadSecondFourxiaoAnalysis(lotteryType, position, page = 1, pageSize = 30) {
+async function loadSecondFourxiaoAnalysis(lotteryType, position, page = 1, pageSize = 30, year = '') {
   const resultDiv = document.getElementById('secondFourxiaoResult');
   const statsDiv = document.getElementById('secondFourxiaoStats');
 
@@ -51,7 +66,11 @@ async function loadSecondFourxiaoAnalysis(lotteryType, position, page = 1, pageS
   if (statsDiv) statsDiv.style.display = 'none';
 
   try {
-    const res = await fetch(`${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lotteryType}&position=${position}&page=${page}&page_size=${pageSize}`);
+    let url = `${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lotteryType}&position=${position}&page=${page}&page_size=${pageSize}`;
+    if (year) {
+      url += `&year=${year}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
 
     if (!data.success) {
@@ -141,7 +160,9 @@ function renderSecondFourxiao(data) {
   if (statsDiv) {
     document.getElementById('secondFourxiaoTotal').textContent = String(total_triggers || 0);
     document.getElementById('secondFourxiaoHitCount').textContent = String(hit_count || 0);
+    document.getElementById('secondFourxiaoMissCount').textContent = String(data.miss_count || 0);
     document.getElementById('secondFourxiaoHitRate').textContent = String((hit_rate || 0) + '%');
+    document.getElementById('secondFourxiaoMaxConsecutiveMiss').textContent = String(data.max_consecutive_miss || 0);
     statsDiv.style.display = 'block';
   }
 
@@ -153,7 +174,7 @@ function renderSecondFourxiao(data) {
   if (prevBtn) {
     prevBtn.addEventListener('click', function() {
       if ((page || 1) > 1) {
-        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page - 1), page_size || 30);
+        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page - 1), page_size || 30, window.secondFourxiaoSelectedYear || '');
       }
     });
   }
@@ -161,7 +182,7 @@ function renderSecondFourxiao(data) {
   if (nextBtn) {
     nextBtn.addEventListener('click', function() {
       if (page < total_pages) {
-        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page + 1), page_size || 30);
+        loadSecondFourxiaoAnalysis(window.secondFourxiaoLotteryType || 'am', window.secondFourxiaoPosition || 2, (page + 1), page_size || 30, window.secondFourxiaoSelectedYear || '');
       }
     });
   }
@@ -170,7 +191,11 @@ function renderSecondFourxiao(data) {
     exportBtn.addEventListener('click', function() {
       const lt = window.secondFourxiaoLotteryType || 'am';
       const pos = window.secondFourxiaoPosition || 2;
-      const url = `${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lt}&position=${pos}&export=csv`;
+      const year = window.secondFourxiaoSelectedYear || '';
+      let url = `${window.BACKEND_URL}/api/second_number_fourxiao?lottery_type=${lt}&position=${pos}&export=csv`;
+      if (year) {
+        url += `&year=${year}`;
+      }
       window.open(url, '_blank');
     });
   }

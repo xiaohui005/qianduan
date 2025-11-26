@@ -1231,6 +1231,7 @@ def get_second_number_fourxiao(
     position: int = Query(2, ge=1, le=7),
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=200),
+    year: int | None = Query(None, description="年份筛选"),
     export: str | None = Query(None)
 ):
     """
@@ -1242,14 +1243,24 @@ def get_second_number_fourxiao(
     """
     try:
         with get_db_cursor() as cursor:
-            sql = """
+            # 构建查询条件
+            where_clauses = ["lottery_type = %s"]
+            params = [lottery_type]
+
+            if year:
+                where_clauses.append("period LIKE %s")
+                params.append(f"{year}%")
+
+            where_sql = " AND ".join(where_clauses)
+
+            sql = f"""
             SELECT period, numbers, open_time
             FROM lottery_result
-            WHERE lottery_type = %s
+            WHERE {where_sql}
             ORDER BY period DESC
             LIMIT 500
             """
-            cursor.execute(sql, (lottery_type,))
+            cursor.execute(sql, tuple(params))
             rows = cursor.fetchall()
         if not rows:
             return {"success": False, "message": "暂无数据"}
@@ -1343,6 +1354,18 @@ def get_second_number_fourxiao(
         total = len(results)
         hit_rate = round((total_hit / total * 100), 2) if total else 0.0
 
+        # 计算最大连续遗漏：需要按时间顺序遍历
+        max_consecutive_miss = 0
+        current_consecutive_miss = 0
+        # 按期号正序遍历（从旧到新）
+        sorted_by_period = sorted(results, key=lambda x: x['current_period'])
+        for item in sorted_by_period:
+            if not item['is_hit']:
+                current_consecutive_miss += 1
+                max_consecutive_miss = max(max_consecutive_miss, current_consecutive_miss)
+            else:
+                current_consecutive_miss = 0
+
         # 导出 CSV（导出全部结果，忽略分页）
         if export == 'csv':
             headers = ['触发期数', '开奖时间', '基础位置', '基础号码', '生成16码', '窗口期(后5期)', '窗口第7码', '是否命中', '命中期']
@@ -1375,7 +1398,9 @@ def get_second_number_fourxiao(
                 'lottery_type': lottery_type,
                 'total_triggers': total,
                 'hit_count': total_hit,
+                'miss_count': total - total_hit,
                 'hit_rate': hit_rate,
+                'max_consecutive_miss': max_consecutive_miss,
                 'page': page,
                 'page_size': page_size,
                 'total_pages': total_pages,
@@ -1841,6 +1866,7 @@ def get_five_period_threexiao(
     lottery_type: str = Query('am'),
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=200),
+    year: int | None = Query(None, description="年份筛选"),
     export: str | None = Query(None)
 ):
     """
@@ -1854,14 +1880,24 @@ def get_five_period_threexiao(
     try:
         # 获取数据，按期号升序排列
         with get_db_cursor() as cursor:
+            # 构建查询条件
+            where_clauses = ["lottery_type = %s"]
+            params = [lottery_type]
+
+            if year:
+                where_clauses.append("period LIKE %s")
+                params.append(f"{year}%")
+
+            where_sql = " AND ".join(where_clauses)
+
             cursor.execute(
-                """
+                f"""
                 SELECT period, numbers, open_time
                 FROM lottery_result
-                WHERE lottery_type = %s
+                WHERE {where_sql}
                 ORDER BY period ASC
                 """,
-                (lottery_type,)
+                tuple(params)
             )
             rows = cursor.fetchall()
         if not rows:
@@ -2018,6 +2054,7 @@ def get_five_period_threexiao(
                 'lottery_type': lottery_type,
                 'total_triggers': total_triggers,
                 'hit_count': total_hit,
+                'miss_count': total_triggers - total_hit,
                 'hit_rate': hit_rate,
                 'current_miss': current_miss,
                 'max_miss': max_miss,

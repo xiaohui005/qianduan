@@ -6,27 +6,15 @@
 
 from fastapi import APIRouter, Query
 from typing import Optional
-try:
-    from backend import collect, config
-    from backend.utils import (
-        get_db_cursor,
-        collection_response,
-        error_response,
-        paginated_response,
-        get_logger,
-        handle_external_api_error
-    )
-except ImportError:
-    import collect
-    import config
-    from utils import (
-        get_db_cursor,
-        collection_response,
-        error_response,
-        paginated_response,
-        get_logger,
-        handle_external_api_error
-    )
+from backend import collect, config
+from backend.utils import (
+    get_db_cursor,
+    collection_response,
+    error_response,
+    paginated_response,
+    get_logger,
+    handle_external_api_error
+)
 
 # 导入性能优化工具
 from backend.utils.performance_utils import monitor_performance

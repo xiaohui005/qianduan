@@ -476,19 +476,25 @@
             <button type="button" class="pos-btn" data-pos="6">第6位</button>
             <button type="button" class="pos-btn" data-pos="7">第7位</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="secondFourxiaoYearSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
+            <option value="">全部年份</option>
+          </select>
           <button id="startSecondFourxiaoAnalysisBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
-        <div id="secondFourxiaoResult" class="result-container"></div>
-        <div id="secondFourxiaoStats" class="stats-container" style="display: none; margin-top: 20px;">
+        <div id="secondFourxiaoStats" class="stats-container" style="display: none; margin-top: 20px; margin-bottom: 20px;">
           <div class="stats-section">
             <h3 class="stats-title">总体统计</h3>
             <div class="stats-grid">
               <div class="stats-item"><span class="stats-label">触发期数：</span><span class="stats-value" id="secondFourxiaoTotal">0</span></div>
               <div class="stats-item"><span class="stats-label">命中次数：</span><span class="stats-value" id="secondFourxiaoHitCount">0</span></div>
+              <div class="stats-item"><span class="stats-label">遗漏总次数：</span><span class="stats-value" id="secondFourxiaoMissCount">0</span></div>
               <div class="stats-item"><span class="stats-label">命中率：</span><span class="stats-value" id="secondFourxiaoHitRate">0%</span></div>
+              <div class="stats-item"><span class="stats-label">最大连续遗漏：</span><span class="stats-value" id="secondFourxiaoMaxConsecutiveMiss" style="color: #e74c3c; font-weight: bold;">0</span></div>
             </div>
           </div>
         </div>
+        <div id="secondFourxiaoResult" class="result-container"></div>
       </div>
 
       <div id="sixthThreexiaoPage" class="hidden">
@@ -699,7 +705,7 @@
 
       <div id="fivePeriodThreexiaoPage" class="hidden">
         <h2>5期3肖计算</h2>
-        
+
         <!-- 计算规则说明 -->
         <div class="color-definition" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2980d9;">
           <h3 style="color: #2980d9; margin-bottom: 10px;">计算规则</h3>
@@ -714,7 +720,7 @@
             </ol>
           </div>
         </div>
-        
+
         <!-- 彩种选择 -->
         <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
@@ -722,6 +728,10 @@
             <button class="seventh-range-type-btn active" data-type="am">澳门</button>
             <button class="seventh-range-type-btn" data-type="hk">香港</button>
           </div>
+          <label class="records-query-label" class="ml-4">年份筛选：</label>
+          <select id="fivePeriodThreexiaoYearSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
+            <option value="">全部年份</option>
+          </select>
           <button id="startFivePeriodThreexiaoBtn" class="btn-primary" class="mt-2">开始分析</button>
         </div>
         
@@ -744,6 +754,10 @@
               <div class="stats-item">
                 <span class="stats-label">命中次数：</span>
                 <span class="stats-value" id="fivePeriodThreexiaoHitCount">0</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">遗漏总次数：</span>
+                <span class="stats-value" id="fivePeriodThreexiaoMissCount">0</span>
               </div>
               <div class="stats-item">
                 <span class="stats-label">命中率：</span>

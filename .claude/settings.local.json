@@ -81,7 +81,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 26668,6344 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 46348 -Force\")",
       "Bash(Stop-Process -Force -ErrorAction SilentlyContinue\"\")",
-      "Bash(if exist frontendnul del frontendnul)"
+      "Bash(if exist frontendnul del frontendnul)",
+      "Bash(powershell -Command \"Stop-Process -Id 2984 -Force\")"
     ],
     "deny": [],
     "ask": []
