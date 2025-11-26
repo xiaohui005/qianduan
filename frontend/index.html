@@ -48,7 +48,7 @@
           </button>
           <div id="recommendGroupBtns" class="subgroup-btns">
             <button class="menu-btn menu-btn-sub" id="menuRecommendBtn">推荐8码</button>
-            <button class="menu-btn menu-btn-sub" id="menuRecommendHitBtn">推荐8码命中情况</button>
+            <button class="menu-btn menu-btn-sub" id="menuRecommend16Btn">推荐16码</button>
             <button class="menu-btn menu-btn-sub" id="menuSeventhSmart20Btn">第7码智能推荐20码</button>
           </div>
         </div>
@@ -1268,21 +1268,16 @@
         </div>
         <div id="recommendResult" class="result-container"></div>
       </div>
-      <div id="recommendHitPage" class="hidden">
-        <h2>推荐8码的命中情况</h2>
+      <div id="recommend16Page" class="hidden">
+        <h2>推荐16码</h2>
         <div class="mb-3">
           <label class="records-query-label">选择彩种：</label>
-          <div class="recommend-hit-type-group">
-            <button class="recommend-hit-type-btn active" data-type="am">澳门</button>
-            <button class="recommend-hit-type-btn" data-type="hk">香港</button>
-          </div>
-          <button id="analyzeRecommendHitBtn" class="btn-primary" class="ml-3">分析命中情况</button>
-        </div>
-        <div id="recommendHitResult" class="result-container">
-          <div style="text-align:center;color:#888;padding:20px;">
-            点击"分析命中情况"按钮选择要分析的推荐期数，查看前后10期的命中情况
+          <div class="recommend16-type-group">
+            <button class="recommend16-type-btn active" data-type="am">澳门</button>
+            <button class="recommend16-type-btn" data-type="hk">香港</button>
           </div>
         </div>
+        <div id="recommend16Result" class="result-container"></div>
       </div>
       <div id="tensPage" class="hidden">
         <h2>第N位十位分析</h2>
@@ -1703,6 +1698,7 @@
   <script src="js/modules/auto-collect-settings.js"></script>
   <script src="js/modules/records.js"></script>
   <script src="js/modules/recommend.js"></script>
+  <script src="js/modules/recommend16.js"></script>
   <script src="js/modules/tens-analysis.js"></script>
   <script src="js/modules/units-analysis.js"></script>
   <script src="js/modules/range-analysis.js"></script>
@@ -1716,14 +1712,12 @@
   <script src="js/modules/place-analysis.js"></script>
   <script src="js/modules/color-analysis.js"></script>
   <script src="js/modules/xiao-analysis.js"></script>
-  <script src="js/modules/recommend-hit.js"></script>
   <script src="js/modules/database-views.js"></script>
   <script src="js/modules/simulation-betting.js?v=20251126001"></script>
   <script src="js/modules/omission-monitor.js"></script>
   <script src="js/modules/omission-monitor-config.js"></script>
   <script src="js/modules/monitor-hit-records.js"></script>
   <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
-  <script src="js/features/recommend16.js"></script>
   <script src="js/features/fivePeriodThreexiao.js"></script>
   <script src="js/features/seventhSmart20.js"></script>
   <script src="js/features/seventhRangeAnalysis.js"></script>

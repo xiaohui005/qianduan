@@ -12,7 +12,7 @@ const PAGE_CONFIG = {
 
   // 分析推荐
   'menuRecommendBtn': { pageId: 'recommendPage', title: '推荐8码' },
-  'menuRecommendHitBtn': { pageId: 'recommendHitPage', title: '推荐8码的命中情况' },
+  'menuRecommend16Btn': { pageId: 'recommend16Page', title: '推荐16码' },
   'menuTensBtn': { pageId: 'tensPage', title: '第N位十位分析' },
   'menuUnitsBtn': { pageId: 'unitsPage', title: '第N个码个位分析' },
   'menuRangeBtn': { pageId: 'rangePage', title: '+1~+20区间分析' },
@@ -337,14 +337,14 @@ function showOnlyPage(pageId) {
       }
     }
 
-    // 如果是推荐8码命中情况页面,初始化
-    if (pageId === 'recommendHitPage') {
-      console.log('[页面管理] 检测到推荐8码命中情况页面');
-      if (typeof window.initRecommendHitAnalysis === 'function') {
-        console.log('[页面管理] 调用 initRecommendHitAnalysis()');
-        window.initRecommendHitAnalysis();
+    // 如果是推荐16码页面,初始化
+    if (pageId === 'recommend16Page') {
+      console.log('[页面管理] 检测到推荐16码页面');
+      if (typeof initRecommend16Module === 'function') {
+        console.log('[页面管理] 调用 initRecommend16Module()');
+        initRecommend16Module();
       } else {
-        console.error('[页面管理] ✗ initRecommendHitAnalysis 函数不存在');
+        console.error('[页面管理] ✗ initRecommend16Module 函数不存在');
       }
     }
 
