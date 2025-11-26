@@ -38,8 +38,33 @@ async function initSimulationBetting() {
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>投注号码（可多选）：</label>
-                        <div id="numberSelection" class="number-grid"></div>
+                        <label>号码来源：</label>
+                        <select id="numberSource" class="form-control">
+                            <option value="">请选择号码来源</option>
+                            <option value="recommend8">推荐8码</option>
+                            <option value="recommend16">推荐16码</option>
+                            <option value="seventh_smart20">第7个号码智能推荐20码</option>
+                            <option value="two_groups_cold9">2组观察-冷门9码</option>
+                            <option value="two_groups_groupA">2组观察-高频组（约20码）</option>
+                            <option value="two_groups_groupB">2组观察-低频组（约20码）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" id="twoGroupsPeriodRow" style="display: none;">
+                    <div class="form-group">
+                        <label>基准期号（2组观察分析用）：</label>
+                        <input type="text" id="twoGroupsBasePeriod" class="form-control" placeholder="例如: 2025100">
+                        <small class="form-text">用于2组观察分析，其他来源自动使用最新期</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>已选号码：</label>
+                        <div id="selectedNumbers" class="selected-numbers-display">
+                            未选择任何号码
+                        </div>
                     </div>
                 </div>
 
@@ -127,8 +152,25 @@ async function initSimulationBetting() {
         </div>
     `;
 
-    // 渲染号码选择网格
-    renderNumberGrid();
+    // 绑定号码来源切换事件
+    document.getElementById('numberSource').addEventListener('change', async function() {
+        const source = this.value;
+        const twoGroupsPeriodRow = document.getElementById('twoGroupsPeriodRow');
+
+        // 如果选择2组观察，显示基准期号输入框
+        if (source.startsWith('two_groups_')) {
+            twoGroupsPeriodRow.style.display = 'block';
+        } else {
+            twoGroupsPeriodRow.style.display = 'none';
+        }
+
+        // 加载号码
+        if (source) {
+            await loadNumbersFromSource();
+        } else {
+            document.getElementById('selectedNumbers').innerHTML = '未选择任何号码';
+        }
+    });
 
     // 绑定策略切换事件
     document.getElementById('strategyType').addEventListener('change', function() {
@@ -142,22 +184,120 @@ async function initSimulationBetting() {
 }
 
 /**
- * 渲染号码选择网格（1-49）
+ * 从选定的来源加载号码
  */
-function renderNumberGrid() {
-    const container = document.getElementById('numberSelection');
-    let html = '';
+async function loadNumbersFromSource() {
+    const source = document.getElementById('numberSource').value;
+    const lotteryType = document.getElementById('lotteryType').value;
+    let numbers = [];
+    let sourceName = '';
 
-    for (let i = 1; i <= 49; i++) {
-        html += `
-            <label class="number-item">
-                <input type="checkbox" value="${i}" class="number-checkbox">
-                <span class="number-label">${i}</span>
-            </label>
-        `;
+    try {
+        if (source === 'recommend8') {
+            // 推荐8码 - 只取第7位
+            const response = await fetch(`${API_BASE_URL}/recommend?lottery_type=${lotteryType}`);
+            const data = await response.json();
+            console.log('推荐8码 API响应:', data);
+
+            if (data.recommend && data.recommend.length >= 7) {
+                // recommend[6] 是第7位的号码数组
+                const position7Numbers = data.recommend[6];
+                console.log('第7位号码:', position7Numbers);
+
+                if (Array.isArray(position7Numbers)) {
+                    numbers = position7Numbers.map(num => parseInt(num)).sort((a, b) => a - b);
+                    sourceName = `推荐8码-第7位（期号：${data.latest_period}）`;
+                }
+            }
+        } else if (source === 'recommend16') {
+            // 推荐16码 - 只取第7位
+            const response = await fetch(`${API_BASE_URL}/recommend16?lottery_type=${lotteryType}`);
+            const data = await response.json();
+            console.log('推荐16码 API响应:', data);
+
+            // 注意：推荐16码返回的字段名是 recommend16 而不是 recommend
+            if (data.recommend16 && data.recommend16.length >= 7) {
+                // recommend16[6] 是第7位的号码数组
+                const position7Numbers = data.recommend16[6];
+                console.log('第7位号码:', position7Numbers);
+
+                if (Array.isArray(position7Numbers)) {
+                    numbers = position7Numbers.map(num => parseInt(num)).sort((a, b) => a - b);
+                    sourceName = `推荐16码-第7位（期号：${data.latest_period}）`;
+                }
+            } else {
+                console.error('推荐16码数据结构异常:', {
+                    hasRecommend16: !!data.recommend16,
+                    recommend16Length: data.recommend16 ? data.recommend16.length : 'N/A',
+                    fullData: data
+                });
+            }
+        } else if (source === 'seventh_smart20') {
+            // 第7个号码智能推荐20码
+            const response = await fetch(`${API_BASE_URL}/api/seventh_smart_recommend20?lottery_type=${lotteryType}`);
+            const data = await response.json();
+            if (data.success && data.top20) {
+                numbers = data.top20.map(item => item.number);
+                sourceName = `第7个号码智能推荐20码`;
+            }
+        } else if (source.startsWith('two_groups_')) {
+            // 2组观察分析
+            const basePeriod = document.getElementById('twoGroupsBasePeriod').value.trim();
+            if (!basePeriod) {
+                showMessage('请输入基准期号', 'error');
+                return;
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/two_groups/analyze?lottery_type=${lotteryType}&period=${basePeriod}&history_count=100`
+            );
+            const data = await response.json();
+
+            if (data.success) {
+                if (source === 'two_groups_cold9') {
+                    numbers = data.data.cold_9.numbers;
+                    sourceName = `2组观察-冷门9码（期号：${basePeriod}）`;
+                } else if (source === 'two_groups_groupA') {
+                    numbers = data.data.group_a.numbers;
+                    sourceName = `2组观察-高频组（期号：${basePeriod}，共${numbers.length}码）`;
+                } else if (source === 'two_groups_groupB') {
+                    numbers = data.data.group_b.numbers;
+                    sourceName = `2组观察-低频组（期号：${basePeriod}，共${numbers.length}码）`;
+                }
+            } else {
+                throw new Error(data.error || '加载失败');
+            }
+        }
+
+        // 显示选定的号码
+        if (numbers.length > 0) {
+            displaySelectedNumbers(numbers, sourceName);
+        } else {
+            document.getElementById('selectedNumbers').innerHTML = '未能加载号码，请重试';
+        }
+    } catch (error) {
+        console.error('加载号码失败:', error);
+        showMessage('加载号码失败: ' + error.message, 'error');
+        document.getElementById('selectedNumbers').innerHTML = '加载失败';
     }
+}
 
-    container.innerHTML = html;
+/**
+ * 显示选定的号码
+ */
+function displaySelectedNumbers(numbers, sourceName) {
+    const container = document.getElementById('selectedNumbers');
+    const numbersHtml = numbers.map(num =>
+        `<span class="number-badge">${num}</span>`
+    ).join('');
+
+    container.innerHTML = `
+        <div class="selected-info">
+            <strong>${sourceName}</strong>
+            <span class="number-count">共 ${numbers.length} 个号码</span>
+        </div>
+        <div class="numbers-list">${numbersHtml}</div>
+    `;
 }
 
 /**
@@ -194,6 +334,7 @@ async function getLatestPeriods() {
  */
 async function startSimulation() {
     // 收集参数
+    const source = document.getElementById('numberSource').value;
     const lotteryType = document.getElementById('lotteryType').value;
     const initialAmount = parseFloat(document.getElementById('initialAmount').value);
     const startPeriod = document.getElementById('startPeriod').value.trim();
@@ -201,13 +342,21 @@ async function startSimulation() {
     const strategyType = document.getElementById('strategyType').value;
     const resetOnWin = document.getElementById('resetOnWin').checked;
 
-    // 获取选中的号码
-    const selectedNumbers = Array.from(document.querySelectorAll('.number-checkbox:checked'))
-        .map(cb => parseInt(cb.value));
-
     // 参数验证
+    if (!source) {
+        showMessage('请选择号码来源', 'error');
+        return;
+    }
+
+    // 重新加载号码以确保最新
+    await loadNumbersFromSource();
+
+    // 从显示区域提取号码
+    const numberBadges = document.querySelectorAll('.number-badge');
+    const selectedNumbers = Array.from(numberBadges).map(badge => parseInt(badge.textContent.trim()));
+
     if (selectedNumbers.length === 0) {
-        showMessage('请至少选择一个投注号码', 'error');
+        showMessage('未能获取投注号码，请重新选择号码来源', 'error');
         return;
     }
 
@@ -383,8 +532,10 @@ function clearResults() {
     document.getElementById('summaryContent').innerHTML = '';
     document.getElementById('detailsTableBody').innerHTML = '';
 
-    // 取消所有号码选择
-    document.querySelectorAll('.number-checkbox').forEach(cb => cb.checked = false);
+    // 重置号码来源选择
+    document.getElementById('numberSource').value = '';
+    document.getElementById('selectedNumbers').innerHTML = '未选择任何号码';
+    document.getElementById('twoGroupsPeriodRow').style.display = 'none';
 
     showMessage('已清空结果', 'info');
 }
@@ -472,53 +623,59 @@ function loadSimulationStyles() {
             font-size: 12px;
         }
 
-        .number-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 8px;
-            padding: 10px;
+        .selected-numbers-display {
+            padding: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
             background: #f9f9f9;
-            max-height: 300px;
-            overflow-y: auto;
+            min-height: 100px;
         }
 
-        .number-item {
+        .selected-info {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .selected-info strong {
+            color: #007bff;
+            font-size: 16px;
+        }
+
+        .number-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .numbers-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .number-badge {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .number-checkbox {
-            display: none;
-        }
-
-        .number-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            background: #fff;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .number-checkbox:checked + .number-label {
-            background: #007bff;
+            min-width: 45px;
+            height: 45px;
+            padding: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
-            border-color: #007bff;
-            transform: scale(1.05);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s;
         }
 
-        .number-label:hover {
-            border-color: #007bff;
-            transform: scale(1.05);
+        .number-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.6);
         }
 
         .form-actions {
