@@ -42,7 +42,11 @@ app.add_middleware(
 from backend.routes import (
     collect,
     recommend,
-    analysis,
+    analysis_position,
+    analysis_range,
+    analysis_xiao,
+    analysis_color,
+    analysis_each_issue,
     favorites,
     analysis_seventh_smart,
     analysis_two_groups,
@@ -62,7 +66,11 @@ from backend.routes import (
 # 核心功能路由
 app.include_router(collect.router, tags=["采集"])
 app.include_router(recommend.router, tags=["推荐"])
-app.include_router(analysis.router, tags=["分析"])
+app.include_router(analysis_position.router, tags=["位置分析"])
+app.include_router(analysis_range.router, tags=["区间分析"])
+app.include_router(analysis_xiao.router, tags=["肖分析"])
+app.include_router(analysis_color.router, tags=["波色分析"])
+app.include_router(analysis_each_issue.router, tags=["每期分析"])
 app.include_router(favorites.router, tags=["收藏号码"])
 app.include_router(betting.router, tags=["投注管理"])
 
