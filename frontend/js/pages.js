@@ -609,6 +609,32 @@ function initSidebarMenu() {
     }
   });
 
+  // 综合管理折叠按钮
+  const toggleComprehensiveBtn = document.getElementById('toggleComprehensiveBtn');
+  const comprehensiveMenuBtns = document.getElementById('comprehensiveMenuBtns');
+  const comprehensiveCollapseIcon = document.getElementById('comprehensiveCollapseIcon');
+
+  if (toggleComprehensiveBtn && comprehensiveMenuBtns) {
+    toggleComprehensiveBtn.addEventListener('click', function() {
+      if (comprehensiveMenuBtns.classList.contains('hidden')) {
+        comprehensiveMenuBtns.classList.remove('hidden');
+        comprehensiveMenuBtns.style.display = 'block';
+        if (comprehensiveCollapseIcon) {
+          comprehensiveCollapseIcon.textContent = '▼';
+        }
+        setTimeout(() => {
+          comprehensiveMenuBtns.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      } else {
+        comprehensiveMenuBtns.classList.add('hidden');
+        comprehensiveMenuBtns.style.display = 'none';
+        if (comprehensiveCollapseIcon) {
+          comprehensiveCollapseIcon.textContent = '▶';
+        }
+      }
+    });
+  }
+
   // 登记点分析折叠按钮
   const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
   const registerMenuBtns = document.getElementById('registerMenuBtns');

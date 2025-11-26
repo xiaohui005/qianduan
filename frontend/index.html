@@ -21,15 +21,24 @@
       <div class="sidebar-header">
         <h2 class="sidebar-title">🎰 彩票分析系统</h2>
       </div>
-      <button class="menu-btn" id="menuCollectBtn">📥 采集</button>
-      <button class="menu-btn" id="menuAutoCollectBtn">⏰ 自动采集设置</button>
-      <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
-      <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
+
+      <!-- 快速访问区 -->
       <button class="menu-btn" id="menuOmissionMonitorBtn">🔍 遗漏监控</button>
-      <button class="menu-btn" id="menuOmissionMonitorConfigBtn">⚙️ 遗漏监控配置</button>
       <button class="menu-btn" id="menuMonitorHitRecordsBtn">📊 监控命中记录</button>
-      <button class="menu-btn" id="menuSimulationBettingBtn">💰 模拟倍投测试</button>
-      <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
+
+      <!-- 综合管理折叠区 -->
+      <button id="toggleComprehensiveBtn" class="toggle-section-btn">
+        🎯 综合管理 <span id="comprehensiveCollapseIcon">▶</span>
+      </button>
+      <div id="comprehensiveMenuBtns" class="hidden" style="display: none;">
+        <button class="menu-btn" id="menuCollectBtn">📥 采集</button>
+        <button class="menu-btn" id="menuAutoCollectBtn">⏰ 自动采集设置</button>
+        <button class="menu-btn" id="menuRecordsBtn">📋 开奖结果</button>
+        <button class="menu-btn" id="menuMaxMissAlertBtn">⚠️ 遗漏提醒</button>
+        <button class="menu-btn" id="menuOmissionMonitorConfigBtn">⚙️ 遗漏监控配置</button>
+        <button class="menu-btn" id="menuSimulationBettingBtn">💰 模拟倍投测试</button>
+        <button class="menu-btn" id="menuDatabaseViewsBtn">🗄️ 数据库视图</button>
+      </div>
       <button id="toggleSidebarBtn" class="toggle-section-btn">✨ 分析推荐 ▶</button>
       <div id="sidebarMenuBtns" style="display: none;">
         <!-- 推荐功能 -->

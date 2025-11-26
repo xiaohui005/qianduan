@@ -2037,7 +2037,7 @@ def get_all_monitor_configs(
     with get_db_cursor() as cursor:
         sql = """
             SELECT id, lottery_type, analysis_type, detail,
-                   min_current_omission, max_gap_from_max,
+                   min_current_omission, max_gap_from_max, recent_periods,
                    enabled, priority_level, created_at, updated_at
             FROM monitor_config
             WHERE lottery_type = %s
@@ -2066,6 +2066,7 @@ def save_monitor_config(config: dict):
     detail = config.get('detail', '')
     min_current_omission = config.get('min_current_omission', 8)
     max_gap_from_max = config.get('max_gap_from_max', 3)
+    recent_periods = config.get('recent_periods', 200)
     enabled = config.get('enabled', 1)
     priority_level = config.get('priority_level', 'medium')
 
@@ -2074,18 +2075,19 @@ def save_monitor_config(config: dict):
             sql = """
                 INSERT INTO monitor_config
                 (lottery_type, analysis_type, detail, min_current_omission,
-                 max_gap_from_max, enabled, priority_level)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                 max_gap_from_max, recent_periods, enabled, priority_level)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                     min_current_omission = VALUES(min_current_omission),
                     max_gap_from_max = VALUES(max_gap_from_max),
+                    recent_periods = VALUES(recent_periods),
                     enabled = VALUES(enabled),
                     priority_level = VALUES(priority_level),
                     updated_at = CURRENT_TIMESTAMP
             """
             cursor.execute(sql, (
                 lottery_type, analysis_type, detail,
-                min_current_omission, max_gap_from_max,
+                min_current_omission, max_gap_from_max, recent_periods,
                 enabled, priority_level
             ))
 
@@ -2108,11 +2110,12 @@ def batch_update_monitor_configs(data: dict):
                 sql = """
                     INSERT INTO monitor_config
                     (lottery_type, analysis_type, detail, min_current_omission,
-                     max_gap_from_max, enabled, priority_level)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                     max_gap_from_max, recent_periods, enabled, priority_level)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         min_current_omission = VALUES(min_current_omission),
                         max_gap_from_max = VALUES(max_gap_from_max),
+                        recent_periods = VALUES(recent_periods),
                         enabled = VALUES(enabled),
                         priority_level = VALUES(priority_level),
                         updated_at = CURRENT_TIMESTAMP
@@ -2123,6 +2126,7 @@ def batch_update_monitor_configs(data: dict):
                     config.get('detail', ''),
                     config.get('min_current_omission', 8),
                     config.get('max_gap_from_max', 3),
+                    config.get('recent_periods', 200),
                     config.get('enabled', 1),
                     config.get('priority_level', 'medium')
                 ))

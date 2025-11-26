@@ -77,7 +77,9 @@
       "Bash(git rev-parse:*)",
       "Bash(powershell -Command \"Stop-Process -Id 19292 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 23468 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 4600 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 4600 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 26668,6344 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 46348 -Force\")"
     ],
     "deny": [],
     "ask": []
