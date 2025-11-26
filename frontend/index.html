@@ -55,6 +55,7 @@
             <button class="menu-btn menu-btn-sub" id="menuSeventhRangeBtn">第7码+1~+20区间</button>
             <button class="menu-btn menu-btn-sub" id="menuHot20Minus10Btn">去10的最热20分析</button>
             <button class="menu-btn menu-btn-sub" id="menuRecommend30Btn">推荐30码分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuHigh20Btn">高20码分析</button>
           </div>
         </div>
 
@@ -1460,6 +1461,9 @@
       <!-- 推荐30码分析页面 -->
       <div id="recommend30Page" class="hidden"></div>
 
+      <!-- 高20码分析页面 -->
+      <div id="high20Page" class="hidden"></div>
+
       <div id="twentyRangePage" class="hidden">
         <h2>20区间分析</h2>
         
@@ -1713,6 +1717,12 @@
   <script type="module">
     import { initRecommend30Page } from './js/modules/recommend30.js';
     window.initRecommend30Page = initRecommend30Page;
+  </script>
+
+  <!-- 高20码分析模块 -->
+  <script type="module">
+    import { initHigh20Page } from './js/modules/high20Analysis.js';
+    window.initHigh20Page = initHigh20Page;
   </script>
 
   <!-- 主入口 -->

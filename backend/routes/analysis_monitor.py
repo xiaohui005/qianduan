@@ -1879,16 +1879,16 @@ def get_omission_alerts_with_config(
             raw_alerts.extend(check_plus_minus6_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'plus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, type_recent_periods, is_plus=True, exclude_period=exclude_period))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=True, recent_periods=type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'minus_range':
-            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, type_recent_periods, is_plus=False, exclude_period=exclude_period))
+            raw_alerts.extend(check_range_analysis_omission(lottery_type, 0, 999, is_plus=False, recent_periods=type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'favorite_numbers':
-            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+            raw_alerts.extend(check_favorite_numbers_omission(lottery_type, 0, 999, recent_periods=type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'each_issue':
-            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+            raw_alerts.extend(check_each_issue_omission(lottery_type, 0, 999, recent_periods=type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'front6_szz':
             raw_alerts.extend(check_front6_szz_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
@@ -1904,10 +1904,10 @@ def get_omission_alerts_with_config(
                 # 从detail中提取位置号 (如 "第1位" -> 1)
                 try:
                     position = int(detail.replace('第', '').replace('位', ''))
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, type_recent_periods, position=position, exclude_period=exclude_period))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=position, recent_periods=type_recent_periods, exclude_period=exclude_period))
                 except:
                     # 如果解析失败,使用默认位置2
-                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, type_recent_periods, position=2, exclude_period=exclude_period))
+                    raw_alerts.extend(check_second_fourxiao_omission(lottery_type, 0, 999, position=2, recent_periods=type_recent_periods, exclude_period=exclude_period))
 
         elif analysis_type == 'five_period_threexiao':
             raw_alerts.extend(check_five_period_threexiao_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))

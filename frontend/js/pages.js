@@ -20,6 +20,7 @@ const PAGE_CONFIG = {
   'menuSeventhRangeBtn': { pageId: 'seventhRangePage', title: '第7个号码+1~+20区间分析' },
   'menuHot20Minus10Btn': { pageId: 'hot20Minus10Page', title: '去10的最热20分析' },
   'menuRecommend30Btn': { pageId: 'recommend30Page', title: '推荐30码分析' },
+  'menuHigh20Btn': { pageId: 'high20Page', title: '高20码分析', initFunc: 'initHigh20Page' },
   'menuSeventhSmart20Btn': { pageId: 'seventhSmart20Page', title: '第7个号码智能推荐20码' },
   'menuSecondFourxiaoBtn': { pageId: 'secondFourxiaoPage', title: '第二个号码四肖分析' },
   'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码6肖分析' },
@@ -421,6 +422,17 @@ function showOnlyPage(pageId) {
         window.initRecommend30Page();
       } else {
         console.error('[页面管理] ✗ initRecommend30Page 函数不存在');
+      }
+    }
+
+    // 如果是高20码分析页面,初始化
+    if (pageId === 'high20Page') {
+      console.log('[页面管理] 检测到高20码分析页面');
+      if (typeof window.initHigh20Page === 'function') {
+        console.log('[页面管理] 调用 initHigh20Page()');
+        window.initHigh20Page();
+      } else {
+        console.error('[页面管理] ✗ initHigh20Page 函数不存在');
       }
     }
 

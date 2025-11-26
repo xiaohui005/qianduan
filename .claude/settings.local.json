@@ -74,7 +74,10 @@
       "Bash(iconv:*)",
       "Bash(del test_monitor_hits.py test_all_monitor_types.py)",
       "Bash(del:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 19292 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 23468 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 4600 -Force\")"
     ],
     "deny": [],
     "ask": []
