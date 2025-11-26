@@ -479,15 +479,17 @@ async def export_recommend30(
 @router.get("/api/recommend30/miss_analysis")
 async def get_miss_analysis(
     lottery_type: str = Query(..., description="彩种类型：am=澳门, hk=香港"),
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(50, ge=1, le=200, description="每页数量"),
     year: int = Query(None, description="年份筛选")
 ):
     """
     查询遗漏期数分析
-    返回所有期数的遗漏情况，包括当前遗漏和最大遗漏
+    只返回遗漏的期数（is_hit = 0），不包括命中的记录
     """
     with get_db_cursor() as cursor:
-        # 构建查询条件
-        where_clauses = ["lottery_type = %s", "is_hit IS NOT NULL"]
+        # 构建查询条件 - 只查询遗漏的记录
+        where_clauses = ["lottery_type = %s", "is_hit = 0"]
         params = [lottery_type]
 
         if year:
@@ -496,8 +498,18 @@ async def get_miss_analysis(
 
         where_sql = " AND ".join(where_clauses)
 
-        # 查询所有数据（按期号正序）
-        sql = f"""
+        # 查询总数
+        count_sql = f"""
+        SELECT COUNT(*) as total
+        FROM range_recommend30
+        WHERE {where_sql}
+        """
+        cursor.execute(count_sql, params)
+        total = cursor.fetchone()['total']
+
+        # 查询分页数据（按期号倒序，最新的在前面）
+        offset = (page - 1) * page_size
+        data_sql = f"""
         SELECT
             period,
             is_hit,
@@ -507,9 +519,10 @@ async def get_miss_analysis(
             next_number
         FROM range_recommend30
         WHERE {where_sql}
-        ORDER BY period ASC
+        ORDER BY period DESC
+        LIMIT %s OFFSET %s
         """
-        cursor.execute(sql, params)
+        cursor.execute(data_sql, params + [page_size, offset])
         rows = cursor.fetchall()
 
         # 格式化数据
@@ -528,5 +541,10 @@ async def get_miss_analysis(
     return {
         "success": True,
         "data": results,
-        "total": len(results)
+        "pagination": {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
     }

@@ -9,6 +9,110 @@
 export function initRecommend30Page() {
     const content = document.getElementById('recommend30Page');
     content.innerHTML = `
+        <style>
+            /* 推荐30码页面样式优化 */
+            #recommend30Page .pagination {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                list-style: none !important;
+                padding-left: 0 !important;
+                margin: 15px 0 !important;
+            }
+
+            #recommend30Page .pagination .page-item {
+                margin: 0 2px !important;
+                list-style: none !important;
+            }
+
+            #recommend30Page .pagination .page-link {
+                display: block !important;
+                padding: 0.5rem 0.75rem !important;
+                line-height: 1.25 !important;
+                color: #007bff !important;
+                background-color: #fff !important;
+                border: 1px solid #dee2e6 !important;
+                border-radius: 0.25rem !important;
+                text-decoration: none !important;
+                transition: all 0.3s ease !important;
+            }
+
+            #recommend30Page .pagination .page-link:hover {
+                z-index: 2 !important;
+                color: #0056b3 !important;
+                background-color: #e9ecef !important;
+                border-color: #dee2e6 !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 2px 8px rgba(0,123,255,0.2) !important;
+            }
+
+            #recommend30Page .pagination .page-item.active .page-link {
+                z-index: 3 !important;
+                color: #fff !important;
+                background-color: #007bff !important;
+                border-color: #007bff !important;
+                font-weight: bold !important;
+                box-shadow: 0 2px 8px rgba(0,123,255,0.3) !important;
+            }
+
+            /* 标签页样式优化 */
+            #recommend30Page .nav-tabs {
+                border-bottom: 2px solid #dee2e6 !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                list-style: none !important;
+                padding-left: 0 !important;
+                margin-bottom: 20px !important;
+            }
+
+            #recommend30Page .nav-tabs .nav-item {
+                margin-bottom: -2px !important;
+                margin-right: 10px !important;
+                list-style: none !important;
+            }
+
+            #recommend30Page .nav-tabs .nav-link {
+                display: block !important;
+                padding: 0.75rem 1.5rem !important;
+                border: 2px solid transparent !important;
+                border-radius: 0.5rem 0.5rem 0 0 !important;
+                color: #6c757d !important;
+                background-color: #f8f9fa !important;
+                text-decoration: none !important;
+                transition: all 0.3s ease !important;
+                font-weight: 500 !important;
+            }
+
+            #recommend30Page .nav-tabs .nav-link:hover {
+                border-color: #e9ecef !important;
+                color: #495057 !important;
+                background-color: #e9ecef !important;
+                transform: translateY(-2px) !important;
+            }
+
+            #recommend30Page .nav-tabs .nav-link.active {
+                color: #007bff !important;
+                background-color: #fff !important;
+                border-color: #dee2e6 #dee2e6 #fff !important;
+                font-weight: 600 !important;
+                box-shadow: 0 -2px 8px rgba(0,123,255,0.15) !important;
+            }
+
+            /* 按钮区域优化 */
+            #recommend30Page .btn {
+                margin-right: 5px !important;
+                margin-bottom: 5px !important;
+                transition: all 0.3s ease !important;
+                font-weight: 500 !important;
+                border-radius: 0.375rem !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            }
+
+            #recommend30Page .btn:hover {
+                transform: translateY(-2px) !important;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            }
+        </style>
+
         <div class="container-fluid">
             <h2 class="mb-4">推荐30码分析</h2>
 
@@ -61,17 +165,17 @@ export function initRecommend30Page() {
             <!-- Tab切换 -->
             <ul class="nav nav-tabs mb-3" id="recommend30Tabs">
                 <li class="nav-item">
-                    <a class="nav-link active" data-tab="history" href="#" onclick="window.recommend30Module.switchTab('history')">
+                    <a class="nav-link active" data-tab="history" href="#" onclick="window.recommend30Module.switchTab('history'); return false;">
                         历史记录
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-tab="weekStats" href="#" onclick="window.recommend30Module.switchTab('weekStats')">
+                    <a class="nav-link" data-tab="weekStats" href="#" onclick="window.recommend30Module.switchTab('weekStats'); return false;">
                         周统计
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-tab="missAnalysis" href="#" onclick="window.recommend30Module.switchTab('missAnalysis')">
+                    <a class="nav-link" data-tab="missAnalysis" href="#" onclick="window.recommend30Module.switchTab('missAnalysis'); return false;">
                         遗漏分析
                     </a>
                 </li>
@@ -116,7 +220,7 @@ export function initRecommend30Page() {
             <div id="missAnalysisTab" class="tab-content" style="display:none;">
                 <div class="card">
                     <div class="card-header">
-                        <h5>遗漏期数分析（所有期数遗漏情况）</h5>
+                        <h5>遗漏期数分析（仅显示未命中的期数）</h5>
                     </div>
                     <div class="card-body">
                         <div id="missAnalysisLoading" class="text-center" style="display:none;">
@@ -333,7 +437,7 @@ function renderPagination(pagination, container, currentPage) {
 
     // 上一页
     if (currentPage > 1) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${currentPage - 1})">上一页</a></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${currentPage - 1}); return false;">上一页</a></li>`;
     }
 
     // 页码
@@ -347,12 +451,12 @@ function renderPagination(pagination, container, currentPage) {
 
     for (let i = startPage; i <= endPage; i++) {
         const active = i === currentPage ? 'active' : '';
-        html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${i})">${i}</a></li>`;
+        html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${i}); return false;">${i}</a></li>`;
     }
 
     // 下一页
     if (currentPage < total_pages) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${currentPage + 1})">下一页</a></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadHistory(${currentPage + 1}); return false;">下一页</a></li>`;
     }
 
     html += '</ul></nav>';
@@ -452,9 +556,10 @@ function renderWeekStatsTable(data, container) {
 /**
  * 加载遗漏分析
  */
-async function loadMissAnalysis() {
+async function loadMissAnalysis(page = 1) {
     const lotteryType = document.getElementById('recommend30LotteryType').value;
     const year = document.getElementById('recommend30Year').value;
+    const pageSize = 50;
 
     const loading = document.getElementById('missAnalysisLoading');
     const resultDiv = document.getElementById('missAnalysisResult');
@@ -463,7 +568,7 @@ async function loadMissAnalysis() {
     resultDiv.innerHTML = '';
 
     try {
-        let url = `${window.BACKEND_URL}/api/recommend30/miss_analysis?lottery_type=${lotteryType}`;
+        let url = `${window.BACKEND_URL}/api/recommend30/miss_analysis?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`;
         if (year) {
             url += `&year=${year}`;
         }
@@ -475,6 +580,10 @@ async function loadMissAnalysis() {
 
         if (data.success && data.data.length > 0) {
             renderMissAnalysisTable(data.data, resultDiv);
+            // 添加分页控件
+            if (data.pagination && data.pagination.total_pages > 1) {
+                renderMissAnalysisPagination(data.pagination, resultDiv, page);
+            }
         } else {
             resultDiv.innerHTML = '<p class="text-center text-muted">暂无数据</p>';
         }
@@ -490,12 +599,13 @@ async function loadMissAnalysis() {
  */
 function renderMissAnalysisTable(data, container) {
     let html = `
-        <div class="alert alert-info">
+        <div class="alert alert-warning">
             <strong>说明：</strong>
             <ul class="mb-0">
+                <li><strong>本页面只显示遗漏的期数</strong>（未命中推荐30码的记录）</li>
                 <li><strong>当前遗漏：</strong>从上次命中到当前的连续遗漏期数</li>
                 <li><strong>最大遗漏：</strong>历史上最大的连续遗漏期数（算法目标：≤2）</li>
-                <li>绿色背景表示命中，红色背景表示遗漏</li>
+                <li>红色背景表示遗漏记录</li>
             </ul>
         </div>
 
@@ -506,7 +616,7 @@ function renderMissAnalysisTable(data, container) {
                         <th>期号</th>
                         <th>下一期</th>
                         <th>第7码</th>
-                        <th>命中状态</th>
+                        <th>遗漏状态</th>
                         <th>当前遗漏</th>
                         <th>最大遗漏</th>
                     </tr>
@@ -550,6 +660,44 @@ function renderMissAnalysisTable(data, container) {
     `;
 
     container.innerHTML = html;
+}
+
+/**
+ * 渲染遗漏分析分页
+ */
+function renderMissAnalysisPagination(pagination, container, currentPage) {
+    const { total_pages } = pagination;
+
+    if (total_pages <= 1) return;
+
+    let html = '<nav class="mt-3"><ul class="pagination justify-content-center">';
+
+    // 上一页
+    if (currentPage > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadMissAnalysis(${currentPage - 1}); return false;">上一页</a></li>`;
+    }
+
+    // 页码
+    const maxPages = 10;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(total_pages, startPage + maxPages - 1);
+
+    if (endPage - startPage + 1 < maxPages) {
+        startPage = Math.max(1, endPage - maxPages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === currentPage ? 'active' : '';
+        html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="window.recommend30Module.loadMissAnalysis(${i}); return false;">${i}</a></li>`;
+    }
+
+    // 下一页
+    if (currentPage < total_pages) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="window.recommend30Module.loadMissAnalysis(${currentPage + 1}); return false;">下一页</a></li>`;
+    }
+
+    html += '</ul></nav>';
+    container.innerHTML += html;
 }
 
 /**
