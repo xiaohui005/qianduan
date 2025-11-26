@@ -251,4 +251,4 @@ def export_high20_analysis(
         filename += f"_{year}"
     filename += ".csv"
 
-    return create_csv_response(csv_data, headers, filename)
+    return create_csv_response(headers, csv_data, filename)

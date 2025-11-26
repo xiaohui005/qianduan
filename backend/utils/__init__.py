@@ -31,7 +31,8 @@ from .db_utils import (
 )
 
 from .export_utils import (
-    create_csv_response
+    create_csv_response,
+    create_csv_from_dicts
 )
 
 from .pagination_utils import (
@@ -126,6 +127,7 @@ __all__ = [
     'get_latest_period',
     # 导出工具
     'create_csv_response',
+    'create_csv_from_dicts',
     # 分页工具
     'paginate',
     'calculate_pagination',

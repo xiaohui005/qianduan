@@ -19,6 +19,8 @@ from backend.utils.simulation_utils import (
 import logging
 from datetime import datetime
 import io
+import csv
+from urllib.parse import quote
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -209,42 +211,42 @@ async def export_simulation_csv(
         stats = data['statistics']
         details = data['details']
 
-        # 构建CSV内容
-        csv_lines = []
+        # 准备CSV数据（使用二维列表）
+        csv_rows = []
 
-        # 标题
-        csv_lines.append('=== 模拟倍投测试报告 ===')
-        csv_lines.append(f'测试时间,{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-        csv_lines.append(f'彩种,{config["lottery_type_name"]}')
-        csv_lines.append(f'分析类型,{config["analysis_type_name"]}')
+        # 标题部分
+        csv_rows.append(['=== 模拟倍投测试报告 ==='])
+        csv_rows.append(['测试时间', datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+        csv_rows.append(['彩种', config["lottery_type_name"]])
+        csv_rows.append(['分析类型', config["analysis_type_name"]])
 
         if config.get('position'):
-            csv_lines.append(f'位置,第{config["position"]}位')
+            csv_rows.append(['位置', f'第{config["position"]}位'])
         if config.get('period'):
-            csv_lines.append(f'基准期号,{config["period"]}')
+            csv_rows.append(['基准期号', config["period"]])
 
-        csv_lines.append(f'测试期数,{config["test_periods"]}')
-        csv_lines.append(f'起投遗漏期数,{config["start_omission"]}')
-        csv_lines.append(f'倍投序列,"{",".join(map(str, config["betting_sequence"]))}"')
-        csv_lines.append(f'止损期数,{config["stop_loss_count"]}')
-        csv_lines.append(f'赔率,{config["odds"]}')
-        csv_lines.append(f'基础投注额,{config["base_amount"]}')
-        csv_lines.append('')
+        csv_rows.append(['测试期数', config["test_periods"]])
+        csv_rows.append(['起投遗漏期数', config["start_omission"]])
+        csv_rows.append(['倍投序列', ','.join(map(str, config["betting_sequence"]))])
+        csv_rows.append(['止损期数', config["stop_loss_count"]])
+        csv_rows.append(['赔率', config["odds"]])
+        csv_rows.append(['基础投注额', config["base_amount"]])
+        csv_rows.append([])
 
         # 统计指标
-        csv_lines.append('=== 统计指标 ===')
-        csv_lines.append(f'累计投注额,{stats["total_invested"]}')
-        csv_lines.append(f'累计收益,{stats["total_return"]}')
-        csv_lines.append(f'净盈亏,{stats["net_profit"]}')
-        csv_lines.append(f'命中率,{stats["hit_rate"]}%')
-        csv_lines.append(f'命中次数,{stats["hit_count"]}')
-        csv_lines.append(f'投注次数,{stats["betting_count"]}')
-        csv_lines.append(f'最大连续遗漏,{stats["max_continuous_miss"]}')
-        csv_lines.append('')
+        csv_rows.append(['=== 统计指标 ==='])
+        csv_rows.append(['累计投注额', stats["total_invested"]])
+        csv_rows.append(['累计收益', stats["total_return"]])
+        csv_rows.append(['净盈亏', stats["net_profit"]])
+        csv_rows.append(['命中率', f'{stats["hit_rate"]}%'])
+        csv_rows.append(['命中次数', stats["hit_count"]])
+        csv_rows.append(['投注次数', stats["betting_count"]])
+        csv_rows.append(['最大连续遗漏', stats["max_continuous_miss"]])
+        csv_rows.append([])
 
         # 投注明细
-        csv_lines.append('=== 投注明细 ===')
-        csv_lines.append('期号,遗漏,是否投注,倍数,投注额,是否命中,本期收益,累计投注,累计收益,累计盈亏')
+        csv_rows.append(['=== 投注明细 ==='])
+        csv_rows.append(['期号', '遗漏', '是否投注', '倍数', '投注额', '是否命中', '本期收益', '累计投注', '累计收益', '累计盈亏'])
 
         for detail in details:
             is_betting = '是' if detail['is_betting'] else '否'
@@ -260,23 +262,35 @@ async def export_simulation_csv(
 
             period_return = detail['period_return'] if detail['period_return'] > 0 else ''
 
-            csv_lines.append(
-                f'{detail["period"]},{detail["omission"]},{is_betting},{multiplier},{bet_amount},'
-                f'{is_hit},{period_return},{detail["cumulative_invested"]},'
-                f'{detail["cumulative_return"]},{detail["cumulative_profit"]}'
-            )
+            csv_rows.append([
+                detail["period"],
+                detail["omission"],
+                is_betting,
+                multiplier,
+                bet_amount,
+                is_hit,
+                period_return,
+                detail["cumulative_invested"],
+                detail["cumulative_return"],
+                detail["cumulative_profit"]
+            ])
 
-        # 生成CSV
-        csv_content = '\n'.join(csv_lines)
+        # 使用csv.writer生成CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        for row in csv_rows:
+            writer.writerow(row)
 
-        # 返回CSV响应
+        # 添加BOM
+        csv_content = '\ufeff' + output.getvalue()
         filename = f'模拟倍投测试_{config["lottery_type_name"]}_{config["analysis_type"]}_{datetime.now().strftime("%Y%m%d%H%M%S")}.csv'
+        encoded_filename = quote(filename)
 
         return StreamingResponse(
-            io.StringIO(csv_content),
-            media_type='text/csv',
+            iter([csv_content.encode('utf-8')]),
+            media_type='text/csv; charset=utf-8',
             headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
+                'Content-Disposition': f'attachment; filename*=UTF-8\'\'{encoded_filename}'
             }
         )
 

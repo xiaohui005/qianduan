@@ -7,7 +7,7 @@
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from datetime import datetime
-from backend.utils import get_db_cursor, create_csv_response
+from backend.utils import get_db_cursor, create_csv_response, create_csv_from_dicts
 from collections import Counter
 import io
 
@@ -441,26 +441,39 @@ async def export_recommend30(
         cursor.execute(sql, params)
         rows = cursor.fetchall()
 
-        # 准备CSV数据
+        # 准备CSV数据（使用英文键）
         data = []
         for row in rows:
             data.append({
-                '期号': row['period'],
-                '推荐30码': row['recommend_numbers'],
-                '下一期': row['next_period'] or '-',
-                '下期第7码': row['next_number'] if row['next_number'] else '-',
-                '命中状态': '命中' if row['is_hit'] == 1 else ('遗漏' if row['is_hit'] == 0 else '-'),
-                '当前遗漏': row['miss_count'],
-                '最大遗漏': row['max_miss'],
-                '年份': row['week_year'] if row['week_year'] else '-',
-                '周数': row['week_number'] if row['week_number'] else '-',
-                '生成时间': row['created_at'].strftime('%Y-%m-%d %H:%M:%S') if row['created_at'] else '-'
+                'period': row['period'],
+                'recommend_numbers': row['recommend_numbers'],
+                'next_period': row['next_period'] or '-',
+                'next_number': row['next_number'] if row['next_number'] else '-',
+                'is_hit': '命中' if row['is_hit'] == 1 else ('遗漏' if row['is_hit'] == 0 else '-'),
+                'miss_count': row['miss_count'],
+                'max_miss': row['max_miss'],
+                'week_year': row['week_year'] if row['week_year'] else '-',
+                'week_number': row['week_number'] if row['week_number'] else '-',
+                'created_at': row['created_at'].strftime('%Y-%m-%d %H:%M:%S') if row['created_at'] else '-'
             })
 
-        headers = ['期号', '推荐30码', '下一期', '下期第7码', '命中状态', '当前遗漏', '最大遗漏', '年份', '周数', '生成时间']
+        # 字段映射（字段名 -> 表头）
+        field_mapping = {
+            'period': '期号',
+            'recommend_numbers': '推荐30码',
+            'next_period': '下一期',
+            'next_number': '下期第7码',
+            'is_hit': '命中状态',
+            'miss_count': '当前遗漏',
+            'max_miss': '最大遗漏',
+            'week_year': '年份',
+            'week_number': '周数',
+            'created_at': '生成时间'
+        }
+
         filename = f"推荐30码_{lottery_type}_{year if year else 'all'}_{datetime.now().strftime('%Y%m%d')}.csv"
 
-        return create_csv_response(data, headers, filename)
+        return create_csv_from_dicts(data, field_mapping, filename)
 
 
 @router.get("/api/recommend30/miss_analysis")

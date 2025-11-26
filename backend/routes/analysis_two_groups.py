@@ -8,6 +8,8 @@ from typing import Optional
 from backend.utils import get_db_cursor, query_records, create_csv_response
 from collections import defaultdict
 import io
+import csv
+from urllib.parse import quote
 
 router = APIRouter()
 
@@ -422,16 +424,21 @@ async def export_two_groups(
         # 使用工具箱的CSV导出功能
         filename = f"two_groups_{lottery_type}_{period}.csv"
 
-        # 手动生成CSV（因为create_csv_response需要统一的headers）
+        # 使用csv.writer正确生成CSV
         output = io.StringIO()
+        writer = csv.writer(output)
         for row in csv_data:
-            output.write(','.join(str(cell) for cell in row) + '\n')
+            writer.writerow(row)
+
+        # 添加BOM支持Excel
+        csv_content = '\ufeff' + output.getvalue()
+        encoded_filename = quote(filename)
 
         return StreamingResponse(
-            iter([output.getvalue().encode('utf-8-sig')]),
-            media_type="text/csv",
+            iter([csv_content.encode('utf-8')]),
+            media_type="text/csv; charset=utf-8",
             headers={
-                "Content-Disposition": f"attachment; filename={filename}"
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
             }
         )
 

@@ -10,9 +10,9 @@ from urllib.parse import quote
 import io
 import csv
 try:
-    from backend.utils import get_db_cursor
+    from backend.utils import get_db_cursor, create_csv_response
 except ImportError:
-    from utils import get_db_cursor
+    from utils import get_db_cursor, create_csv_response
 
 router = APIRouter()
 
@@ -303,23 +303,15 @@ def export_hot20_csv(
         # 再次反转回按期号从新到旧的顺序
         results = results_asc[::-1]
 
-        # 生成CSV
-        output = io.StringIO()
-        # 添加UTF-8 BOM，让Excel正确识别编码
-        output.write('\ufeff')
-        writer = csv.writer(output)
-
-        # 写入表头
+        # 准备CSV数据
         headers = ['期号', '去10期号码', '最热20号码', '下期结果', '当前遗漏', '历史最大遗漏']
-        writer.writerow(headers)
+        rows = []
 
-        # 写入数据
         for item in results:
             exclude_str = ','.join(map(str, item['exclude_numbers']))
             hot20_str = ','.join(str(h['number']) for h in item['hot20'])
 
             # 下期结果
-            next_result = ''
             if item.get('next_period') and item.get('next_period_number') is not None:
                 if item.get('next_period_in_hot20'):
                     next_result = f"命中:{item['next_period_number']}"
@@ -328,7 +320,7 @@ def export_hot20_csv(
             else:
                 next_result = '-'
 
-            writer.writerow([
+            rows.append([
                 item['period'],
                 exclude_str,
                 hot20_str,
@@ -337,16 +329,8 @@ def export_hot20_csv(
                 item.get('max_omission', 0)
             ])
 
-        output.seek(0)
+        # 使用工具箱函数导出
         lottery_name = "澳门" if lottery_type == "am" else "香港"
         filename = f"去10最热20分析_{lottery_name}_第{pos}位_{year or '全部'}.csv"
-        # URL编码文件名，支持中文字符
-        encoded_filename = quote(filename)
 
-        return StreamingResponse(
-            iter([output.getvalue()]),
-            media_type="text/csv; charset=utf-8",
-            headers={
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-            }
-        )
+        return create_csv_response(headers, rows, filename)

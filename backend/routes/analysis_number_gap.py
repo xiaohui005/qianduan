@@ -263,7 +263,7 @@ def export_number_gap_analysis(
         filename = '_'.join(filename_parts) + '.csv'
 
         # 使用工具箱的CSV导出函数
-        return create_csv_response(csv_rows, headers, filename)
+        return create_csv_response(headers, csv_rows, filename)
 
     except Exception as e:
         import traceback
