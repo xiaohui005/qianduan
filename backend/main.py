@@ -57,6 +57,7 @@ from backend.routes import (
     database_views,
     analysis_monitor,
     simulation_betting,
+    betting_simulation,
     analysis_recommend30,
     analysis_high20
 )
@@ -81,6 +82,7 @@ app.include_router(analysis_number_gap.router, tags=["号码间隔分析"])
 app.include_router(analysis_hot20.router, tags=["去10分析"])
 app.include_router(analysis_monitor.router, tags=["遗漏监控"])
 app.include_router(simulation_betting.router, tags=["模拟倍投测试"])
+app.include_router(betting_simulation.router, tags=["简单倍投模拟"])
 app.include_router(analysis_recommend30.router, tags=["推荐30码"])
 app.include_router(analysis_high20.router, tags=["高20码"])
 

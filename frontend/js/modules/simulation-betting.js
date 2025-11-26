@@ -1,679 +1,722 @@
 /**
- * 模拟倍投测试模块
- *
- * 功能：评估各种分析策略的长期盈亏表现
+ * 倍投模拟测试模块
+ * 模拟在指定期号范围内的倍投策略效果
  */
 
-// 全局配置
-const ANALYSIS_TYPES = {
-    'recommend8': '推荐8码',
-    'recommend16': '推荐16码',
-    'hot20': '去10最热20',
-    'two_groups': '2组观察分析',
-    'seventh_smart': '第7个号码智能推荐20码'
-};
-
-let currentTestResult = null;
+// 全局变量
+let simulationData = null;
+let currentStrategy = 'double';  // double: 翻倍, custom: 自定义
 
 /**
- * 初始化模拟倍投测试模块
+ * 初始化倍投模拟页面
  */
-function initSimulationBetting() {
-    console.log('初始化模拟倍投测试模块...');
+async function initSimulationBetting() {
+    const container = document.getElementById('simulationBettingPage');
 
-    // 渲染页面HTML
-    renderSimulationPage();
-
-    // 绑定事件
-    bindSimulationEvents();
-}
-
-/**
- * 渲染页面HTML
- */
-function renderSimulationPage() {
-    const page = document.getElementById('simulationBettingPage');
-    if (!page) return;
-
-    page.innerHTML = `
+    container.innerHTML = `
         <div class="simulation-container">
-            <h2>📊 模拟倍投测试系统</h2>
-            <p class="description">基于历史数据评估不同分析策略的盈亏表现</p>
+            <h2>模拟倍投测试系统</h2>
 
-            <!-- 参数配置面板 -->
-            <div class="config-panel card">
-                <h3>参数配置</h3>
+            <!-- 配置区域 -->
+            <div class="config-section">
+                <h3>投注配置</h3>
 
-                <div class="config-grid">
-                    <!-- 基础配置 -->
-                    <div class="config-row">
-                        <label>彩种:</label>
-                        <select id="simLotteryType" class="form-control">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>彩种类型：</label>
+                        <select id="lotteryType" class="form-control">
                             <option value="am">澳门</option>
                             <option value="hk">香港</option>
                         </select>
                     </div>
 
-                    <div class="config-row">
-                        <label>分析类型:</label>
-                        <select id="simAnalysisType" class="form-control">
-                            <option value="recommend8">推荐8码</option>
-                            <option value="recommend16">推荐16码</option>
-                            <option value="hot20">去10最热20</option>
-                            <option value="two_groups">2组观察分析</option>
-                            <option value="seventh_smart">第7个号码智能推荐20码</option>
+                    <div class="form-group">
+                        <label>初始金额：</label>
+                        <input type="number" id="initialAmount" class="form-control" value="100" min="1" step="1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>投注号码（可多选）：</label>
+                        <div id="numberSelection" class="number-grid"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>倍投策略：</label>
+                        <select id="strategyType" class="form-control">
+                            <option value="double">翻倍策略（100→200→400...）</option>
+                            <option value="custom">自定义金额数组</option>
                         </select>
                     </div>
-
-                    <div class="config-row">
-                        <label>测试期数:</label>
-                        <input type="number" id="simTestPeriods" class="form-control"
-                               value="100" min="10" max="500">
-                        <small>范围: 10-500</small>
-                    </div>
-
-                    <div class="config-row">
-                        <label>起投遗漏期数:</label>
-                        <input type="number" id="simStartOmission" class="form-control"
-                               value="5" min="1" max="50">
-                        <small>遗漏达到此值后开始投注</small>
-                    </div>
-
-                    <!-- 条件配置（根据分析类型动态显示） -->
-                    <div id="conditionalConfig"></div>
                 </div>
 
-                <!-- 高级配置（可折叠） -->
-                <div class="advanced-config">
-                    <button id="toggleAdvanced" class="btn-secondary">
-                        <span id="advancedLabel">展开高级配置</span> ▼
-                    </button>
-                    <div id="advancedPanel" style="display:none; margin-top: 15px;">
-                        <div class="config-grid">
-                            <div class="config-row">
-                                <label>倍投序列:</label>
-                                <input type="text" id="simBettingSeq" class="form-control"
-                                       value="1,2,4" placeholder="逗号分隔">
-                                <small>如: 1,2,4 表示1倍→2倍→4倍</small>
-                            </div>
-
-                            <div class="config-row">
-                                <label>止损期数:</label>
-                                <input type="number" id="simStopLoss" class="form-control"
-                                       value="3" min="1" max="10">
-                                <small>连续投注此期数后止损</small>
-                            </div>
-
-                            <div class="config-row">
-                                <label>赔率:</label>
-                                <input type="number" id="simOdds" class="form-control"
-                                       value="2.0" min="1.1" max="10" step="0.1">
-                                <small>中奖返还倍数（含本金）</small>
-                            </div>
-
-                            <div class="config-row">
-                                <label>基础投注额:</label>
-                                <input type="number" id="simBaseAmount" class="form-control"
-                                       value="100" min="1">
-                                <small>单位：元</small>
-                            </div>
-                        </div>
+                <div id="customAmountsContainer" class="form-row" style="display: none;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>自定义金额数组（逗号分隔）：</label>
+                        <input type="text" id="customAmounts" class="form-control"
+                               placeholder="例如: 100,150,200,300,500,800">
+                        <small class="form-text">最多500个金额，未中奖时按顺序使用</small>
                     </div>
                 </div>
 
-                <div style="text-align: center; margin-top: 20px;">
-                    <button id="startTestBtn" class="btn-primary">🚀 开始测试</button>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="resetOnWin" checked>
+                            中奖后重置倍数（回到初始金额）
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>起始期号：</label>
+                        <input type="text" id="startPeriod" class="form-control" placeholder="例如: 2025001">
+                    </div>
+
+                    <div class="form-group">
+                        <label>结束期号：</label>
+                        <input type="text" id="endPeriod" class="form-control" placeholder="例如: 2025100">
+                    </div>
+
+                    <div class="form-group">
+                        <button class="btn btn-info" onclick="getLatestPeriods()">获取最新期号</button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="startSimulation()">开始模拟</button>
+                    <button class="btn btn-secondary" onclick="clearResults()">清空结果</button>
                 </div>
             </div>
 
-            <!-- 结果展示面板 -->
-            <div id="resultPanel" class="result-panel" style="display:none;">
-                <!-- 统计卡片 -->
-                <div class="stats-cards-row">
-                    <div class="stat-card blue-card">
-                        <div class="stat-label">累计投注额</div>
-                        <div class="stat-value" id="statInvested">¥0</div>
-                    </div>
-                    <div class="stat-card" id="profitCard">
-                        <div class="stat-label">总盈亏</div>
-                        <div class="stat-value" id="statProfit">¥0</div>
-                    </div>
-                    <div class="stat-card green-card">
-                        <div class="stat-label">命中率</div>
-                        <div class="stat-value" id="statHitRate">0%</div>
-                    </div>
-                    <div class="stat-card orange-card">
-                        <div class="stat-label">最大连续遗漏</div>
-                        <div class="stat-value" id="statMaxMiss">0期</div>
-                    </div>
+            <!-- 结果展示区域 -->
+            <div id="resultsSection" style="display: none;">
+                <!-- 汇总统计 -->
+                <div class="summary-section">
+                    <h3>汇总统计</h3>
+                    <div id="summaryContent" class="summary-grid"></div>
                 </div>
 
-                <!-- 盈亏曲线图 -->
-                <div class="chart-container card">
-                    <h3>盈亏趋势曲线</h3>
-                    <canvas id="profitChart" width="800" height="300"></canvas>
-                </div>
-
-                <!-- 明细表格 -->
-                <div class="table-container card">
-                    <h3>投注明细记录 <span id="detailsCount"></span></h3>
-                    <div class="table-scroll">
-                        <table id="detailsTable" class="simulation-table">
+                <!-- 详细记录 -->
+                <div class="details-section">
+                    <h3>详细记录</h3>
+                    <div class="table-responsive">
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>期号</th>
-                                    <th>遗漏</th>
-                                    <th>投注</th>
-                                    <th>倍数</th>
-                                    <th>投注额</th>
-                                    <th>命中</th>
-                                    <th>本期收益</th>
-                                    <th>累计投注</th>
-                                    <th>累计收益</th>
+                                    <th>投注金额</th>
+                                    <th>开奖号码</th>
+                                    <th>结果</th>
+                                    <th>中奖金额</th>
+                                    <th>本期盈亏</th>
+                                    <th>累计投入</th>
                                     <th>累计盈亏</th>
+                                    <th>连续未中</th>
                                 </tr>
                             </thead>
-                            <tbody></tbody>
+                            <tbody id="detailsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
-
-                <div style="text-align: center; margin-top: 20px;">
-                    <button id="exportCsvBtn" class="btn-secondary">📥 导出CSV</button>
-                </div>
             </div>
-
-            <!-- 加载提示已移除 -->
         </div>
     `;
+
+    // 渲染号码选择网格
+    renderNumberGrid();
+
+    // 绑定策略切换事件
+    document.getElementById('strategyType').addEventListener('change', function() {
+        currentStrategy = this.value;
+        const customContainer = document.getElementById('customAmountsContainer');
+        customContainer.style.display = currentStrategy === 'custom' ? 'block' : 'none';
+    });
+
+    // 加载样式
+    loadSimulationStyles();
 }
 
 /**
- * 绑定事件
+ * 渲染号码选择网格（1-49）
  */
-function bindSimulationEvents() {
-    // 分析类型切换
-    document.getElementById('simAnalysisType').addEventListener('change', onAnalysisTypeChange);
+function renderNumberGrid() {
+    const container = document.getElementById('numberSelection');
+    let html = '';
 
-    // 测试按钮
-    document.getElementById('startTestBtn').addEventListener('click', startTest);
-
-    // 导出按钮
-    const exportBtn = document.getElementById('exportCsvBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportCsv);
-    }
-
-    // 高级配置折叠
-    document.getElementById('toggleAdvanced').addEventListener('click', toggleAdvancedConfig);
-
-    // 初始化条件配置
-    onAnalysisTypeChange();
-}
-
-/**
- * 切换高级配置面板
- */
-function toggleAdvancedConfig() {
-    const panel = document.getElementById('advancedPanel');
-    const label = document.getElementById('advancedLabel');
-
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        label.textContent = '收起高级配置';
-    } else {
-        panel.style.display = 'none';
-        label.textContent = '展开高级配置';
-    }
-}
-
-/**
- * 分析类型切换事件
- */
-function onAnalysisTypeChange() {
-    const analysisType = document.getElementById('simAnalysisType').value;
-    const conditionalConfig = document.getElementById('conditionalConfig');
-
-    // 根据分析类型显示条件配置
-    if (analysisType === 'recommend8' || analysisType === 'recommend16') {
-        // 推荐8码/16码需要位置和期号
-        conditionalConfig.innerHTML = `
-            <div class="config-row">
-                <label>位置:</label>
-                <select id="simPosition" class="form-control">
-                    <option value="1">第1位</option>
-                    <option value="2">第2位</option>
-                    <option value="3">第3位</option>
-                    <option value="4">第4位</option>
-                    <option value="5">第5位</option>
-                    <option value="6">第6位</option>
-                    <option value="7" selected>第7位</option>
-                </select>
-            </div>
-            <div class="config-row">
-                <label>基准期号:</label>
-                <input type="text" id="simPeriod" class="form-control"
-                       placeholder="如: 2025100">
-                <small>推荐基于的期号（以0或5结尾）</small>
-            </div>
+    for (let i = 1; i <= 49; i++) {
+        html += `
+            <label class="number-item">
+                <input type="checkbox" value="${i}" class="number-checkbox">
+                <span class="number-label">${i}</span>
+            </label>
         `;
-    } else if (analysisType === 'hot20') {
-        // 去10最热20需要位置
-        conditionalConfig.innerHTML = `
-            <div class="config-row">
-                <label>位置:</label>
-                <select id="simPosition" class="form-control">
-                    <option value="1">第1位</option>
-                    <option value="2">第2位</option>
-                    <option value="3">第3位</option>
-                    <option value="4">第4位</option>
-                    <option value="5">第5位</option>
-                    <option value="6">第6位</option>
-                    <option value="7" selected>第7位</option>
-                </select>
-            </div>
-        `;
-    } else {
-        // 2组观察和智能推荐20码不需要额外参数
-        conditionalConfig.innerHTML = '';
     }
+
+    container.innerHTML = html;
 }
 
 /**
- * 收集配置参数
+ * 获取最新期号范围
  */
-function collectConfig() {
-    const config = {
-        lottery_type: document.getElementById('simLotteryType').value,
-        analysis_type: document.getElementById('simAnalysisType').value,
-        test_periods: parseInt(document.getElementById('simTestPeriods').value),
-        start_omission: parseInt(document.getElementById('simStartOmission').value),
-        betting_sequence: document.getElementById('simBettingSeq').value,
-        stop_loss_count: parseInt(document.getElementById('simStopLoss').value),
-        odds: parseFloat(document.getElementById('simOdds').value),
-        base_amount: parseInt(document.getElementById('simBaseAmount').value)
-    };
+async function getLatestPeriods() {
+    const lotteryType = document.getElementById('lotteryType').value;
 
-    // 条件参数
-    const positionElem = document.getElementById('simPosition');
-    if (positionElem) {
-        config.position = parseInt(positionElem.value);
-    }
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/betting_simulation/periods?lottery_type=${lotteryType}`);
+        const data = await response.json();
 
-    const periodElem = document.getElementById('simPeriod');
-    if (periodElem) {
-        config.period = periodElem.value.trim();
-    }
+        if (data.min_period && data.max_period) {
+            // 默认显示最近100期
+            document.getElementById('endPeriod').value = data.max_period;
 
-    return config;
-}
+            // 计算起始期号（往前100期）
+            const maxPeriodNum = parseInt(data.max_period);
+            const startPeriodNum = Math.max(maxPeriodNum - 99, parseInt(data.min_period));
+            document.getElementById('startPeriod').value = startPeriodNum.toString();
 
-/**
- * 验证配置参数
- */
-function validateConfig(config) {
-    if (config.test_periods < 10 || config.test_periods > 500) {
-        alert('测试期数必须在10-500之间');
-        return false;
-    }
-
-    if (config.start_omission < 1 || config.start_omission > 50) {
-        alert('起投遗漏期数必须在1-50之间');
-        return false;
-    }
-
-    if (config.stop_loss_count < 1 || config.stop_loss_count > 10) {
-        alert('止损期数必须在1-10之间');
-        return false;
-    }
-
-    if (config.odds < 1.1 || config.odds > 10) {
-        alert('赔率必须在1.1-10之间');
-        return false;
-    }
-
-    if (config.base_amount < 1) {
-        alert('基础投注额必须大于0');
-        return false;
-    }
-
-    // 验证条件参数
-    if ((config.analysis_type === 'recommend8' || config.analysis_type === 'recommend16')) {
-        if (!config.position) {
-            alert('请选择位置');
-            return false;
+            showMessage(`已加载期号范围：${data.min_period} 至 ${data.max_period}（共${data.total_periods}期）`, 'success');
+        } else {
+            showMessage('未找到历史数据', 'error');
         }
-        if (!config.period) {
-            alert('请输入基准期号');
-            return false;
-        }
-    }
-
-    if (config.analysis_type === 'hot20' && !config.position) {
-        alert('请选择位置');
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * 构建API URL
- */
-function buildApiUrl(config) {
-    const params = new URLSearchParams();
-    params.append('lottery_type', config.lottery_type);
-    params.append('analysis_type', config.analysis_type);
-    params.append('test_periods', config.test_periods);
-    params.append('start_omission', config.start_omission);
-    params.append('betting_sequence', config.betting_sequence);
-    params.append('stop_loss_count', config.stop_loss_count);
-    params.append('odds', config.odds);
-    params.append('base_amount', config.base_amount);
-
-    if (config.position) {
-        params.append('position', config.position);
-    }
-    if (config.period) {
-        params.append('period', config.period);
-    }
-
-    return `${API_BASE}/api/simulation/test?${params.toString()}`;
-}
-
-/**
- * 显示加载状态
- */
-function showLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        console.log('显示加载状态');
-    } else {
-        console.error('找不到loadingOverlay元素');
+    } catch (error) {
+        console.error('获取期号范围失败:', error);
+        showMessage('获取期号范围失败', 'error');
     }
 }
 
 /**
- * 隐藏加载状态
+ * 开始模拟
  */
-function hideLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-        console.log('隐藏加载状态成功');
-    } else {
-        console.error('找不到loadingOverlay元素');
-    }
-}
+async function startSimulation() {
+    // 收集参数
+    const lotteryType = document.getElementById('lotteryType').value;
+    const initialAmount = parseFloat(document.getElementById('initialAmount').value);
+    const startPeriod = document.getElementById('startPeriod').value.trim();
+    const endPeriod = document.getElementById('endPeriod').value.trim();
+    const strategyType = document.getElementById('strategyType').value;
+    const resetOnWin = document.getElementById('resetOnWin').checked;
 
-/**
- * 开始测试
- */
-async function startTest() {
-    const config = collectConfig();
+    // 获取选中的号码
+    const selectedNumbers = Array.from(document.querySelectorAll('.number-checkbox:checked'))
+        .map(cb => parseInt(cb.value));
 
-    if (!validateConfig(config)) {
+    // 参数验证
+    if (selectedNumbers.length === 0) {
+        showMessage('请至少选择一个投注号码', 'error');
         return;
     }
 
-    // showLoading(); // 已禁用加载遮罩
+    if (!startPeriod || !endPeriod) {
+        showMessage('请输入起始期号和结束期号', 'error');
+        return;
+    }
 
-    try {
-        const url = buildApiUrl(config);
-        console.log('发送请求:', url);
+    if (initialAmount <= 0) {
+        showMessage('初始金额必须大于0', 'error');
+        return;
+    }
 
-        const response = await fetch(url);
-        console.log('收到响应:', response.status);
+    // 构建请求体
+    const requestBody = {
+        lottery_type: lotteryType,
+        numbers: selectedNumbers,
+        start_period: startPeriod,
+        end_period: endPeriod,
+        initial_amount: initialAmount,
+        strategy: strategyType,
+        reset_on_win: resetOnWin
+    };
 
-        // 检查HTTP状态
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('HTTP错误:', response.status, errorText);
-            let errorMsg = `服务器错误 (${response.status})`;
-            try {
-                const errorData = JSON.parse(errorText);
-                errorMsg = errorData.detail || errorData.message || errorMsg;
-            } catch (e) {
-                // 无法解析错误信息，使用默认消息
-            }
-            alert(`测试失败：${errorMsg}`);
+    // 如果是自定义策略，添加自定义金额数组
+    if (strategyType === 'custom') {
+        const customAmountsStr = document.getElementById('customAmounts').value.trim();
+        if (!customAmountsStr) {
+            showMessage('请输入自定义金额数组', 'error');
             return;
         }
 
-        const data = await response.json();
-        console.log('解析数据:', data);
+        try {
+            const customAmounts = customAmountsStr.split(',').map(s => {
+                const num = parseFloat(s.trim());
+                if (isNaN(num) || num <= 0) {
+                    throw new Error('金额格式错误');
+                }
+                return num;
+            });
 
-        if (data.success) {
-            currentTestResult = data.data;
-            console.log('开始显示结果');
-            displayResults(data.data);
-            console.log('结果显示完成');
-        } else {
-            alert(`测试失败：${data.message || data.error || '未知错误'}`);
+            if (customAmounts.length > 500) {
+                showMessage('自定义金额数组最多500个元素', 'error');
+                return;
+            }
+
+            requestBody.custom_amounts = customAmounts;
+        } catch (error) {
+            showMessage('自定义金额格式错误，请使用逗号分隔的数字', 'error');
+            return;
         }
+    }
+
+    // 显示加载提示
+    showMessage('正在模拟计算，请稍候...', 'info');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/betting_simulation`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || '模拟失败');
+        }
+
+        simulationData = await response.json();
+
+        // 显示结果
+        displayResults(simulationData);
+        showMessage('模拟完成', 'success');
+
     } catch (error) {
-        console.error('测试失败:', error);
-        alert(`测试失败：${error.message}`);
+        console.error('模拟失败:', error);
+        showMessage(error.message || '模拟失败', 'error');
     }
 }
 
 /**
- * 展示结果
+ * 显示模拟结果
  */
 function displayResults(data) {
-    try {
-        // 显示结果面板
-        document.getElementById('resultPanel').style.display = 'block';
+    // 显示结果区域
+    document.getElementById('resultsSection').style.display = 'block';
 
-        // 滚动到结果面板
-        document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+    // 显示汇总统计
+    const summaryHtml = `
+        <div class="summary-item">
+            <label>总期数：</label>
+            <span>${data.summary.total_periods}</span>
+        </div>
+        <div class="summary-item">
+            <label>总投入：</label>
+            <span class="amount-negative">¥${data.summary.total_bet.toFixed(2)}</span>
+        </div>
+        <div class="summary-item">
+            <label>总收益：</label>
+            <span class="amount-positive">¥${data.summary.total_win.toFixed(2)}</span>
+        </div>
+        <div class="summary-item ${data.summary.profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+            <label>净盈亏：</label>
+            <span>${data.summary.profit >= 0 ? '+' : ''}¥${data.summary.profit.toFixed(2)}</span>
+        </div>
+        <div class="summary-item">
+            <label>盈亏率：</label>
+            <span>${data.summary.profit_rate >= 0 ? '+' : ''}${data.summary.profit_rate.toFixed(2)}%</span>
+        </div>
+        <div class="summary-item">
+            <label>中奖次数：</label>
+            <span class="win-count">${data.summary.win_count}</span>
+        </div>
+        <div class="summary-item">
+            <label>未中次数：</label>
+            <span class="lose-count">${data.summary.lose_count}</span>
+        </div>
+        <div class="summary-item">
+            <label>中奖率：</label>
+            <span>${data.summary.win_rate.toFixed(2)}%</span>
+        </div>
+        <div class="summary-item">
+            <label>最大连续未中：</label>
+            <span class="max-lose">${data.summary.max_consecutive_lose}</span>
+        </div>
+        <div class="summary-item">
+            <label>最高投注金额：</label>
+            <span class="max-bet">¥${data.summary.max_bet_amount.toFixed(2)}</span>
+        </div>
+    `;
 
-        // 更新统计卡片
-        console.log('更新统计卡片');
-        updateStatsCards(data.statistics);
+    document.getElementById('summaryContent').innerHTML = summaryHtml;
 
-        // 绘制盈亏曲线
-        console.log('绘制盈亏曲线');
-        drawProfitChart(data.details);
+    // 显示详细记录（倒序显示）
+    const tableBody = document.getElementById('detailsTableBody');
+    let tableHtml = '';
 
-        // 渲染明细表格
-        console.log('渲染明细表格');
-        renderDetailsTable(data.details);
+    data.details.forEach(detail => {
+        const profitClass = detail.profit > 0 ? 'profit-positive' : 'profit-negative';
+        const resultClass = detail.is_win ? 'result-win' : 'result-lose';
 
-        console.log('所有结果显示完成');
-    } catch (error) {
-        console.error('显示结果时出错:', error);
-        alert(`显示结果时出错：${error.message}`);
-        throw error; // 重新抛出，让外层catch处理
-    }
-}
-
-/**
- * 更新统计卡片
- */
-function updateStatsCards(stats) {
-    document.getElementById('statInvested').textContent = `¥${stats.total_invested}`;
-    document.getElementById('statProfit').textContent = `¥${stats.net_profit}`;
-    document.getElementById('statHitRate').textContent =
-        `${stats.hit_rate}% (${stats.hit_count}/${stats.betting_count})`;
-    document.getElementById('statMaxMiss').textContent = `${stats.max_continuous_miss}期`;
-
-    // 盈亏卡片颜色
-    const profitCard = document.getElementById('profitCard');
-    if (stats.net_profit >= 0) {
-        profitCard.className = 'stat-card green-card';
-    } else {
-        profitCard.className = 'stat-card red-card';
-    }
-}
-
-/**
- * 绘制盈亏曲线
- */
-function drawProfitChart(details) {
-    const canvas = document.getElementById('profitChart');
-    const ctx = canvas.getContext('2d');
-
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (details.length === 0) {
-        return;
-    }
-
-    // 提取数据
-    const profits = details.map(d => d.cumulative_profit);
-    const maxProfit = Math.max(...profits, 0);
-    const minProfit = Math.min(...profits, 0);
-    const range = maxProfit - minProfit || 1;
-
-    // 边距
-    const padding = {top: 20, right: 40, bottom: 40, left: 60};
-    const chartWidth = canvas.width - padding.left - padding.right;
-    const chartHeight = canvas.height - padding.top - padding.bottom;
-
-    // 绘制背景网格
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 1;
-
-    // 水平网格线（5条）
-    for (let i = 0; i <= 5; i++) {
-        const y = padding.top + (chartHeight / 5) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, y);
-        ctx.lineTo(padding.left + chartWidth, y);
-        ctx.stroke();
-
-        // Y轴标签
-        const value = maxProfit - (range / 5) * i;
-        ctx.fillStyle = '#666';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(Math.round(value), padding.left - 10, y + 4);
-    }
-
-    // 垂直网格线（10条）
-    for (let i = 0; i <= 10; i++) {
-        const x = padding.left + (chartWidth / 10) * i;
-        ctx.beginPath();
-        ctx.moveTo(x, padding.top);
-        ctx.lineTo(x, padding.top + chartHeight);
-        ctx.stroke();
-    }
-
-    // 绘制零线
-    if (minProfit < 0 && maxProfit > 0) {
-        const zeroY = padding.top + ((maxProfit / range) * chartHeight);
-        ctx.strokeStyle = '#999';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, zeroY);
-        ctx.lineTo(padding.left + chartWidth, zeroY);
-        ctx.stroke();
-    }
-
-    // 绘制折线
-    ctx.beginPath();
-    details.forEach((d, i) => {
-        // 处理只有一个点的情况
-        const xRatio = details.length > 1 ? (i / (details.length - 1)) : 0.5;
-        const x = padding.left + xRatio * chartWidth;
-        const y = padding.top + ((maxProfit - d.cumulative_profit) / range) * chartHeight;
-
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    });
-
-    ctx.strokeStyle = profits[profits.length - 1] >= 0 ? '#28a745' : '#dc3545';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // 绘制坐标轴标签
-    ctx.fillStyle = '#333';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('累计盈亏（元）', canvas.width / 2, canvas.height - 5);
-}
-
-/**
- * 渲染明细表格
- */
-function renderDetailsTable(details) {
-    const tbody = document.querySelector('#detailsTable tbody');
-    tbody.innerHTML = '';
-
-    document.getElementById('detailsCount').textContent = `（共${details.length}期）`;
-
-    details.forEach(detail => {
-        const row = document.createElement('tr');
-
-        // 行样式
-        if (detail.is_betting) {
-            row.classList.add('betting-row');
-            if (detail.is_hit) {
-                row.classList.add('hit-row');
-            }
-        }
-
-        // 构建单元格
-        const isBetting = detail.is_betting ? '是' : '否';
-        const multiplier = detail.multiplier > 0 ? detail.multiplier + 'x' : '-';
-        const betAmount = detail.bet_amount > 0 ? '¥' + detail.bet_amount : '-';
-
-        let isHit = '-';
-        if (detail.is_hit === true) {
-            isHit = '<span style="color: green; font-weight: bold;">✓</span>';
-        } else if (detail.is_hit === false) {
-            isHit = '<span style="color: red;">✗</span>';
-        }
-
-        const periodReturn = detail.period_return > 0 ? '¥' + detail.period_return : '-';
-        const profitColor = detail.cumulative_profit >= 0 ? 'green' : 'red';
-
-        row.innerHTML = `
-            <td>${detail.period}</td>
-            <td>${detail.omission}</td>
-            <td>${isBetting}</td>
-            <td>${multiplier}</td>
-            <td>${betAmount}</td>
-            <td>${isHit}</td>
-            <td>${periodReturn}</td>
-            <td>¥${detail.cumulative_invested}</td>
-            <td>¥${detail.cumulative_return}</td>
-            <td style="color: ${profitColor}; font-weight: bold;">
-                ¥${detail.cumulative_profit}
-            </td>
+        tableHtml += `
+            <tr>
+                <td>${detail.period}</td>
+                <td>¥${detail.bet_amount.toFixed(2)}</td>
+                <td class="opened-number">${detail.opened_number}</td>
+                <td class="${resultClass}">${detail.is_win ? '✓ 中奖' : '✗ 未中'}</td>
+                <td>${detail.is_win ? '¥' + detail.win_amount.toFixed(2) : '-'}</td>
+                <td class="${profitClass}">${detail.profit >= 0 ? '+' : ''}¥${detail.profit.toFixed(2)}</td>
+                <td>¥${detail.cumulative_bet.toFixed(2)}</td>
+                <td class="${detail.cumulative_profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                    ${detail.cumulative_profit >= 0 ? '+' : ''}¥${detail.cumulative_profit.toFixed(2)}
+                </td>
+                <td>${detail.consecutive_lose}</td>
+            </tr>
         `;
-
-        tbody.appendChild(row);
     });
+
+    tableBody.innerHTML = tableHtml;
+
+    // 滚动到结果区域
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
 }
 
 /**
- * 导出CSV
+ * 清空结果
  */
-function exportCsv() {
-    if (!currentTestResult) {
-        alert('没有可导出的测试结果');
-        return;
-    }
+function clearResults() {
+    simulationData = null;
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('summaryContent').innerHTML = '';
+    document.getElementById('detailsTableBody').innerHTML = '';
 
-    const config = collectConfig();
-    const params = new URLSearchParams();
+    // 取消所有号码选择
+    document.querySelectorAll('.number-checkbox').forEach(cb => cb.checked = false);
 
-    Object.keys(config).forEach(key => {
-        if (config[key] !== undefined && config[key] !== null && config[key] !== '') {
-            params.append(key, config[key]);
-        }
-    });
-
-    const url = `${API_BASE}/api/simulation/export?${params.toString()}`;
-    window.open(url, '_blank');
+    showMessage('已清空结果', 'info');
 }
 
-// 导出初始化函数
+/**
+ * 显示消息提示
+ */
+function showMessage(message, type = 'info') {
+    // 如果页面有全局的消息提示函数，使用它
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, type);
+    } else {
+        alert(message);
+    }
+}
+
+/**
+ * 加载模拟页面样式
+ */
+function loadSimulationStyles() {
+    const styleId = 'betting-simulation-styles';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        .simulation-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .config-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .number-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .number-checkbox {
+            display: none;
+        }
+
+        .number-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .number-checkbox:checked + .number-label {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+            transform: scale(1.05);
+        }
+
+        .number-label:hover {
+            border-color: #007bff;
+            transform: scale(1.05);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: #fff;
+        }
+
+        .btn-info:hover {
+            background: #117a8b;
+        }
+
+        .summary-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .summary-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 10px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-item {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .summary-item label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-item span {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .profit-positive {
+            background: #d4edda !important;
+            border-color: #c3e6cb !important;
+        }
+
+        .profit-positive span {
+            color: #155724 !important;
+        }
+
+        .profit-negative {
+            background: #f8d7da !important;
+            border-color: #f5c6cb !important;
+        }
+
+        .profit-negative span {
+            color: #721c24 !important;
+        }
+
+        .amount-positive {
+            color: #28a745 !important;
+        }
+
+        .amount-negative {
+            color: #dc3545 !important;
+        }
+
+        .win-count {
+            color: #28a745 !important;
+        }
+
+        .lose-count {
+            color: #dc3545 !important;
+        }
+
+        .max-lose {
+            color: #ffc107 !important;
+        }
+
+        .max-bet {
+            color: #ff5722 !important;
+        }
+
+        .details-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .details-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #ffc107;
+            padding-bottom: 10px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table thead {
+            background: #f8f9fa;
+        }
+
+        .table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .result-win {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .result-lose {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .opened-number {
+            font-weight: 600;
+            color: #007bff;
+            font-size: 16px;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+// 导出函数供全局使用
 window.initSimulationBetting = initSimulationBetting;
+window.startSimulation = startSimulation;
+window.clearResults = clearResults;
+window.getLatestPeriods = getLatestPeriods;
