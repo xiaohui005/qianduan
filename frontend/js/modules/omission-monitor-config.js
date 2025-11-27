@@ -333,7 +333,8 @@ function getAnalysisTypeName(type) {
         'recommend16': '🔢 推荐16码',
         'recommend30': '3️⃣0️⃣ 推荐30码',
         'seventh_smart20': '🧠 第7码智能推荐20码',
-        'high20': '🚀 高20码分析'
+        'high20': '🚀 高20码分析',
+        'color_analysis': '🎨 波色分析'
     };
     return names[type] || type;
 }

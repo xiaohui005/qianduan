@@ -44,7 +44,8 @@ ANALYSIS_TYPE_LABELS = {
     'recommend16': '推荐16码',
     'recommend30': '推荐30码',
     'seventh_smart20': '第7码智能推荐20码',
-    'high20': '高20码分析'
+    'high20': '高20码分析',
+    'color_analysis': '波色分析'
 }
 
 
@@ -1838,6 +1839,169 @@ def check_high20_omission(lottery_type: str, min_current: int, max_gap: int,
     return alerts
 
 
+def check_color_analysis_omission(lottery_type: str, min_current: int, max_gap: int,
+                                  recent_periods: int = 200, exclude_period: str = None):
+    """
+    检查波色分析的遗漏情况
+
+    规则：根据当前期前6个号码的第2位波色，预测下一期第7位号码的波色
+
+    Args:
+        lottery_type: 彩种类型
+        min_current: 最小当前遗漏
+        max_gap: 距离最大遗漏的最大差值
+        recent_periods: 近期统计期数范围（默认200期）
+        exclude_period: 要排除的期号（用于获取开奖前的预警）
+    """
+    alerts = []
+
+    # 波色定义
+    color_groups = {
+        'red': [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+        'blue': [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+        'green': [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+    }
+
+    def get_number_color(number):
+        """获取号码的波色"""
+        if number in color_groups['red']:
+            return 'red'
+        elif number in color_groups['blue']:
+            return 'blue'
+        elif number in color_groups['green']:
+            return 'green'
+        return None
+
+    def is_consecutive_periods(current_period, next_period):
+        """检查期数是否连续"""
+        if not current_period or not next_period:
+            return False
+        try:
+            return int(next_period) == int(current_period) + 1
+        except:
+            return False
+
+    with get_db_cursor() as cursor:
+        # 获取开奖记录
+        sql = """
+            SELECT period, numbers
+            FROM lottery_result
+            WHERE lottery_type=%s
+        """
+        params = [lottery_type]
+
+        if exclude_period:
+            sql += " AND period < %s"
+            params.append(exclude_period)
+
+        sql += " ORDER BY period ASC"
+        cursor.execute(sql, params)
+        records = cursor.fetchall()
+
+    if len(records) < 2:
+        return alerts
+
+    # 进行波色分析
+    results = []
+
+    for i in range(len(records) - 1):
+        current_record = records[i]
+        next_record = records[i + 1]
+
+        # 检查期数连续性
+        if not is_consecutive_periods(current_record['period'], next_record['period']):
+            continue
+
+        try:
+            # 解析号码
+            current_numbers = [int(n.strip()) for n in current_record['numbers'].split(',') if n.strip().isdigit()]
+            next_numbers = [int(n.strip()) for n in next_record['numbers'].split(',') if n.strip().isdigit()]
+
+            if len(current_numbers) < 6 or len(next_numbers) < 7:
+                continue
+
+            # 获取当前期前6个号码的第2位
+            first6_sorted = sorted(current_numbers[:6])
+            second_number = first6_sorted[1]
+            second_color = get_number_color(second_number)
+
+            # 获取下一期第7位号码
+            next_seventh = next_numbers[6]
+            next_seventh_color = get_number_color(next_seventh)
+
+            # 判断是否命中
+            is_hit = second_color == next_seventh_color
+
+            results.append({
+                'period': current_record['period'],
+                'second_number': second_number,
+                'second_color': second_color,
+                'next_period': next_record['period'],
+                'next_seventh': next_seventh,
+                'next_seventh_color': next_seventh_color,
+                'is_hit': is_hit
+            })
+        except:
+            continue
+
+    if not results:
+        return alerts
+
+    # 计算遗漏值
+    current_miss = 0
+    max_miss = 0
+    omission_history = []
+
+    for result in results:
+        if result['is_hit']:
+            if current_miss > max_miss:
+                max_miss = current_miss
+            current_miss = 0
+        else:
+            current_miss += 1
+
+        omission_history.append(current_miss)
+
+    # 更新最大遗漏
+    if current_miss > max_miss:
+        max_miss = current_miss
+
+    # 统计历史达到次数
+    if omission_history:
+        current_idx = len(omission_history) - 1
+
+        # 历史总次数
+        total_reach = sum(1 for i in range(current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 近期次数
+        start_idx = max(0, current_idx - recent_periods)
+        recent_reach = sum(1 for i in range(start_idx, current_idx) if omission_history[i] >= current_miss > 0)
+
+        # 检查是否满足条件
+        if current_miss >= min_current and (max_miss - current_miss) <= max_gap:
+            last_result = results[-1]
+
+            # 波色名称映射
+            color_names = {'red': '红波', 'blue': '蓝波', 'green': '绿波'}
+            predicted_color = color_names.get(last_result['second_color'], last_result['second_color'])
+
+            alerts.append({
+                'analysis_type': 'color_analysis',
+                'detail': '前6码第2位→第7位波色',
+                'period': last_result['period'],
+                'numbers': f"预测下期第7位波色: {predicted_color}",
+                'current_omission': current_miss,
+                'max_omission': max_miss,
+                'gap_from_max': max_miss - current_miss,
+                'historical_reach_count': total_reach,
+                'recent_reach_count': recent_reach,
+                'recent_periods': recent_periods,
+                'priority': 'high' if (max_miss - current_miss) <= 1 else 'medium'
+            })
+
+    return alerts
+
+
 @router.get("/api/monitor/omission_alerts")
 def get_omission_alerts(
     lottery_type: str = Query('am', description='彩种类型: am=澳门, hk=香港'),
@@ -1866,7 +2030,8 @@ def get_omission_alerts(
             'hot20', 'plus_minus6', 'plus_range', 'minus_range',
             'favorite_numbers', 'each_issue', 'front6_szz', 'seventh_range',
             'second_fourxiao', 'five_period_threexiao', 'place_results',
-            'recommend8', 'recommend16', 'recommend30', 'seventh_smart20', 'high20'
+            'recommend8', 'recommend16', 'recommend30', 'seventh_smart20', 'high20',
+            'color_analysis'
         }
 
     # 检查各种分析
@@ -1918,6 +2083,9 @@ def get_omission_alerts(
     if 'high20' in enabled_types:
         all_alerts.extend(check_high20_omission(lottery_type, min_current_omission, max_gap_from_max))
 
+    if 'color_analysis' in enabled_types:
+        all_alerts.extend(check_color_analysis_omission(lottery_type, min_current_omission, max_gap_from_max))
+
     # 按优先级和遗漏期数排序
     priority_order = {'high': 1, 'medium': 2, 'low': 3}
     all_alerts.sort(key=lambda x: (priority_order.get(x['priority'], 99), -x['current_omission']))
@@ -1956,7 +2124,8 @@ def get_monitor_config():
             {'value': 'recommend16', 'label': '推荐16码', 'description': '期号0/5尾触发，第7位推荐16码'},
             {'value': 'recommend30', 'label': '推荐30码', 'description': '基于最近200期最热30码推荐'},
             {'value': 'seventh_smart20', 'label': '第7码智能推荐20码', 'description': '基于多维度评分的智能推荐20码'},
-            {'value': 'high20', 'label': '高20码分析', 'description': '基于600期组合策略：近期热号+中期稳定号'}
+            {'value': 'high20', 'label': '高20码分析', 'description': '基于600期组合策略：近期热号+中期稳定号'},
+            {'value': 'color_analysis', 'label': '波色分析', 'description': '前6码第2位波色预测下期第7位波色'}
         ],
         'default_min_current_omission': 8,
         'default_max_gap_from_max': 3,
@@ -2269,6 +2438,9 @@ def get_omission_alerts_with_config(
 
         elif analysis_type == 'high20':
             raw_alerts.extend(check_high20_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
+
+        elif analysis_type == 'color_analysis':
+            raw_alerts.extend(check_color_analysis_omission(lottery_type, 0, 999, type_recent_periods, exclude_period=exclude_period))
 
     # 根据配置过滤预警：每个预警必须匹配一个启用的配置，并且满足该配置的条件
     filtered_alerts = []

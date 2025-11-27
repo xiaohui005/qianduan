@@ -64,6 +64,7 @@ INSERT INTO monitor_config (lottery_type, analysis_type, detail, min_current_omi
 ('am', 'recommend30', '第7位', 8, 3, 1),
 ('am', 'seventh_smart20', '第7位', 8, 3, 1),
 ('am', 'high20', '第7位', 8, 3, 1),
+('am', 'color_analysis', '前6码第2位→第7位波色', 8, 3, 1),
 
 -- 香港 - 复制澳门的配置
 ('hk', 'hot20', '第7位', 8, 3, 1),
@@ -101,5 +102,6 @@ INSERT INTO monitor_config (lottery_type, analysis_type, detail, min_current_omi
 ('hk', 'recommend16', '第7位', 8, 3, 1),
 ('hk', 'recommend30', '第7位', 8, 3, 1),
 ('hk', 'seventh_smart20', '第7位', 8, 3, 1),
-('hk', 'high20', '第7位', 8, 3, 1)
+('hk', 'high20', '第7位', 8, 3, 1),
+('hk', 'color_analysis', '前6码第2位→第7位波色', 8, 3, 1)
 ON DUPLICATE KEY UPDATE updated_at=CURRENT_TIMESTAMP;
