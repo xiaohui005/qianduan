@@ -12,7 +12,9 @@ const PAGE_CONFIG = {
 
   // 分析推荐
   'menuRecommendBtn': { pageId: 'recommendPage', title: '推荐8码' },
+  'menuRecommend8HitBtn': { pageId: 'recommend8HitAnalysisPage', title: '推荐8码命中分析', initFunc: 'initRecommend8HitAnalysis' },
   'menuRecommend16Btn': { pageId: 'recommend16Page', title: '推荐16码' },
+  'menuRecommend16HitBtn': { pageId: 'recommend16HitAnalysisPage', title: '推荐16码命中分析', initFunc: 'initRecommend16HitAnalysis' },
   'menuTensBtn': { pageId: 'tensPage', title: '第N位十位分析' },
   'menuUnitsBtn': { pageId: 'unitsPage', title: '第N个码个位分析' },
   'menuRangeBtn': { pageId: 'rangePage', title: '+1~+20区间分析' },
@@ -466,6 +468,30 @@ function showOnlyPage(pageId) {
         window.initEachIssue();
       } else {
         console.error('[页面管理] ✗ initEachIssue 函数不存在');
+      }
+    }
+
+    // 通用初始化机制：检查 PAGE_CONFIG 中是否配置了 initFunc
+    // 这个机制会在上面所有硬编码的 if 语句都不匹配时生效
+    let foundButtonId = null;
+    for (const [buttonId, config] of Object.entries(PAGE_CONFIG)) {
+      if (config.pageId === pageId && config.initFunc) {
+        foundButtonId = buttonId;
+        break;
+      }
+    }
+
+    if (foundButtonId) {
+      const config = PAGE_CONFIG[foundButtonId];
+      const initFuncName = config.initFunc;
+
+      console.log(`[页面管理] 检测到页面 ${pageId}，尝试调用初始化函数: ${initFuncName}`);
+
+      if (typeof window[initFuncName] === 'function') {
+        console.log(`[页面管理] 调用 ${initFuncName}()`);
+        window[initFuncName]();
+      } else {
+        console.error(`[页面管理] ✗ ${initFuncName} 函数不存在`);
       }
     }
   } else {

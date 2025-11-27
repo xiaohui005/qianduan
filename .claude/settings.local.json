@@ -90,7 +90,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 12828 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 39516 -Force\")",
       "Bash(powershell -Command \"Get-ChildItem C:\\Users\\Administrator\\Desktop\\six666 -File -Name\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "mcp__chrome-devtools__handle_dialog"
     ],
     "deny": [],
     "ask": []

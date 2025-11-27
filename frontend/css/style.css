@@ -3577,3 +3577,204 @@ h2 {
   color: white !important;
   border-color: #2980b9 !important;
 }
+
+/* ========== 推荐命中分析页面样式 ========== */
+
+/* 位置标签 */
+.position-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.position-tabs .tab-btn {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  color: #2196f3;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.position-tabs .tab-btn:hover {
+  background: #e0e0e0;
+}
+
+.position-tabs .tab-btn.active {
+  background: #2196f3;
+  color: white;
+  border-color: #2196f3;
+}
+
+/* 遗漏筛选 */
+.miss-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.miss-filter label {
+  font-weight: 500;
+  color: #333;
+}
+
+.miss-filter input {
+  width: 100px;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.miss-filter .hint {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* 统计面板 */
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  padding: 15px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stat-item .label {
+  font-weight: 500;
+  color: #666;
+  font-size: 14px;
+}
+
+.stat-item .value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2196f3;
+}
+
+/* 分析表格 */
+.result-container {
+  overflow-x: auto;
+}
+
+.result-container table {
+  width: 100%;
+  min-width: 900px;
+}
+
+/* 高遗漏行样式 */
+tr.high-miss {
+  background-color: #ffebee !important;
+}
+
+tr.high-miss:hover {
+  background-color: #ffcdd2 !important;
+}
+
+.miss-value {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+tr.high-miss .miss-value {
+  color: #c62828;
+}
+
+/* 命中状态样式 */
+.hit-yes {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.hit-no {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.hit-pending {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+/* 号码单元格 */
+.numbers-cell {
+  padding: 8px !important;
+  white-space: nowrap;
+}
+
+.numbers-cell .ball {
+  display: inline-block;
+  margin: 2px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* 加载和错误提示 */
+.loading, .error, .no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+.error {
+  color: #f44336;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-buttons button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #2196f3;
+  color: white;
+  border: 1px solid #2196f3;
+}
+
+.btn-primary:hover {
+  background: #1976d2;
+  border-color: #1976d2;
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}

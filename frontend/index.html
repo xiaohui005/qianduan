@@ -48,7 +48,9 @@
           </button>
           <div id="recommendGroupBtns" class="subgroup-btns">
             <button class="menu-btn menu-btn-sub" id="menuRecommendBtn">推荐8码</button>
+            <button class="menu-btn menu-btn-sub" id="menuRecommend8HitBtn">推荐8码命中分析</button>
             <button class="menu-btn menu-btn-sub" id="menuRecommend16Btn">推荐16码</button>
+            <button class="menu-btn menu-btn-sub" id="menuRecommend16HitBtn">推荐16码命中分析</button>
             <button class="menu-btn menu-btn-sub" id="menuSeventhSmart20Btn">第7码智能推荐20码</button>
           </div>
         </div>
@@ -1279,6 +1281,131 @@
         </div>
         <div id="recommend16Result" class="result-container"></div>
       </div>
+
+      <!-- 推荐8码命中分析页面 -->
+      <div id="recommend8HitAnalysisPage" class="page hidden">
+        <h2>推荐8码命中分析</h2>
+
+        <!-- 彩种切换 -->
+        <div class="lottery-type-selector" style="margin-bottom:20px;">
+          <button class="type-btn active" data-type="am">澳门</button>
+          <button class="type-btn" data-type="hk">香港</button>
+        </div>
+
+        <!-- 位置标签 -->
+        <div class="position-tabs">
+          <button class="tab-btn" data-position="1">第1位</button>
+          <button class="tab-btn" data-position="2">第2位</button>
+          <button class="tab-btn" data-position="3">第3位</button>
+          <button class="tab-btn" data-position="4">第4位</button>
+          <button class="tab-btn" data-position="5">第5位</button>
+          <button class="tab-btn" data-position="6">第6位</button>
+          <button class="tab-btn active" data-position="7">第7位</button>
+        </div>
+
+        <!-- 遗漏筛选 -->
+        <div class="miss-filter">
+          <label>遗漏阈值筛选：</label>
+          <input type="number" id="missThreshold8Input" value="0" min="0" placeholder="例如: 5">
+          <button id="applyMissFilter8Btn" class="btn-primary">应用筛选</button>
+          <button id="resetMissFilter8Btn" class="btn-secondary">重置</button>
+          <span class="hint">（显示当前遗漏 >= 阈值的记录）</span>
+        </div>
+
+        <!-- 统计面板 -->
+        <div class="stats-panel">
+          <div class="stat-item">
+            <span class="label">总推荐期数:</span>
+            <span class="value" id="totalCount8">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">已命中期数:</span>
+            <span class="value" id="hitCount8">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">当前遗漏期数:</span>
+            <span class="value" id="missCount8">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">命中率:</span>
+            <span class="value" id="hitRate8">-</span>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-buttons" style="margin-bottom:20px;">
+          <button id="refresh8Btn" class="btn-primary">🔄 刷新数据</button>
+          <button id="export8Btn" class="btn-secondary">📥 导出CSV</button>
+        </div>
+
+        <!-- 分析结果 -->
+        <div id="recommend8AnalysisResult" class="result-container">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+
+      <!-- 推荐16码命中分析页面 -->
+      <div id="recommend16HitAnalysisPage" class="page hidden">
+        <h2>推荐16码命中分析</h2>
+
+        <!-- 彩种切换 -->
+        <div class="lottery-type-selector" style="margin-bottom:20px;">
+          <button class="type-btn active" data-type="am">澳门</button>
+          <button class="type-btn" data-type="hk">香港</button>
+        </div>
+
+        <!-- 位置标签 -->
+        <div class="position-tabs">
+          <button class="tab-btn" data-position="1">第1位</button>
+          <button class="tab-btn" data-position="2">第2位</button>
+          <button class="tab-btn" data-position="3">第3位</button>
+          <button class="tab-btn" data-position="4">第4位</button>
+          <button class="tab-btn" data-position="5">第5位</button>
+          <button class="tab-btn" data-position="6">第6位</button>
+          <button class="tab-btn active" data-position="7">第7位</button>
+        </div>
+
+        <!-- 遗漏筛选 -->
+        <div class="miss-filter">
+          <label>遗漏阈值筛选：</label>
+          <input type="number" id="missThreshold16Input" value="0" min="0" placeholder="例如: 5">
+          <button id="applyMissFilter16Btn" class="btn-primary">应用筛选</button>
+          <button id="resetMissFilter16Btn" class="btn-secondary">重置</button>
+          <span class="hint">（显示当前遗漏 >= 阈值的记录）</span>
+        </div>
+
+        <!-- 统计面板 -->
+        <div class="stats-panel">
+          <div class="stat-item">
+            <span class="label">总推荐期数:</span>
+            <span class="value" id="totalCount16">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">已命中期数:</span>
+            <span class="value" id="hitCount16">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">当前遗漏期数:</span>
+            <span class="value" id="missCount16">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">命中率:</span>
+            <span class="value" id="hitRate16">-</span>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-buttons" style="margin-bottom:20px;">
+          <button id="refresh16Btn" class="btn-primary">🔄 刷新数据</button>
+          <button id="export16Btn" class="btn-secondary">📥 导出CSV</button>
+        </div>
+
+        <!-- 分析结果 -->
+        <div id="recommend16AnalysisResult" class="result-container">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+
       <div id="tensPage" class="hidden">
         <h2>第N位十位分析</h2>
         <div class="mb-3">
@@ -1699,6 +1826,8 @@
   <script src="js/modules/records.js"></script>
   <script src="js/modules/recommend.js"></script>
   <script src="js/modules/recommend16.js"></script>
+  <script src="js/modules/recommend8-hit-analysis.js"></script>
+  <script src="js/modules/recommend16-hit-analysis.js"></script>
   <script src="js/modules/tens-analysis.js"></script>
   <script src="js/modules/units-analysis.js"></script>
   <script src="js/modules/range-analysis.js"></script>
