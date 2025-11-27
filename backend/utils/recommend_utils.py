@@ -277,6 +277,23 @@ def generate_recommend_16(lottery_type: str) -> Tuple[List[List[str]], str]:
     return engine.generate_recommend()
 
 
+def generate_recommend_30(lottery_type: str) -> Tuple[List[List[str]], str]:
+    """
+    生成推荐30码（基于前150期）
+
+    Args:
+        lottery_type: 彩种类型
+
+    Returns:
+        (recommend, base_period)
+
+    示例:
+        recommend, period = generate_recommend_30('am')
+    """
+    engine = RecommendEngine(lottery_type, period_count=150, recommend_count=30)
+    return engine.generate_recommend()
+
+
 def save_recommend_8(recommend: List[List[str]], base_period: str, lottery_type: str):
     """
     保存推荐8码到数据库
@@ -301,6 +318,19 @@ def save_recommend_16(recommend: List[List[str]], base_period: str, lottery_type
     """
     engine = RecommendEngine(lottery_type, recommend_count=16)
     engine.save_recommend(recommend, base_period, 'recommend16_result')
+
+
+def save_recommend_30(recommend: List[List[str]], base_period: str, lottery_type: str):
+    """
+    保存推荐30码到数据库
+
+    Args:
+        recommend: 推荐号码
+        base_period: 基准期号
+        lottery_type: 彩种类型
+    """
+    engine = RecommendEngine(lottery_type, recommend_count=30)
+    engine.save_recommend(recommend, base_period, 'recommend30_result')
 
 
 # ====================

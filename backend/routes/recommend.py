@@ -9,8 +9,10 @@ from backend.utils import (
     # 推荐算法工具
     generate_recommend_8,
     generate_recommend_16,
+    generate_recommend_30,
     save_recommend_8,
     save_recommend_16,
+    save_recommend_30,
     get_recommend_history,
     get_recommend_by_period,
     get_recommend_stats,
@@ -255,3 +257,117 @@ def get_recommend16_stats_api(lottery_type: str = Query('am')):
     except Exception as e:
         logger.error(f"获取推荐16码统计失败: {str(e)}", exc_info=True)
         return error_response(f"获取推荐16码统计失败: {str(e)}")
+
+
+# ====================
+# 推荐30码
+# ====================
+
+@router.get("/recommend30")
+@monitor_performance  # 性能监控
+@cache_result(timeout_minutes=10)  # 缓存10分钟
+def recommend30_api(lottery_type: str = Query('am')):
+    """
+    生成推荐30码（基于前150期）
+
+    Args:
+        lottery_type: 彩种类型（'am'或'hk'）
+
+    Returns:
+        标准推荐响应格式（保持向后兼容）
+    """
+    try:
+        # 验证彩种类型
+        lottery_type = validate_lottery_type(lottery_type)
+
+        logger.info(f"收到推荐30码请求，彩种: {lottery_type}")
+
+        # 使用工具类生成推荐
+        recommend30, base_period = generate_recommend_30(lottery_type)
+
+        # 保存推荐结果
+        save_recommend_30(recommend30, base_period, lottery_type)
+
+        logger.info(f"推荐30码生成成功，期号: {base_period}")
+
+        # 返回标准推荐响应（兼容现有API格式）
+        return {
+            "recommend30": recommend30,
+            "latest_period": base_period,
+            "used_period": base_period,
+            "message": "推荐30码生成成功"
+        }
+
+    except ValueError as e:
+        logger.warning(f"推荐30码生成失败: {str(e)}")
+        return {
+            "recommend30": [],
+            "latest_period": None,
+            "message": str(e)
+        }
+    except Exception as e:
+        logger.error(f"推荐30码API异常: {str(e)}", exc_info=True)
+        return {
+            "error": f"服务器内部错误: {str(e)}",
+            "recommend30": [],
+            "latest_period": None
+        }
+
+
+@router.get("/api/recommend30_history")
+def get_recommend30_history_api(lottery_type: str = Query('am')):
+    """
+    获取推荐30码历史记录，按期数分组
+    """
+    try:
+        lottery_type = validate_lottery_type(lottery_type)
+
+        periods = get_recommend_history(lottery_type, 'recommend30_result')
+
+        return success_response(periods)
+
+    except Exception as e:
+        logger.error(f"获取推荐30码历史失败: {str(e)}", exc_info=True)
+        return error_response(f"获取推荐30码历史失败: {str(e)}")
+
+
+@router.get("/api/recommend30_by_period")
+def get_recommend30_by_period_api(
+    lottery_type: str = Query('am'),
+    period: str = Query(...)
+):
+    """
+    获取指定期数的推荐30码数据
+    """
+    try:
+        lottery_type = validate_lottery_type(lottery_type)
+
+        data = get_recommend_by_period(lottery_type, period, 'recommend30_result')
+
+        # 检查数据是否存在
+        error = check_data_exists(data, "推荐30码数据", period)
+        if error:
+            return error
+
+        return success_response(data)
+
+    except Exception as e:
+        logger.error(f"获取推荐30码数据失败: {str(e)}", exc_info=True)
+        return error_response(f"获取推荐30码数据失败: {str(e)}")
+
+
+@router.get("/api/recommend30_stats")
+def get_recommend30_stats_api(lottery_type: str = Query('am')):
+    """
+    获取推荐30码统计信息
+    """
+    try:
+        lottery_type = validate_lottery_type(lottery_type)
+
+        stats = get_recommend_stats(lottery_type, 'recommend30_result')
+
+        return success_response(stats)
+
+    except Exception as e:
+        logger.error(f"获取推荐30码统计失败: {str(e)}", exc_info=True)
+        return error_response(f"获取推荐30码统计失败: {str(e)}")

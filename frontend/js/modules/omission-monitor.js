@@ -128,7 +128,12 @@ function renderOmissionAlerts(data, type) {
                     </span>
                 </td>
                 <td style="padding:12px;text-align:center;font-weight:500;">
-                    ${alert.analysis_type_label || alert.analysis_type}
+                    ${createAnalysisTypeLink(
+                        alert.analysis_type,
+                        alert.analysis_type_label || alert.analysis_type,
+                        OmissionMonitor.currentType,
+                        {period: alert.period, detail: alert.detail}
+                    )}
                 </td>
                 <td style="padding:12px;text-align:center;color:#1976d2;font-weight:500;">
                     ${alert.detail}

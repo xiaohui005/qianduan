@@ -37,6 +37,16 @@ def auto_generate_recommendations(lottery_type: str, new_periods: list):
     """
     result_msg = ""
 
+    # 推荐30码：每次有新数据都生成（不限期号）
+    try:
+        from .recommend import recommend30_api
+        recommend30_result = recommend30_api(lottery_type)
+        if recommend30_result.get('recommend30'):
+            logger.info(f"推荐30码生成成功, 基于期号: {recommend30_result.get('latest_period')}")
+            result_msg = "生成推荐30码"
+    except Exception as e:
+        logger.error(f"生成推荐30码时出错: {str(e)}", exc_info=True)
+
     # 第7个号码智能推荐20码：每次有新数据都生成（不限期号）
     try:
         from .analysis_seventh_smart import _generate_seventh_smart_history_internal
@@ -45,7 +55,10 @@ def auto_generate_recommendations(lottery_type: str, new_periods: list):
             generated = seventh_result.get('generated_count', 0)
             if generated > 0:
                 logger.info(f"第7个号码智能推荐20码生成成功: 新增{generated}期")
-                result_msg = "生成第7码推荐"
+                if result_msg:
+                    result_msg += ",生成第7码推荐"
+                else:
+                    result_msg = "生成第7码推荐"
     except Exception as e:
         logger.error(f"生成第7个号码智能推荐20码时出错: {str(e)}", exc_info=True)
 
@@ -72,7 +85,10 @@ def auto_generate_recommendations(lottery_type: str, new_periods: list):
         except Exception as e:
             logger.error(f"生成推荐16码时出错: {str(e)}", exc_info=True)
 
-        result_msg = "自动生成所有推荐"
+        if result_msg:
+            result_msg += ",生成8码/16码"
+        else:
+            result_msg = "生成8码/16码"
 
     return result_msg
 

@@ -201,7 +201,14 @@ function renderRecords(data) {
 
         html += `
             <tr style="background:${bgColor};border-bottom:1px solid #e0e0e0;">
-                <td style="padding:12px;text-align:center;">${getAnalysisTypeName(record.analysis_type)}</td>
+                <td style="padding:12px;text-align:center;">
+                    ${createAnalysisTypeLink(
+                        record.analysis_type,
+                        getAnalysisTypeName(record.analysis_type),
+                        currentType,
+                        {period: record.alert_period, detail: record.detail}
+                    )}
+                </td>
                 <td style="padding:12px;text-align:center;">${record.detail || '-'}</td>
                 <td style="padding:12px;text-align:center;font-weight:bold;color:#1976d2;">${record.alert_period}</td>
                 <td style="padding:12px;text-align:center;">

@@ -2644,7 +2644,7 @@ def check_and_record_monitor_hits(lottery_type: str, latest_period: str):
     检查并记录监控命中情况
     在每次采集新数据后调用，检查是否有监控项命中
 
-    重要：预警应该基于开奖前的数据（最新期的上一期），而不是开奖后的数据
+    重要：只检查遗漏监控中显示的那些满足条件的预警
 
     Args:
         lottery_type: 彩种类型
@@ -2654,27 +2654,12 @@ def check_and_record_monitor_hits(lottery_type: str, latest_period: str):
     logger = logging.getLogger(__name__)
 
     try:
-        # 1. 获取最新期的上一期（作为预警基准期）
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT period
-                FROM lottery_result
-                WHERE lottery_type=%s AND period < %s
-                ORDER BY period DESC
-                LIMIT 1
-            """, (lottery_type, latest_period))
-            previous_row = cursor.fetchone()
-
-            if not previous_row:
-                logger.warning(f"未找到期号 {latest_period} 的上一期")
-                return
-
-            base_period = previous_row['period']
-            logger.info(f"基于期号 {base_period}（开奖前）生成预警，检查期号 {latest_period} 是否命中")
-
-        # 2. 获取基于上一期的预警（模拟开奖前的状态）
+        # 获取开奖前满足监控条件的所有预警（基于最新期之前的数据）
+        # 这些预警可能来自不同的历史期号，但都是当前活跃的、满足监控条件的预警
         alerts_data = _get_omission_alerts_before_period(lottery_type, latest_period)
         alerts = alerts_data.get('alerts', [])
+
+        logger.info(f"获取到 {len(alerts)} 个活跃预警（开奖前状态）")
 
         if not alerts:
             logger.info(f"没有活跃的预警，跳过命中检测")
@@ -3003,6 +2988,81 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
 
         if hit_numbers:
             return {'position': 0, 'number': ','.join(hit_numbers)}
+
+    elif analysis_type == 'recommend30':
+        # 推荐30码：检查第7位是否在推荐号码中
+        if len(latest_numbers) < 7:
+            return None
+
+        recommended_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in recommended_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'seventh_smart20':
+        # 第7码智能推荐20码：检查第7位是否在智能推荐的20个号码中
+        if len(latest_numbers) < 7:
+            return None
+
+        smart20_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in smart20_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'high20':
+        # 高20码分析：检查第7位是否在组合的高20码中
+        if len(latest_numbers) < 7:
+            return None
+
+        high20_nums = set(alert.get('numbers', '').split(','))
+        hit_number = latest_numbers[6]
+
+        if hit_number in high20_nums:
+            return {'position': 7, 'number': hit_number}
+
+    elif analysis_type == 'color_analysis':
+        # 波色分析：检查第7位的波色是否匹配预警的波色
+        if len(latest_numbers) < 7:
+            return None
+
+        # 波色定义
+        color_groups = {
+            'red': [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+            'blue': [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+            'green': [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+        }
+
+        def get_number_color(number):
+            """获取号码的波色"""
+            num = int(number) if isinstance(number, str) else number
+            if num in color_groups['red']:
+                return 'red'
+            elif num in color_groups['blue']:
+                return 'blue'
+            elif num in color_groups['green']:
+                return 'green'
+            return None
+
+        # 获取第7位号码的波色
+        hit_number = latest_numbers[6]
+        hit_color = get_number_color(hit_number)
+
+        # 从alert的numbers字段解析预警的波色（格式如 "red" 或 "红色"）
+        alert_color_text = alert.get('numbers', '').strip()
+
+        # 颜色映射（支持中英文）
+        color_map = {
+            'red': 'red', '红': 'red', '红色': 'red',
+            'blue': 'blue', '蓝': 'blue', '蓝色': 'blue',
+            'green': 'green', '绿': 'green', '绿色': 'green'
+        }
+
+        alert_color = color_map.get(alert_color_text.lower(), alert_color_text.lower())
+
+        if hit_color and hit_color == alert_color:
+            return {'position': 7, 'number': hit_number}
 
     # 其他类型暂时不处理，返回None
     return None
