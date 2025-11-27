@@ -651,9 +651,16 @@
           </div>
 
           <!-- 筛选选项 -->
-          <div style="margin-bottom:15px;display:flex;align-items:center;">
+          <div style="margin-bottom:15px;display:flex;align-items:center;flex-wrap:wrap;">
+            <!-- 查询类型切换 -->
+            <div style="margin-right:20px;margin-bottom:10px;">
+              <label style="font-weight:600;margin-right:10px;color:#2c3e50;">查询类型：</label>
+              <button id="missTypeNumberBtn" class="miss-query-type-btn active" data-type="number" style="padding:8px 15px;border:2px solid #3498db;background:#3498db;color:white;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;margin-right:10px;">号码</button>
+              <button id="missTypeAnimalBtn" class="miss-query-type-btn" data-type="animal" style="padding:8px 15px;border:2px solid #ddd;background:#f8f9fa;color:#333;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s ease;">生肖</button>
+            </div>
+
             <!-- 位置筛选 -->
-            <div style="margin-right:20px;">
+            <div style="margin-right:20px;margin-bottom:10px;">
               <label style="font-weight:600;margin-right:10px;color:#2c3e50;">位置筛选：</label>
               <select id="missPositionSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
                 <option value="">全部位置</option>
@@ -668,12 +675,12 @@
             </div>
 
             <!-- 排序方式 -->
-            <div>
+            <div style="margin-bottom:10px;">
               <label style="font-weight:600;margin-right:10px;color:#2c3e50;">排序方式：</label>
               <select id="missSortSelect" style="padding:8px 15px;border:2px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;">
                 <option value="missing_desc">遗漏期数降序</option>
                 <option value="missing_asc">遗漏期数升序</option>
-                <option value="number_asc">号码升序</option>
+                <option value="number_asc" id="numberSortOption">号码升序</option>
               </select>
             </div>
           </div>

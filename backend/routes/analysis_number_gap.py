@@ -560,3 +560,188 @@ def export_number_missing_analysis(
             "success": False,
             "message": f"导出失败: {str(e)}"
         }
+
+@router.get("/api/animal_missing_analysis")
+def get_animal_missing_analysis(
+    lottery_type: str = Query('am', description='彩种类型：am=澳门, hk=香港'),
+    target_period: str = Query(..., description='目标期号，计算截止到此期号的遗漏'),
+    position: Optional[int] = Query(None, ge=1, le=7, description='位置筛选（1-7），仅查看某个位置的遗漏')
+):
+    """
+    查询生肖遗漏期数开奖
+
+    返回12生肖每个生肖最后一次开奖到输入期数的遗漏期数
+
+    Args:
+        lottery_type: 彩种类型
+        target_period: 目标期号
+        position: 可选的位置筛选（1-7），如果指定则只统计该位置
+
+    Returns:
+        包含每个生肖遗漏信息的JSON数据
+    """
+    try:
+        with get_db_cursor() as cursor:
+            # 查询目标期号是否存在
+            cursor.execute(
+                "SELECT period FROM lottery_result WHERE lottery_type = %s AND period = %s",
+                (lottery_type, target_period)
+            )
+            target_record = cursor.fetchone()
+
+            if not target_record:
+                return {
+                    "success": False,
+                    "message": f"目标期号 {target_period} 不存在"
+                }
+
+            # 查询从最早到目标期号的所有开奖记录（按期号正序）
+            cursor.execute("""
+                SELECT period, animals
+                FROM lottery_result
+                WHERE lottery_type = %s AND period <= %s AND animals IS NOT NULL AND animals != ''
+                ORDER BY period ASC
+            """, (lottery_type, target_period))
+
+            all_records = cursor.fetchall()
+
+        if not all_records:
+            return {
+                "success": False,
+                "message": "没有找到数据"
+            }
+
+        # 12生肖列表
+        all_animals = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
+
+        # 记录每个生肖最后出现的期号索引
+        # 如果指定了位置，只统计该位置；否则统计所有位置
+        last_appearance = {}  # {生肖: (期号, 索引, 位置)}
+
+        # 遍历所有记录
+        for idx, record in enumerate(all_records):
+            period = record['period']
+            animals_str = record['animals']
+
+            if not animals_str:
+                continue
+
+            animals = animals_str.split(',')
+
+            for pos in range(len(animals)):
+                # 如果指定了位置筛选，只处理该位置
+                if position is not None and pos != (position - 1):
+                    continue
+
+                animal = animals[pos].strip()
+
+                if animal in all_animals:
+                    # 更新该生肖的最后出现信息
+                    last_appearance[animal] = {
+                        'period': period,
+                        'index': idx,
+                        'position': pos + 1
+                    }
+
+        # 计算遗漏期数
+        target_index = len(all_records) - 1  # 目标期号的索引
+        result = []
+
+        for animal in all_animals:
+            if animal in last_appearance:
+                info = last_appearance[animal]
+                missing_periods = target_index - info['index']
+
+                result.append({
+                    'animal': animal,
+                    'last_period': info['period'],
+                    'last_position': info['position'],
+                    'missing_periods': missing_periods
+                })
+            else:
+                # 该生肖在统计范围内从未出现过
+                result.append({
+                    'animal': animal,
+                    'last_period': None,
+                    'last_position': None,
+                    'missing_periods': len(all_records)  # 遗漏所有期数
+                })
+
+        # 按遗漏期数降序排序
+        result.sort(key=lambda x: x['missing_periods'], reverse=True)
+
+        return {
+            "success": True,
+            "data": result,
+            "target_period": target_period,
+            "lottery_type": lottery_type,
+            "position": position,
+            "total_periods": len(all_records),
+            "message": f"查询成功，共 {len(all_records)} 期数据"
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"查询失败: {str(e)}"
+        }
+
+@router.get("/api/animal_missing_analysis/export")
+def export_animal_missing_analysis(
+    lottery_type: str = Query('am', description='彩种类型：am=澳门, hk=香港'),
+    target_period: str = Query(..., description='目标期号'),
+    position: Optional[int] = Query(None, ge=1, le=7, description='位置筛选（1-7）')
+):
+    """
+    导出生肖遗漏期数分析数据为CSV
+    """
+    try:
+        # 调用查询函数获取数据
+        result = get_animal_missing_analysis(lottery_type, target_period, position)
+
+        if not result.get('success'):
+            return {
+                "success": False,
+                "message": result.get('message', '查询失败')
+            }
+
+        data = result.get('data', [])
+
+        if not data:
+            return {
+                "success": False,
+                "message": "没有数据可导出"
+            }
+
+        # 准备CSV数据
+        csv_rows = []
+        for item in data:
+            row = [
+                item['animal'],
+                item['last_period'] if item['last_period'] else '从未出现',
+                item['last_position'] if item['last_position'] else '-',
+                item['missing_periods']
+            ]
+            csv_rows.append(row)
+
+        # CSV表头
+        headers = ['生肖', '最后出现期号', '所在位置', '遗漏期数']
+
+        # 生成文件名
+        filename_parts = [lottery_type.upper(), '生肖遗漏期数分析', target_period]
+        if position:
+            filename_parts.append(f'位置{position}')
+        filename = '_'.join(filename_parts) + '.csv'
+
+        # 使用工具箱的CSV导出函数
+        return create_csv_response(csv_rows, headers, filename)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"导出失败: {str(e)}"
+        }
