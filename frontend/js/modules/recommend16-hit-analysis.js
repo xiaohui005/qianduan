@@ -1,88 +1,95 @@
 /**
- * 推荐16码命中分析模块
- * 功能：分析推荐16码的命中情况、遗漏值和统计信息
+ * 推荐16码命中分析模块（基于数据库视图逻辑重写）
+ *
+ * 核心逻辑：
+ * 1. 只看推荐期之后的N期（默认5期）
+ * 2. 检查这N期中是否有任意一期命中
+ * 3. 显示后续期数的具体号码
  */
 
-// 使用立即执行函数封装，避免变量冲突
 (function() {
   'use strict';
 
-// ========== 模块内部状态管理 ==========
+// ========== 配置 ==========
+const NEXT_PERIODS_COUNT = 5;  // 查看后续多少期
+
+// ========== 模块内部状态 ==========
 let currentLotteryType = 'am';
 let currentPosition = 7;
-let missThreshold = 0;
 let analysisCache = {};  // 缓存各位置的分析结果
 let allLotteryRecords = []; // 缓存开奖记录
 
-// ========== 核心算法 ==========
+// ========== 核心算法（与视图逻辑一致）==========
 
 /**
- * 判断推荐号码中是否包含开奖号码
- * @param {Array<string>} recommendNumbers - 推荐号码数组（16个）
- * @param {string} openNumber - 开奖号码
- * @returns {boolean}
- */
-function isHit(recommendNumbers, openNumber) {
-  return recommendNumbers.includes(openNumber);
-}
-
-/**
- * 计算遗漏值
+ * 分析单期推荐的命中情况
  * @param {string} recommendPeriod - 推荐期号
- * @param {Array<string>} recommendNumbers - 推荐号码
- * @param {Array<Object>} lotteryRecords - 开奖记录（按期号正序排列）
+ * @param {Array<string>} recommendNumbers - 推荐号码（16个）
+ * @param {Array<Object>} lotteryRecords - 所有开奖记录（正序）
  * @param {number} position - 位置（1-7）
- * @returns {Object} { currentMiss, maxMiss, hitPeriod, hitHistory }
+ * @returns {Object} 分析结果
  */
-function calculateMissValue(recommendPeriod, recommendNumbers, lotteryRecords, position) {
+function analyzeRecommend(recommendPeriod, recommendNumbers, lotteryRecords, position) {
   // 1. 找到推荐期在开奖记录中的索引
   const recommendIndex = lotteryRecords.findIndex(r => r.period === recommendPeriod);
 
   if (recommendIndex === -1) {
-    // 推荐期没有开奖记录（可能是未来期数）
+    // 推荐期没有开奖记录
     return {
-      currentMiss: -1,
-      maxMiss: 0,
-      hitPeriod: null,
-      hitHistory: []
+      recommendPeriod: recommendPeriod,
+      recommendNumbers: recommendNumbers,
+      nextPeriods: [],
+      isHit: false,
+      hitCount: 0,
+      hitPeriods: [],
+      status: '待开奖'
     };
   }
 
-  // 2. 从推荐期的下一期开始遍历
-  let currentMiss = 0;
-  let maxMiss = 0;
-  let hitPeriod = null;
-  let hitHistory = [];
+  // 2. 获取后续N期的数据
+  const nextPeriods = [];
+  const hitPeriods = [];
+  let hitCount = 0;
 
-  for (let i = recommendIndex + 1; i < lotteryRecords.length; i++) {
-    const record = lotteryRecords[i];
+  for (let i = 1; i <= NEXT_PERIODS_COUNT; i++) {
+    const nextIndex = recommendIndex + i;
+
+    if (nextIndex >= lotteryRecords.length) {
+      break;  // 没有更多数据了
+    }
+
+    const record = lotteryRecords[nextIndex];
     const openNumbers = record.numbers.split(',').map(n => n.trim());
-    const openNumber = openNumbers[position - 1];  // 获取对应位置的号码
 
-    if (isHit(recommendNumbers, openNumber)) {
-      // 命中！
-      hitHistory.push({
+    if (openNumbers.length >= position) {
+      const openNumber = openNumbers[position - 1];
+      const isHit = recommendNumbers.includes(openNumber);
+
+      nextPeriods.push({
         period: record.period,
-        missBeforeHit: currentMiss,
-        openNumber: openNumber
+        number: openNumber,
+        isHit: isHit
       });
-      hitPeriod = record.period;
-      maxMiss = Math.max(maxMiss, currentMiss);
-      currentMiss = 0;  // 重置遗漏
-    } else {
-      // 未命中
-      currentMiss++;
+
+      if (isHit) {
+        hitCount++;
+        hitPeriods.push(record.period);
+      }
     }
   }
 
-  // 3. 最后的currentMiss就是当前遗漏值
-  maxMiss = Math.max(maxMiss, currentMiss);
+  // 3. 判断整体命中状态
+  const isHit = hitCount > 0;
+  const status = nextPeriods.length === 0 ? '待开奖' : (isHit ? '已命中' : '未命中');
 
   return {
-    currentMiss,      // 当前遗漏值（从最后一次命中到现在）
-    maxMiss,          // 历史最大遗漏值
-    hitPeriod,        // 最后一次命中的期号
-    hitHistory        // 所有命中记录
+    recommendPeriod: recommendPeriod,
+    recommendNumbers: recommendNumbers,
+    nextPeriods: nextPeriods,          // 后续期数详情
+    isHit: isHit,                       // 是否命中
+    hitCount: hitCount,                 // 命中次数
+    hitPeriods: hitPeriods,             // 命中的期号列表
+    status: status                      // 状态：已命中/未命中/待开奖
   };
 }
 
@@ -125,7 +132,7 @@ async function performFullAnalysis16(lotteryType, position) {
       console.log(`获取到 ${allLotteryRecords.length} 期开奖记录`);
     }
 
-    // 3. 遍历每个推荐期，计算分析数据
+    // 3. 遍历每个推荐期，分析命中情况
     const analysisResults = [];
 
     for (const periodInfo of recommendPeriods) {
@@ -149,37 +156,20 @@ async function performFullAnalysis16(lotteryType, position) {
         continue;
       }
 
-      // 计算遗漏值
-      const missData = calculateMissValue(
+      // 分析该期的命中情况
+      const result = analyzeRecommend(
         period,
         recommendNumbers,
         allLotteryRecords,
         position
       );
 
-      // 获取该期的开奖号码（如果存在）
-      const periodRecord = allLotteryRecords.find(r => r.period === period);
-      let periodOpenNumber = null;
-      if (periodRecord) {
-        const openNumbers = periodRecord.numbers.split(',').map(n => n.trim());
-        periodOpenNumber = openNumbers[position - 1];
-      }
-
-      // 组装结果
-      analysisResults.push({
-        period: period,
-        recommendNumbers: recommendNumbers,
-        openNumber: periodOpenNumber,
-        currentMiss: missData.currentMiss,
-        maxMiss: missData.maxMiss,
-        hitPeriod: missData.hitPeriod,
-        hitHistory: missData.hitHistory,
-        createdAt: periodInfo.created_at
-      });
+      result.createdAt = periodInfo.created_at;
+      analysisResults.push(result);
     }
 
     // 4. 按期号倒序排列（最新的在前面）
-    analysisResults.sort((a, b) => parseInt(b.period) - parseInt(a.period));
+    analysisResults.sort((a, b) => parseInt(b.recommendPeriod) - parseInt(a.recommendPeriod));
 
     console.log(`分析完成，共 ${analysisResults.length} 期数据`);
     return analysisResults;
@@ -188,23 +178,6 @@ async function performFullAnalysis16(lotteryType, position) {
     console.error('分析过程出错:', error);
     throw error;
   }
-}
-
-/**
- * 根据遗漏阈值筛选数据
- * @param {Array<Object>} analysisResults - 分析结果
- * @param {number} missThreshold - 遗漏阈值
- * @returns {Array<Object>}
- */
-function filterByMissThreshold16(analysisResults, missThreshold) {
-  if (missThreshold <= 0) {
-    return analysisResults;  // 显示全部
-  }
-
-  return analysisResults.filter(item => {
-    // 只显示当前遗漏 >= 阈值的记录
-    return item.currentMiss >= missThreshold;
-  });
 }
 
 // ========== 渲染函数 ==========
@@ -217,20 +190,8 @@ function filterByMissThreshold16(analysisResults, missThreshold) {
 function renderAnalysisTable16(analysisResults, position) {
   const resultDiv = document.getElementById('recommend16AnalysisResult');
 
-  // 应用遗漏筛选
-  const filteredResults = filterByMissThreshold16(analysisResults, missThreshold);
-
-  if (filteredResults.length === 0) {
-    if (missThreshold > 0) {
-      resultDiv.innerHTML = `
-        <div class="no-data">
-          暂无符合条件的数据<br>
-          <small>当前遗漏阈值：${missThreshold}，请尝试降低阈值或点击"重置"查看全部</small>
-        </div>
-      `;
-    } else {
-      resultDiv.innerHTML = '<div class="no-data">暂无数据</div>';
-    }
+  if (analysisResults.length === 0) {
+    resultDiv.innerHTML = '<div class="no-data">暂无数据</div>';
     return;
   }
 
@@ -239,53 +200,54 @@ function renderAnalysisTable16(analysisResults, position) {
       <thead>
         <tr>
           <th>推荐期号</th>
-          <th>第${position}位推荐号码</th>
-          <th>该期开奖</th>
+          <th>第${position}位推荐号码（16个）</th>
+          <th>后续${NEXT_PERIODS_COUNT}期号码</th>
           <th>命中情况</th>
-          <th>当前遗漏</th>
-          <th>最大遗漏</th>
-          <th>最后命中期号</th>
+          <th>命中次数</th>
         </tr>
       </thead>
       <tbody>
   `;
 
-  filteredResults.forEach(item => {
-    // 判断是否高遗漏（>=10）
-    const isHighMiss = item.currentMiss >= 10;
-    const rowClass = isHighMiss ? 'high-miss' : '';
-
-    // 渲染号码球
+  analysisResults.forEach(item => {
+    // 渲染推荐号码球
     const numberBalls = item.recommendNumbers.map(num => {
       const colorClass = getBallColorClass(num);
       return `<span class="ball ${colorClass}">${num}</span>`;
     }).join('');
 
-    // 命中状态
-    let hitStatus = '';
-    if (item.currentMiss === 0) {
-      hitStatus = '<span class="hit-yes">✅ 已命中</span>';
-    } else if (item.currentMiss === -1) {
-      hitStatus = '<span class="hit-pending">⏳ 待开奖</span>';
+    // 渲染后续期数
+    let nextPeriodsHtml = '';
+    if (item.nextPeriods.length === 0) {
+      nextPeriodsHtml = '<span class="text-muted">暂无开奖</span>';
     } else {
-      hitStatus = '<span class="hit-no">❌ 遗漏中</span>';
+      nextPeriodsHtml = item.nextPeriods.map(np => {
+        const ballClass = getBallColorClass(np.number);
+        const hitClass = np.isHit ? 'hit-ball' : '';
+        return `<span class="ball ${ballClass} ${hitClass}" title="${np.period}">${np.number}</span>`;
+      }).join(' ');
     }
 
-    // 最后命中期号
-    const lastHit = item.hitPeriod || '从未命中';
+    // 命中状态
+    let statusHtml = '';
+    if (item.status === '待开奖') {
+      statusHtml = '<span class="hit-pending">⏳ 待开奖</span>';
+    } else if (item.isHit) {
+      statusHtml = `<span class="hit-yes">✅ 已命中</span><br><small>${item.hitPeriods.join(', ')}</small>`;
+    } else {
+      statusHtml = '<span class="hit-no">❌ 未命中</span>';
+    }
 
-    // 当前遗漏显示
-    const currentMissDisplay = item.currentMiss === -1 ? '-' : item.currentMiss;
+    // 行样式
+    const rowClass = item.isHit ? 'hit-row' : '';
 
     html += `
       <tr class="${rowClass}">
-        <td>${item.period}</td>
+        <td>${item.recommendPeriod}</td>
         <td class="numbers-cell">${numberBalls}</td>
-        <td>${item.openNumber || '-'}</td>
-        <td>${hitStatus}</td>
-        <td class="miss-value">${currentMissDisplay}</td>
-        <td>${item.maxMiss}</td>
-        <td>${lastHit}</td>
+        <td class="next-periods-cell">${nextPeriodsHtml}</td>
+        <td>${statusHtml}</td>
+        <td>${item.hitCount}</td>
       </tr>
     `;
   });
@@ -293,6 +255,18 @@ function renderAnalysisTable16(analysisResults, position) {
   html += `
       </tbody>
     </table>
+    <style>
+      .hit-ball {
+        box-shadow: 0 0 8px #28a745;
+        font-weight: bold;
+      }
+      .hit-row {
+        background-color: #f0f8f0;
+      }
+      .next-periods-cell .ball {
+        margin: 2px;
+      }
+    </style>
   `;
 
   resultDiv.innerHTML = html;
@@ -304,14 +278,17 @@ function renderAnalysisTable16(analysisResults, position) {
  */
 function renderStatsPanel16(analysisResults) {
   const totalCount = analysisResults.length;
-  const hitCount = analysisResults.filter(item => item.currentMiss === 0 || item.hitPeriod).length;
-  const missCount = analysisResults.filter(item => item.currentMiss > 0).length;
+  const hitCount = analysisResults.filter(item => item.isHit).length;
+  const missCount = analysisResults.filter(item => item.status === '未命中').length;
+  const pendingCount = analysisResults.filter(item => item.status === '待开奖').length;
   const hitRate = totalCount > 0 ? (hitCount / totalCount * 100).toFixed(2) + '%' : '0%';
 
   document.getElementById('totalCount16').textContent = totalCount;
   document.getElementById('hitCount16').textContent = hitCount;
   document.getElementById('missCount16').textContent = missCount;
   document.getElementById('hitRate16').textContent = hitRate;
+
+  console.log(`统计数据 - 总数:${totalCount}, 命中:${hitCount}, 未命中:${missCount}, 待开奖:${pendingCount}, 命中率:${hitRate}`);
 }
 
 // ========== 事件处理 ==========
@@ -412,32 +389,6 @@ function handlePositionChange16(position) {
 }
 
 /**
- * 应用遗漏筛选
- */
-function applyMissFilter16() {
-  const inputValue = document.getElementById('missThreshold16Input').value;
-  missThreshold = parseInt(inputValue) || 0;
-
-  console.log(`应用遗漏筛选: ${missThreshold}`);
-
-  // 重新渲染（使用缓存数据）
-  renderCurrentPosition16();
-}
-
-/**
- * 重置遗漏筛选
- */
-function resetMissFilter16() {
-  missThreshold = 0;
-  document.getElementById('missThreshold16Input').value = '0';
-
-  console.log('重置遗漏筛选');
-
-  // 重新渲染（使用缓存数据）
-  renderCurrentPosition16();
-}
-
-/**
  * 导出CSV
  */
 function exportToCSV16() {
@@ -448,25 +399,16 @@ function exportToCSV16() {
     return;
   }
 
-  // 应用遗漏筛选
-  const filteredResults = filterByMissThreshold16(results, missThreshold);
-
-  if (filteredResults.length === 0) {
-    alert('筛选后无数据可导出');
-    return;
-  }
-
   // 构建CSV内容
-  let csv = '推荐期号,推荐号码,该期开奖,命中情况,当前遗漏,最大遗漏,最后命中期号\n';
+  let csv = '推荐期号,推荐号码,后续期数,后续号码,命中情况,命中次数,命中期号\n';
 
-  filteredResults.forEach(item => {
+  results.forEach(item => {
     const recommendNums = item.recommendNumbers.join(' ');
-    const hitStatus = item.currentMiss === 0 ? '已命中' :
-                     item.currentMiss === -1 ? '待开奖' : '遗漏中';
-    const currentMissDisplay = item.currentMiss === -1 ? '-' : item.currentMiss;
-    const lastHit = item.hitPeriod || '从未命中';
+    const nextPeriods = item.nextPeriods.map(np => np.period).join(';');
+    const nextNumbers = item.nextPeriods.map(np => np.number).join(';');
+    const hitPeriods = item.hitPeriods.join(';');
 
-    csv += `${item.period},"${recommendNums}",${item.openNumber || '-'},${hitStatus},${currentMissDisplay},${item.maxMiss},${lastHit}\n`;
+    csv += `${item.recommendPeriod},"${recommendNums}","${nextPeriods}","${nextNumbers}",${item.status},${item.hitCount},"${hitPeriods}"\n`;
   });
 
   // 创建下载链接
@@ -507,18 +449,7 @@ function initRecommend16HitAnalysis() {
     });
   });
 
-  // 3. 绑定遗漏筛选
-  const applyBtn = document.getElementById('applyMissFilter16Btn');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', applyMissFilter16);
-  }
-
-  const resetBtn = document.getElementById('resetMissFilter16Btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', resetMissFilter16);
-  }
-
-  // 4. 绑定刷新和导出
+  // 3. 绑定刷新和导出
   const refreshBtn = document.getElementById('refresh16Btn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', loadAndAnalyze16);
@@ -529,7 +460,7 @@ function initRecommend16HitAnalysis() {
     exportBtn.addEventListener('click', exportToCSV16);
   }
 
-  // 5. 初始加载
+  // 4. 初始加载
   loadAndAnalyze16();
 }
 
