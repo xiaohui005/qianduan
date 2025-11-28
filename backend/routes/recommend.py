@@ -268,7 +268,10 @@ def get_recommend16_stats_api(lottery_type: str = Query('am')):
 @cache_result(timeout_minutes=10)  # 缓存10分钟
 def recommend30_api(lottery_type: str = Query('am')):
     """
-    生成推荐30码（基于前150期）
+    生成推荐30码（基于前150期动态算法）
+
+    根据历史数据的频率和间隔动态生成30码
+    每期生成的30码会根据最新数据变化
 
     Args:
         lottery_type: 彩种类型（'am'或'hk'）
@@ -282,10 +285,10 @@ def recommend30_api(lottery_type: str = Query('am')):
 
         logger.info(f"收到推荐30码请求，彩种: {lottery_type}")
 
-        # 使用工具类生成推荐
+        # 使用动态算法生成推荐（基于历史数据）
         recommend30, base_period = generate_recommend_30(lottery_type)
 
-        # 保存推荐结果
+        # 保存推荐结果（只保存第7位置）
         save_recommend_30(recommend30, base_period, lottery_type)
 
         logger.info(f"推荐30码生成成功，期号: {base_period}")

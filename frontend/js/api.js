@@ -666,6 +666,85 @@ async function exportHot20Minus10(lotteryType, pos, year = '') {
 }
 
 
+// ==================== 自主30码分析相关 API ====================
+
+/**
+ * 获取自主30码分析
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {number} page - 页码
+ * @param {number} pageSize - 每页数量
+ * @param {string} year - 年份过滤
+ * @returns {Promise<Object>} 分析结果
+ */
+async function getCustom30Analysis(lotteryType, page = 1, pageSize = 50, year = '') {
+  let url = `${API_BASE}/api/custom30_analysis?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 获取自主30码周统计
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} year - 年份过滤
+ * @returns {Promise<Object>} 周统计结果
+ */
+async function getCustom30WeekStats(lotteryType, year = '') {
+  let url = `${API_BASE}/api/custom30_week_stats?lottery_type=${lotteryType}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.json();
+}
+
+/**
+ * 导出自主30码分析CSV
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {string} year - 年份过滤
+ * @returns {Promise<Blob>} CSV文件
+ */
+async function exportCustom30Analysis(lotteryType, year = '') {
+  let url = `${API_BASE}/api/custom30_export?lottery_type=${lotteryType}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.blob();
+}
+
+/**
+ * 获取推荐30码的遗漏情况
+ * @param {string} lotteryType - 彩种类型 (am/hk)
+ * @param {number} page - 页码
+ * @param {number} pageSize - 每页数量
+ * @param {number} year - 年份（可选）
+ * @returns {Promise<Object>} 遗漏情况数据
+ */
+
+/**
+ * 导出推荐30码遗漏CSV
+ */
+async function exportCustom30Omission(lotteryType, year = '') {
+  let url = `${API_BASE}/api/custom30_omission_export?lottery_type=${lotteryType}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.blob();
+}
+
+async function getCustom30Omission(lotteryType, page = 1, pageSize = 50, year = null) {
+  let url = `${API_BASE}/api/custom30_omission?lottery_type=${lotteryType}&page=${page}&page_size=${pageSize}`;
+  if (year) {
+    url += `&year=${year}`;
+  }
+  const response = await fetch(url);
+  return await response.json();
+}
+
 // ==================== 模拟倍投测试相关 API ====================
 
 /**
@@ -723,6 +802,13 @@ window.API = {
   // 分析相关（按需添加其他导出）
   getHot20Minus10,
   exportHot20Minus10,
+
+  // 自主30码分析
+  getCustom30Analysis,
+  getCustom30WeekStats,
+  exportCustom30Analysis,
+  getCustom30Omission,
+  exportCustom30Omission,
 
   // 模拟倍投测试
   simulationBettingTest,

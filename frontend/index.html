@@ -67,6 +67,7 @@
             <button class="menu-btn menu-btn-sub" id="menuHot20Minus10Btn">去10的最热20分析</button>
             <button class="menu-btn menu-btn-sub" id="menuRecommend30Btn">推荐30码分析</button>
             <button class="menu-btn menu-btn-sub" id="menuHigh20Btn">高20码分析</button>
+            <button class="menu-btn menu-btn-sub" id="menuCustom30Btn">自适应智能30码</button>
           </div>
         </div>
 
@@ -1616,6 +1617,9 @@
       <!-- 高20码分析页面 -->
       <div id="high20Page" class="hidden"></div>
 
+      <!-- 自主30码选择页面 -->
+      <div id="custom30AnalysisPage" class="hidden"></div>
+
       <div id="twentyRangePage" class="hidden">
         <h2>20区间分析</h2>
         
@@ -1878,6 +1882,9 @@
     import { initHigh20Page } from './js/modules/high20Analysis.js';
     window.initHigh20Page = initHigh20Page;
   </script>
+
+  <!-- 自主30码选择分析模块 -->
+  <script src="js/modules/custom30-analysis.js"></script>
 
   <!-- 主入口 -->
   <script src="js/main.js"></script>

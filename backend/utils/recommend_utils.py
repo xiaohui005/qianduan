@@ -281,6 +281,9 @@ def generate_recommend_30(lottery_type: str) -> Tuple[List[List[str]], str]:
     """
     生成推荐30码（基于前150期）
 
+    注意：推荐30码使用最新的任意期号作为基准，而不仅限于0或5结尾
+    这样可以确保每次采集到新数据后都能生成最新的推荐
+
     Args:
         lottery_type: 彩种类型
 
@@ -290,8 +293,17 @@ def generate_recommend_30(lottery_type: str) -> Tuple[List[List[str]], str]:
     示例:
         recommend, period = generate_recommend_30('am')
     """
+    from .db_utils import get_latest_period
+
+    # 使用最新的任意期号作为基准（不限0或5结尾）
+    base_period = get_latest_period(lottery_type)
+
+    if not base_period:
+        raise ValueError(f"未找到任何期号数据，彩种: {lottery_type}")
+
     engine = RecommendEngine(lottery_type, period_count=150, recommend_count=30)
-    return engine.generate_recommend()
+    # 直接传入base_period，避免使用get_base_period()
+    return engine.generate_recommend(base_period=base_period)
 
 
 def save_recommend_8(recommend: List[List[str]], base_period: str, lottery_type: str):
@@ -322,15 +334,25 @@ def save_recommend_16(recommend: List[List[str]], base_period: str, lottery_type
 
 def save_recommend_30(recommend: List[List[str]], base_period: str, lottery_type: str):
     """
-    保存推荐30码到数据库
+    保存推荐30码到数据库（只保存第7位置）
 
     Args:
-        recommend: 推荐号码
+        recommend: 推荐号码（7个位置）
         base_period: 基准期号
         lottery_type: 彩种类型
     """
-    engine = RecommendEngine(lottery_type, recommend_count=30)
-    engine.save_recommend(recommend, base_period, 'recommend30_result')
+    # 只保存第7位置的30码
+    with get_db_cursor(commit=True) as cursor:
+        sql = """
+        INSERT INTO recommend30_result (lottery_type, period, position, numbers, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        ON DUPLICATE KEY UPDATE numbers=VALUES(numbers), created_at=NOW()
+        """
+        # 第7位置的索引是6
+        if len(recommend) >= 7:
+            cursor.execute(sql, (lottery_type, base_period, 7, ','.join(recommend[6])))
+
+    logger.info(f"推荐30码已保存 [recommend30_result] 期号: {base_period}, 位置: 7")
 
 
 # ====================

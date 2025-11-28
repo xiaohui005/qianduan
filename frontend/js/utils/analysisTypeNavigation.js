@@ -8,14 +8,14 @@
  */
 const ANALYSIS_TYPE_PAGE_MAP = {
     // 推荐相关
-    'recommend8': 'recommend8HitPage',
-    'recommend16': 'recommend16HitPage',
-    'recommend30': 'recommend30HitPage',  // 如果有的话
+    'recommend8': 'recommend8HitAnalysisPage',
+    'recommend16': 'recommend16HitAnalysisPage',
+    'recommend30': 'recommend30Page',
 
     // 区间分析
-    'plus_range': 'rangeAnalysisPage',
-    'minus_range': 'minusRangeAnalysisPage',
-    'seventh_range': 'seventhRangeAnalysisPage',
+    'plus_range': 'rangePage',
+    'minus_range': 'minusRangePage',
+    'seventh_range': 'seventhRangePage',
 
     // 加减前6码
     'plus_minus6': 'plusMinus6Page',
@@ -24,7 +24,7 @@ const ANALYSIS_TYPE_PAGE_MAP = {
     'seventh_smart20': 'seventhSmart20Page',
 
     // 肖分析
-    'second_fourxiao': 'xiaoAnalysisPage',
+    'second_fourxiao': 'secondFourxiaoPage',
     'five_period_threexiao': 'fivePeriodThreexiaoPage',
 
     // 前6码三中三
@@ -40,10 +40,16 @@ const ANALYSIS_TYPE_PAGE_MAP = {
     'each_issue': 'eachIssuePage',
 
     // 关注点
-    'place_results': 'placeResultsPage',
+    'place_results': 'registerFocusResultPage',
 
     // 高20码分析
-    'high20': 'high20Page'
+    'high20': 'high20Page',
+
+    // 去10最热20
+    'hot20': 'hot20Minus10Page',
+
+    // 自定义30码分析
+    'custom30': 'custom30AnalysisPage'
 };
 
 /**

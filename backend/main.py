@@ -59,7 +59,8 @@ from backend.routes import (
     simulation_betting,
     betting_simulation,
     analysis_recommend30,
-    analysis_high20
+    analysis_high20,
+    analysis_custom30
 )
 
 # ==================== 注册路由 ====================
@@ -85,6 +86,7 @@ app.include_router(simulation_betting.router, tags=["模拟倍投测试"])
 app.include_router(betting_simulation.router, tags=["简单倍投模拟"])
 app.include_router(analysis_recommend30.router, tags=["推荐30码"])
 app.include_router(analysis_high20.router, tags=["高20码"])
+app.include_router(analysis_custom30.router, tags=["自主30码"])
 
 # 自动采集管理路由
 app.include_router(auto_collect.router, tags=["自动采集"])
