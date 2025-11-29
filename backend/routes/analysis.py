@@ -205,8 +205,10 @@ def analyze_intervals(lottery_type, period):
         for label, start, end in intervals:
             rng = [str(num_int + i).zfill(2) for i in range(start, end+1)]
             ranges[label] = rng
-            # 判断下一期开奖号码是否在区间内
-            hit[label] = any(n in rng for n in next_numbers)
+            # 判断下一期开奖号码是否在区间内（标准化为整数比较）
+            rng_int = [int(r) for r in rng]
+            next_numbers_int = [int(n) for n in next_numbers]
+            hit[label] = any(n in rng_int for n in next_numbers_int)
         analysis.append({
             'number': num,
             'ranges': ranges,

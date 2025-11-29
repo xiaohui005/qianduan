@@ -242,6 +242,82 @@ def format_number_with_padding(num: int, width: int = 2) -> str:
     return str(num).zfill(width)
 
 
+def normalize_number(num) -> int:
+    """
+    标准化号码：将字符串或整数号码统一转换为整数
+
+    功能说明：
+        解决号码比较时"4"和"04"被视为不同的问题。
+        将所有号码统一转换为整数，确保比较一致性。
+
+    参数：
+        num: 号码，可以是字符串（如"04", "4"）或整数（如4）
+
+    返回：
+        int: 标准化后的整数
+
+    示例：
+        >>> normalize_number("04")
+        4
+        >>> normalize_number("4")
+        4
+        >>> normalize_number(4)
+        4
+        >>> normalize_number(" 04 ")
+        4
+    """
+    if isinstance(num, str):
+        return int(num.strip())
+    return int(num)
+
+
+def normalize_number_list(numbers) -> List[int]:
+    """
+    批量标准化号码列表
+
+    功能说明：
+        将号码列表中的所有号码标准化为整数，去除重复。
+        常用于命中判断前的预处理。
+
+    参数：
+        numbers: 号码列表，元素可以是字符串或整数
+
+    返回：
+        List[int]: 标准化后的整数列表
+
+    示例：
+        >>> normalize_number_list(["04", "4", "15", "49"])
+        [4, 15, 49]
+        >>> normalize_number_list([4, "04", 15, "15"])
+        [4, 15]
+    """
+    # 使用set去重，然后转回list
+    return list(set(normalize_number(n) for n in numbers))
+
+
+def normalize_number_set(numbers) -> set:
+    """
+    批量标准化号码并返回集合
+
+    功能说明：
+        将号码列表/集合中的所有号码标准化为整数集合。
+        专门用于命中判断的快速查找（in操作）。
+
+    参数：
+        numbers: 号码列表或集合，元素可以是字符串或整数
+
+    返回：
+        set: 标准化后的整数集合
+
+    示例：
+        >>> normalize_number_set(["04", "4", "15", "49"])
+        {4, 15, 49}
+        >>> normalize_number_set({4, "04", 15, "15"})
+        {4, 15}
+    """
+    return set(normalize_number(n) for n in numbers)
+
+
 # ============ 使用示例 ============
 
 if __name__ == "__main__":

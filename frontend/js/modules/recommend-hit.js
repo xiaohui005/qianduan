@@ -161,7 +161,10 @@ async function analyzeSingleRecommend(recommendData, lotteryType) {
         if (recommendNums && Array.isArray(recommendNums)) {
           // 只与对应位置的开奖号码比较，不跨位置
           const openNumberAtPosition = openNumbers[pos];
-          const isHit = recommendNums.includes(openNumberAtPosition);
+          // 标准化号码为整数进行比较（解决"4"和"04"等价问题）
+          const normalizedRecommendNums = recommendNums.map(n => parseInt(n.toString().trim()));
+          const normalizedOpenNumber = parseInt(openNumberAtPosition.toString().trim());
+          const isHit = normalizedRecommendNums.includes(normalizedOpenNumber);
           const hitNumbers = isHit ? [openNumberAtPosition] : [];
           const hitCount = isHit ? 1 : 0;
           const hitRate = (hitCount / recommendNums.length * 100).toFixed(2);

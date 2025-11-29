@@ -16,9 +16,9 @@ from typing import Optional
 from collections import Counter
 
 try:
-    from backend.utils import get_db_cursor, wrap_in_range
+    from backend.utils import get_db_cursor, wrap_in_range, normalize_number, normalize_number_set
 except ImportError:
-    from utils import get_db_cursor, wrap_in_range
+    from utils import get_db_cursor, wrap_in_range, normalize_number, normalize_number_set
 
 try:
     from backend.routes.analysis_hot20 import calculate_period_hot20
@@ -1336,8 +1336,8 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
             if not rec_data:
                 continue
 
-            # 推荐号码列表
-            recommended_nums = set(rec_data['numbers'].split(','))
+            # 推荐号码列表（标准化为整数）
+            recommended_nums = normalize_number_set(rec_data['numbers'].split(','))
 
             # 获取下一期的开奖数据
             cursor.execute("""
@@ -1353,7 +1353,7 @@ def check_recommend8_omission(lottery_type: str, min_current: int, max_gap: int,
                 # 获取下一期第7个号码
                 next_nums = next_period['numbers'].split(',')
                 if len(next_nums) >= 7:
-                    next_7th = next_nums[6]
+                    next_7th = normalize_number(next_nums[6])
 
                     # 检查是否命中
                     if next_7th in recommended_nums:
@@ -1453,8 +1453,8 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
             if not rec_data:
                 continue
 
-            # 推荐号码列表
-            recommended_nums = set(rec_data['numbers'].split(','))
+            # 推荐号码列表（标准化为整数）
+            recommended_nums = normalize_number_set(rec_data['numbers'].split(','))
 
             # 获取下一期的开奖数据
             cursor.execute("""
@@ -1470,7 +1470,7 @@ def check_recommend16_omission(lottery_type: str, min_current: int, max_gap: int
                 # 获取下一期第7个号码
                 next_nums = next_period['numbers'].split(',')
                 if len(next_nums) >= 7:
-                    next_7th = next_nums[6]
+                    next_7th = normalize_number(next_nums[6])
 
                     # 检查是否命中
                     if next_7th in recommended_nums:
@@ -1628,8 +1628,8 @@ def check_seventh_smart20_omission(lottery_type: str, min_current: int, max_gap:
             if not recommend_str:
                 continue
 
-            # 解析推荐的20个号码
-            recommended_nums = set(recommend_str.split(','))
+            # 解析推荐的20个号码（标准化为整数）
+            recommended_nums = normalize_number_set(recommend_str.split(','))
 
             # 获取下一期的开奖数据
             cursor.execute("""
@@ -1645,7 +1645,7 @@ def check_seventh_smart20_omission(lottery_type: str, min_current: int, max_gap:
                 # 获取下一期第7个号码
                 next_nums = next_period['numbers'].split(',')
                 if len(next_nums) >= 7:
-                    next_7th = next_nums[6]
+                    next_7th = normalize_number(next_nums[6])
 
                     # 检查是否命中
                     if next_7th in recommended_nums:
@@ -2758,22 +2758,22 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
         if len(latest_numbers) < 7:
             return None
 
-        recommended_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        recommended_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in recommended_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'hot20':
         # 去10最热20：检查第7位是否在热20中
         if len(latest_numbers) < 7:
             return None
 
-        hot20_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        hot20_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in hot20_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'plus_minus6':
         # 加减前6码：需要获取前6码并计算对应组的号码，检查第7位是否命中
@@ -2875,11 +2875,11 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
         if len(latest_numbers) < 7:
             return None
 
-        favorite_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        favorite_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in favorite_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'each_issue':
         # 每期分析：检查当前期第7位是否在预警期的7个号码中
@@ -2900,9 +2900,10 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
             alert_numbers = alert_row['numbers'].split(',')
 
         # 检查当前期第7位是否在预警期的7个号码中
-        hit_number = latest_numbers[6]
-        if hit_number in alert_numbers:
-            return {'position': 7, 'number': hit_number}
+        hit_number = normalize_number(latest_numbers[6])
+        alert_numbers_normalized = normalize_number_set(alert_numbers)
+        if hit_number in alert_numbers_normalized:
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'second_fourxiao':
         # 第N位4肖：检查指定位置的号码对应的肖是否在预警的4个肖中
@@ -2941,13 +2942,14 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
         if len(latest_numbers) < 6:
             return None
 
-        recommended_nums = set(alert.get('numbers', '').split(','))
+        recommended_nums = normalize_number_set(alert.get('numbers', '').split(','))
         front6 = latest_numbers[:6]
-        hit_count = sum(1 for num in front6 if num in recommended_nums)
+        front6_normalized = [normalize_number(num) for num in front6]
+        hit_count = sum(1 for num in front6_normalized if num in recommended_nums)
 
         if hit_count >= 3:
             # 记录命中的号码
-            hit_numbers = [num for num in front6 if num in recommended_nums]
+            hit_numbers = [front6[i] for i, num in enumerate(front6_normalized) if num in recommended_nums]
             return {'position': 0, 'number': ','.join(hit_numbers)}  # position=0表示前6码
 
     elif analysis_type == 'five_period_threexiao':
@@ -2981,10 +2983,11 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
     elif analysis_type == 'place_results':
         # 关注点登记结果：检查当前期是否命中关注点的号码
         # numbers字段是关注点的号码（逗号分隔）
-        place_nums = set(alert.get('numbers', '').split(','))
+        place_nums = normalize_number_set(alert.get('numbers', '').split(','))
 
         # 检查7个号码中是否有命中
-        hit_numbers = [num for num in latest_numbers if num in place_nums]
+        latest_numbers_normalized = [normalize_number(num) for num in latest_numbers]
+        hit_numbers = [latest_numbers[i] for i, num in enumerate(latest_numbers_normalized) if num in place_nums]
 
         if hit_numbers:
             return {'position': 0, 'number': ','.join(hit_numbers)}
@@ -2994,33 +2997,33 @@ def check_alert_hit(analysis_type: str, detail: str, alert: dict,
         if len(latest_numbers) < 7:
             return None
 
-        recommended_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        recommended_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in recommended_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'seventh_smart20':
         # 第7码智能推荐20码：检查第7位是否在智能推荐的20个号码中
         if len(latest_numbers) < 7:
             return None
 
-        smart20_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        smart20_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in smart20_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'high20':
         # 高20码分析：检查第7位是否在组合的高20码中
         if len(latest_numbers) < 7:
             return None
 
-        high20_nums = set(alert.get('numbers', '').split(','))
-        hit_number = latest_numbers[6]
+        high20_nums = normalize_number_set(alert.get('numbers', '').split(','))
+        hit_number = normalize_number(latest_numbers[6])
 
         if hit_number in high20_nums:
-            return {'position': 7, 'number': hit_number}
+            return {'position': 7, 'number': latest_numbers[6]}
 
     elif analysis_type == 'color_analysis':
         # 波色分析：检查第7位的波色是否匹配预警的波色

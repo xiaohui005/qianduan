@@ -20,7 +20,10 @@ from .number_utils import (
     plus49_wrap,
     minus49_wrap,
     wrap_in_range,
-    apply_offsets
+    apply_offsets,
+    normalize_number,
+    normalize_number_list,
+    normalize_number_set
 )
 
 from .db_utils import (
@@ -122,6 +125,9 @@ __all__ = [
     'minus49_wrap',
     'wrap_in_range',
     'apply_offsets',
+    'normalize_number',
+    'normalize_number_list',
+    'normalize_number_set',
     # 数据库工具
     'get_db_cursor',
     'query_records',

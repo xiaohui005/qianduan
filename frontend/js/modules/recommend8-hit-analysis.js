@@ -51,6 +51,9 @@ function analyzeRecommend(recommendPeriod, recommendNumbers, lotteryRecords, pos
   const hitPeriods = [];
   let hitCount = 0;
 
+  // 将推荐号码标准化为整数（解决"4"和"04"等价问题）
+  const normalizedRecommendNumbers = recommendNumbers.map(n => parseInt(n.toString().trim()));
+
   for (let i = 1; i <= NEXT_PERIODS_COUNT; i++) {
     const nextIndex = recommendIndex + i;
 
@@ -63,7 +66,8 @@ function analyzeRecommend(recommendPeriod, recommendNumbers, lotteryRecords, pos
 
     if (openNumbers.length >= position) {
       const openNumber = openNumbers[position - 1];
-      const isHit = recommendNumbers.includes(openNumber);
+      const normalizedOpenNumber = parseInt(openNumber.toString().trim());
+      const isHit = normalizedRecommendNumbers.includes(normalizedOpenNumber);
 
       nextPeriods.push({
         period: record.period,
