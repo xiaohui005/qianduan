@@ -18,6 +18,7 @@ let currentLotteryType = 'am';
 let currentPosition = 7;
 let analysisCache = {};  // 缓存各位置的分析结果
 let allLotteryRecords = []; // 缓存开奖记录
+let isLoading = false;  // 加载标志，防止重复加载
 
 // ========== 核心算法（与视图逻辑一致）==========
 
@@ -114,7 +115,7 @@ async function performFullAnalysis16(lotteryType, position) {
       `${window.BACKEND_URL}/api/recommend16_history?lottery_type=${lotteryType}`
     );
     const historyData = await historyRes.json();
-    const recommendPeriods = historyData.data || [];
+    let recommendPeriods = historyData.data || [];
 
     if (recommendPeriods.length === 0) {
       console.log('没有推荐历史数据');
@@ -122,6 +123,20 @@ async function performFullAnalysis16(lotteryType, position) {
     }
 
     console.log(`获取到 ${recommendPeriods.length} 期推荐历史`);
+
+    // 去重：使用 Map 保留最新的记录（created_at 最晚）
+    const periodMap = new Map();
+    recommendPeriods.forEach(item => {
+      const existing = periodMap.get(item.period);
+      if (!existing || item.created_at > existing.created_at) {
+        periodMap.set(item.period, item);
+      }
+    });
+    recommendPeriods = Array.from(periodMap.values());
+
+    if (periodMap.size < historyData.data.length) {
+      console.log(`去重后剩余 ${periodMap.size} 期推荐历史（原始 ${historyData.data.length} 期）`);
+    }
 
     // 2. 获取开奖记录（如果缓存中没有）
     if (allLotteryRecords.length === 0 || allLotteryRecords[0].lottery_type !== lotteryType) {
@@ -301,10 +316,18 @@ function renderStatsPanel16(analysisResults) {
  * 加载并分析数据
  */
 async function loadAndAnalyze16() {
+  // 防止重复加载
+  if (isLoading) {
+    console.log('数据正在加载中，跳过重复请求');
+    return;
+  }
+
   const resultDiv = document.getElementById('recommend16AnalysisResult');
   resultDiv.innerHTML = '<div class="loading">正在加载数据，请稍候...</div>';
 
   try {
+    isLoading = true;  // 设置加载标志
+
     // 清除缓存（强制刷新）
     analysisCache = {};
     allLotteryRecords = [];
@@ -319,6 +342,8 @@ async function loadAndAnalyze16() {
   } catch (error) {
     console.error('分析失败:', error);
     resultDiv.innerHTML = `<div class="error">分析失败: ${error.message}</div>`;
+  } finally {
+    isLoading = false;  // 清除加载标志
   }
 }
 
