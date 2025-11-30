@@ -151,40 +151,66 @@ async function performFullAnalysis8(lotteryType, position) {
       console.log(`获取到 ${allLotteryRecords.length} 期开奖记录`);
     }
 
-    // 3. 遍历每个推荐期，分析命中情况
+    // 3. 分批并发获取推荐数据并分析
     const analysisResults = [];
+    const BATCH_SIZE = 10; // 每批并发10个请求
 
-    for (const periodInfo of recommendPeriods) {
-      const period = periodInfo.period;
+    // 分批处理函数
+    async function processBatch(batch) {
+      const promises = batch.map(async (periodInfo) => {
+        const period = periodInfo.period;
 
-      // 获取该期的推荐数据
-      const recommendRes = await fetch(
-        `${window.BACKEND_URL}/api/recommend_by_period?lottery_type=${lotteryType}&period=${period}`
-      );
-      const recommendData = await recommendRes.json();
+        try {
+          // 获取该期的推荐数据
+          const recommendRes = await fetch(
+            `${window.BACKEND_URL}/api/recommend_by_period?lottery_type=${lotteryType}&period=${period}`
+          );
+          const recommendData = await recommendRes.json();
 
-      if (!recommendData.success || !recommendData.data) {
-        console.log(`期号 ${period} 推荐数据无效`);
-        continue;
-      }
+          if (!recommendData.success || !recommendData.data) {
+            console.log(`期号 ${period} 推荐数据无效`);
+            return null;
+          }
 
-      // 获取指定位置的推荐号码
-      const recommendNumbers = recommendData.data.recommend_numbers[position - 1];
-      if (!recommendNumbers || recommendNumbers.length === 0) {
-        console.log(`期号 ${period} 第${position}位推荐号码为空`);
-        continue;
-      }
+          // 获取指定位置的推荐号码
+          const recommendNumbers = recommendData.data.recommend_numbers[position - 1];
+          if (!recommendNumbers || recommendNumbers.length === 0) {
+            console.log(`期号 ${period} 第${position}位推荐号码为空`);
+            return null;
+          }
 
-      // 分析该期的命中情况
-      const result = analyzeRecommend(
-        period,
-        recommendNumbers,
-        allLotteryRecords,
-        position
-      );
+          // 分析该期的命中情况
+          const result = analyzeRecommend(
+            period,
+            recommendNumbers,
+            allLotteryRecords,
+            position
+          );
 
-      result.createdAt = periodInfo.created_at;
-      analysisResults.push(result);
+          result.createdAt = periodInfo.created_at;
+          return result;
+        } catch (error) {
+          console.error(`处理期号 ${period} 时出错:`, error);
+          return null;
+        }
+      });
+
+      return Promise.all(promises);
+    }
+
+    // 分批执行
+    for (let i = 0; i < recommendPeriods.length; i += BATCH_SIZE) {
+      const batch = recommendPeriods.slice(i, i + BATCH_SIZE);
+      console.log(`正在处理第 ${Math.floor(i / BATCH_SIZE) + 1} 批，共 ${batch.length} 期...`);
+
+      const batchResults = await processBatch(batch);
+
+      // 过滤掉 null 结果并添加到总结果中
+      batchResults.forEach(result => {
+        if (result) {
+          analysisResults.push(result);
+        }
+      });
     }
 
     // 4. 按期号倒序排列（最新的在前面）
