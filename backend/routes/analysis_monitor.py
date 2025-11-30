@@ -426,6 +426,13 @@ def check_range_analysis_omission(lottery_type: str, min_current: int, max_gap: 
 
     return alerts
 
+# 修改为（过滤非数字字符）：
+def safe_int_convert(num_str):
+    """安全转换数字，过滤非数字字符"""
+    # 移除所有非数字字符（保留数字和负号）
+    cleaned = ''.join(filter(str.isdigit, num_str))
+    return int(cleaned) if cleaned else 0
+
 
 def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap: int, position: int = 7,
                                     recent_periods: int = 200, exclude_period: str = None):
@@ -480,7 +487,8 @@ def check_favorite_numbers_omission(lottery_type: str, min_current: int, max_gap
 
             # 从旧到新遍历
             for record in all_records:
-                open_numbers = list(map(int, record['numbers'].split(',')))
+                # 或者使用更详细的错误处理：
+                open_numbers = [safe_int_convert(num) for num in record['numbers'].split(',')]
                 target_pos = position - 1
 
                 if target_pos < len(open_numbers):
