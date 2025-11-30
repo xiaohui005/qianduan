@@ -142,11 +142,11 @@ def high20_analysis(
         result['max_omission_ever'] = max_omission_ever
 
         # 标注超过5期的情况
-        if consecutive_miss > 5:
+        if consecutive_miss > 6:
             alert_msg = f"连续错{consecutive_miss}期"
             result['over5_alert'] = alert_msg
             # 记录开始期号
-            if consecutive_miss == 6 or (idx > 0 and results[idx-1]['consecutive_miss'] <= 5):
+            if consecutive_miss == 7 or (idx > 0 and results[idx-1]['consecutive_miss'] <= 6):
                 over5_periods.append({
                     'start_period': result['period'],
                     'consecutive_count': consecutive_miss
@@ -159,7 +159,7 @@ def high20_analysis(
     hit_count = sum(1 for r in results if r['is_hit'] == 1)
     hit_rate = (hit_count / total_checked * 100) if total_checked > 0 else 0
 
-    # 统计超过5期的次数（去重，只统计起始期）
+    # 统计超过6期的次数（去重，只统计起始期）
     over5_count = len(set(p['start_period'] for p in over5_periods))
 
     # 获取当前遗漏期数（最新一期的遗漏值，倒序前是最后一条记录）

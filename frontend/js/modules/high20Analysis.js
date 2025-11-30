@@ -19,7 +19,7 @@ export function initHigh20Page() {
                 <ul>
                     <li><strong>策略</strong>：近100期热号top10 + 600期中频号10个</li>
                     <li><strong>命中率</strong>：约38%</li>
-                    <li><strong>特点</strong>：偶尔会超过5期连续错误，系统会自动标注超5期的情况</li>
+                    <li><strong>特点</strong>：偶尔会超过6期连续错误，系统会自动标注超5期的情况</li>
                     <li><strong>数据要求</strong>：至少需要601期历史数据</li>
                 </ul>
             </div>
@@ -107,7 +107,7 @@ export function initHigh20Page() {
                         </div>
                         <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
                             <div class="stat-box">
-                                <div class="stat-label">超5期次数</div>
+                                <div class="stat-label">超6期次数</div>
                                 <div class="stat-value text-warning" id="high20Over5Count">0</div>
                             </div>
                         </div>
@@ -123,7 +123,7 @@ export function initHigh20Page() {
 
             <!-- 超5期警告 -->
             <div id="high20Over5Alert" class="alert alert-warning" style="display:none;">
-                <h6>超过5期连续错误的情况：</h6>
+                <h6>超过6期连续错误的情况：</h6>
                 <div id="high20Over5List"></div>
             </div>
 
@@ -375,7 +375,7 @@ function displayStatistics(stats) {
 }
 
 /**
- * 显示超5期警告
+ * 显示超6期警告
  */
 function displayOver5Alert(over5Periods) {
     const alertDiv = document.getElementById('high20Over5Alert');
