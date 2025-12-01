@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏图标雪碧图展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .sprite-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .icon-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .icon-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .icon-name {
+            font-weight: bold;
+            margin: 15px 0 5px;
+            font-size: 1.1rem;
+            color: #ffcc00;
+        }
+        
+        .icon-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        /* 雪碧图样式 - 修改为根目录路径 */
+        .new-trend-icons {
+            background-image: url('/New_Trend_atlas_8b01ec2c.png');
+            background-repeat: no-repeat;
+            display: inline-block;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 各个图标的具体定位 */
+        .icon-InOut_Zombies {
+            width: 214px;
+            height: 285px;
+            background-position: 0px 0px;
+        }
+        
+        .icon-JILI_464 {
+            width: 214px;
+            height: 285px;
+            background-position: -216px 0px;
+        }
+        
+        .icon-JILI_240 {
+            width: 214px;
+            height: 285px;
+            background-position: -432px 0px;
+        }
+        
+        .icon-MG_576 {
+            width: 214px;
+            height: 285px;
+            background-position: -648px 0px;
+        }
+        
+        .icon-JDB_9_9024 {
+            width: 214px;
+            height: 285px;
+            background-position: 0px -287px;
+        }
+        
+        .icon-JILI_389 {
+            width: 214px;
+            height: 285px;
+            background-position: -216px -287px;
+        }
+        
+        .icon-JILI_421 {
+            width: 214px;
+            height: 285px;
+            background-position: -432px -287px;
+        }
+        
+        .icon-InOut_Royal {
+            width: 214px;
+            height: 284px;
+            background-position: -648px -287px;
+        }
+        
+        .icon-InOut_Fish {
+            width: 214px;
+            height: 284px;
+            background-position: 0px -574px;
+        }
+        
+        .icon-JILI_531 {
+            width: 214px;
+            height: 284px;
+            background-position: -216px -574px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            .icons-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .new-trend-icons {
+                transform: scale(0.8);
+            }
+            
+            h1 {
+                fontSize: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>游戏图标雪碧图展示</h1>
+            <p class="subtitle">使用CSS雪碧图技术将多个游戏图标整合到一张图片中，通过精确定位显示各个图标，减少HTTP请求，提高页面加载性能。</p>
+        </header>
+        
+        <div class="sprite-info">
+            <p>雪碧图尺寸: 862 × 858 像素 | 包含图标: 10个</p>
+        </div>
+        
+        <div class="icons-grid">
+            <div class="icon-card">
+                <div class="new-trend-icons icon-InOut_Zombies"></div>
+                <div class="icon-name">ZOMBIES</div>
+                <div class="icon-desc">僵尸主题游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JILI_464"></div>
+                <div class="icon-name">JILI 464</div>
+                <div class="icon-desc">JILI系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JILI_240"></div>
+                <div class="icon-name">JILI 240</div>
+                <div class="icon-desc">JILI系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-MG_576"></div>
+                <div class="icon-name">MG 576</div>
+                <div class="icon-desc">MG系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JDB_9_9024"></div>
+                <div class="icon-name">JDB 9024</div>
+                <div class="icon-desc">JDB系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JILI_389"></div>
+                <div class="icon-name">JILI 389</div>
+                <div class="icon-desc">JILI系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JILI_421"></div>
+                <div class="icon-name">JILI 421</div>
+                <div class="icon-desc">JILI系列游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-InOut_Royal"></div>
+                <div class="icon-name">ROYAL</div>
+                <div class="icon-desc">皇家主题游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-InOut_Fish"></div>
+                <div class="icon-name">FISH</div>
+                <div class="icon-desc">捕鱼游戏图标</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="new-trend-icons icon-JILI_531"></div>
+                <div class="icon-name">JILI 531</div>
+                <div class="icon-desc">JILI系列游戏图标</div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>CSS雪碧图技术示例 | 使用background-position精确定位图标</p>
+        </footer>
+    </div>
+</body>
+</html>

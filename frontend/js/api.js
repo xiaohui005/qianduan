@@ -4,7 +4,7 @@
  */
 
 // API 基础URL（从 config.js 获取）
-const API_BASE = window.BACKEND_URL || 'http://localhost:8000';
+const API_BASE = window.BACKEND_URL || 'https://six666.up.railway.app';
 
 // ==================== 数据采集相关 API ====================
 
