@@ -207,16 +207,17 @@ function buildTableHTML(data, areaId, title) {
 
   // 表格
   html += `
-    <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%;text-align:center;">
-      <thead>
-        <tr>
-          <th>期号</th>
-          <th>开奖时间</th>
-          <th>开奖号码/生肖</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
+    <div class="table-container">
+      <table border="1" cellpadding="6" style="border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th>期号</th>
+            <th>开奖时间</th>
+            <th>开奖号码/生肖</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
 
   // 表格内容
   data.records.forEach(record => {
@@ -224,8 +225,9 @@ function buildTableHTML(data, areaId, title) {
   });
 
   html += `
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   `;
 
   // 分页控件
@@ -250,11 +252,11 @@ function buildRecordRow(record) {
     const colorClass = getBallColorClass(paddedNum);
 
     return `
-      <div style='display:inline-block;margin:2px 6px;'>
-        <div class='${colorClass}' style='font-size:18px;display:inline-block;padding:2px 10px;border-radius:16px;'>
+      <div class='record-number-item' style='display:inline-block;margin:2px 6px;'>
+        <div class='${colorClass} record-number-ball' style='font-size:18px;display:inline-block;padding:2px 10px;border-radius:16px;'>
           ${num}
         </div>
-        <div style='color:#000;font-size:13px;font-weight:bold;'>${animal}</div>
+        <div class='records-animal-text' style='color:#000;font-size:13px;font-weight:bold;'>${animal}</div>
       </div>
     `;
   }).join('');
@@ -263,9 +265,9 @@ function buildRecordRow(record) {
 
   return `
     <tr>
-      <td>${record.period}</td>
-      <td>${openTime}</td>
-      <td>${numAniRow}</td>
+      <td data-label="期号">${record.period}</td>
+      <td data-label="开奖时间">${openTime}</td>
+      <td data-label="开奖号码/生肖">${numAniRow}</td>
     </tr>
   `;
 }

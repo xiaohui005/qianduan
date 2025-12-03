@@ -46,21 +46,42 @@
 
 /* ==================== 手机设备 (≤768px) ==================== */
 @media (max-width: 768px) {
-  /* 侧边栏默认折叠 */
+  /* 侧边栏默认隐藏 */
   .sidebar {
-    width: var(--sidebar-collapsed-width);
-  }
-
-  .sidebar:not(.collapsed) {
     width: var(--sidebar-width);
     position: fixed;
+    left: -100vw !important; /* 强制完全隐藏 */
+    top: 0;
+    bottom: 0;
     z-index: 200;
+    transition: left var(--transition-slow);
     box-shadow: var(--shadow-xl);
+  }
+
+  .sidebar.open {
+    left: 0 !important; /* 侧边栏强制展开 */
+  }
+
+  /* 侧边栏切换按钮 */
+  .sidebar-toggle-btn {
+    display: block !important; /* 强制显示 */
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: var(--primary-blue);
+    color: var(--text-white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-size: var(--font-size-lg);
+    cursor: pointer;
+    z-index: 9999 !important; /* 确保在所有元素之上 */
+    box-shadow: var(--shadow-md);
   }
 
   /* 主内容区调整 */
   .main-content {
-    margin-left: var(--sidebar-collapsed-width);
+    margin-left: 0; /* 手机端主内容区不偏移 */
     padding: var(--spacing-sm);
   }
 
@@ -161,12 +182,350 @@
     min-width: 80px;
   }
 
-  /* 栅格系统手机全宽 */
-  .col-2,
-  .col-3,
-  .col-4 {
-    flex: 0 0 100%;
-    max-width: 100%;
+  /* 固定宽度输入框/选择框调整为100%宽度 */
+  .history-collect-input,
+  #gapValueInput,
+  #missPeriodInput,
+  #minMissInput,
+  #maxMissInput,
+  #placeFilterInput,
+  #tensYearSelect,
+  .records-query-date,
+  .records-query-input,
+  #missThreshold8Input,
+  #missThreshold16Input {
+    width: 100% !important;
+    max-width: none !important; /* 移除可能的max-width限制 */
+  }
+
+  /* recordsQuery 布局调整 */
+  #recordsQuery {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-sm);
+  }
+
+  #recordsQuery .records-query-label {
+    margin-right: 0 !important;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  #recordsQuery .records-query-date,
+  #recordsQuery .records-query-input {
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  #recordsQuery #queryRecordsBtn {
+    width: 100% !important;
+    margin-top: var(--spacing-sm);
+  }
+
+  /* recordsTablesRow 布局调整 */
+  #recordsTablesRow {
+    flex-direction: column !important;
+    gap: var(--spacing-md) !important;
+  }
+
+  /* seventhSmart20Summary 网格布局调整 */
+  #seventhSmart20Summary div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* placeButtonsContainer 网格布局调整 */
+  #placeButtonsContainer {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* placeDetailsContent 内部的 place-details-stats 网格布局调整 */
+  #placeDetailsContent .place-details-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* stats-panel 中的 stats-item 网格布局调整 */
+  .stats-panel {
+    grid-template-columns: 1fr !important; /* 调整为单列 */
+  }
+
+  .stats-panel .stat-item {
+    flex-direction: column; /* 垂直堆叠 */
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  /* 行内样式按钮组的flex-wrap */
+  .gap-type-btn,
+  .miss-type-btn,
+  .miss-query-type-btn,
+  #gapPositionSelect,
+  #missPositionSelect,
+  #missSortSelect,
+  #secondFourxiaoYearSelect,
+  #fivePeriodThreexiaoYearSelect {
+    width: 100% !important;
+    margin-right: 0 !important;
+    margin-bottom: var(--spacing-xs) !important;
+  }
+
+  .control-bar > div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-bottom: var(--spacing-sm) !important;
+  }
+
+  .control-bar > div label {
+    margin-right: 0 !important;
+    margin-bottom: var(--spacing-xs) !important;
+  }
+
+  .control-bar > div button,
+  .control-bar > div input,
+  .control-bar > div select {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .control-bar > div .range-separator {
+    display: none;
+  }
+
+  /* query-form adjustments for specific pages */
+  .query-form .query-grid,
+  #favoriteNumbersPage .year-buttons,
+  #favoriteNumbersPage .year-buttons > div,
+  #favoriteNumbersPage div[style*="遗漏期数筛选"] {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  #favoriteNumbersPage div[style*="遗漏期数筛选"] input {
+    width: 100% !important;
+  }
+
+  #favoriteNumbersPage div[style*="排序方式"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  #favoriteNumbersPage div[style*="排序方式"] button {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  #betReportQueryForm .query-grid,
+  #betReportQueryForm .query-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  #betReportQueryForm .query-actions button {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .place-filter-container .filter-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  .place-filter-container .filter-item {
+    width: 100% !important;
+  }
+
+  .place-filter-container .filter-item label,
+  .place-filter-container .filter-item input,
+  .place-filter-container .filter-item select,
+  .place-filter-container .filter-item button {
+    width: 100% !important;
+  }
+
+  .chart-area {
+    height: 200px !important;
+  }
+
+  /* 表格响应式 */
+  .table-container {
+    overflow-x: auto !important; /* 强制启用横向滚动 */
+    width: 100%; /* 确保容器宽度为100% */
+  }
+
+  table {
+    width: 100%; /* 确保表格宽度为100% */
+    display: block; /* 使表格可以滚动 */
+    white-space: nowrap; /* 防止表格内容换行 */
+  }
+
+  table thead, table tbody, table th, table td, table tr {
+    display: block;
+  }
+
+  table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  table tr {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+  }
+
+  table td {
+    border: none;
+    border-bottom: 1px solid #eee;
+    position: relative;
+    padding-left: 50% !important; /* 为伪元素腾出空间 */
+    text-align: right !important;
+  }
+
+  table td:before {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 45%;
+    padding-right: 10px;
+    white-space: nowrap;
+    text-align: left;
+    font-weight: bold;
+    content: attr(data-label); /* 使用data-label属性填充内容 */
+  }
+
+  /* 为每个td使用content属性填充内容 */
+  #betsTable td:nth-of-type(1):before { content: "关注点"; }
+  #betsTable td:nth-of-type(2):before { content: "期数"; }
+  #betsTable td:nth-of-type(3):before { content: "投注金额"; }
+  #betsTable td:nth-of-type(4):before { content: "赢取金额"; }
+  #betsTable td:nth-of-type(5):before { content: "是否正确"; }
+  #betsTable td:nth-of-type(6):before { content: "输赢金额"; }
+  #betsTable td:nth-of-type(7):before { content: "创建时间"; }
+  #betsTable td:nth-of-type(8):before { content: "操作"; }
+
+  #placesTable td:nth-of-type(1):before { content: "名称"; }
+  #placesTable td:nth-of-type(2):before { content: "描述"; }
+  #placesTable td:nth-of-type(3):before { content: "创建时间"; }
+  #placesTable td:nth-of-type(4):before { content: "操作"; }
+
+  #maxMissAlertTable td:nth-of-type(1):before { content: "关注点"; }
+  #maxMissAlertTable td:nth-of-type(2):before { content: "描述"; }
+  #maxMissAlertTable td:nth-of-type(3):before { content: "当前遗漏"; }
+  #maxMissAlertTable td:nth-of-type(4):before { content: "最大遗漏"; }
+  #maxMissAlertTable td:nth-of-type(5):before { content: "差距"; }
+
+  #favoriteNumbersTable td:nth-of-type(1):before { content: "号码组名称"; }
+  #favoriteNumbersTable td:nth-of-type(2):before { content: "关注号码"; }
+  #favoriteNumbersTable td:nth-of-type(3):before { content: "当前遗漏"; }
+  #favoriteNumbersTable td:nth-of-type(4):before { content: "最大遗漏"; }
+  #favoriteNumbersTable td:nth-of-type(5):before { content: "差值"; }
+  #favoriteNumbersTable td:nth-of-type(6):before { content: "创建时间"; }
+  #favoriteNumbersTable td:nth-of-type(7):before { content: "操作"; }
+
+  #betReportPlaceTable td:nth-of-type(1):before { content: "关注点名称"; }
+  #betReportPlaceTable td:nth-of-type(2):before { content: "投注次数"; }
+  #betReportPlaceTable td:nth-of-type(3):before { content: "投注总额"; }
+  #betReportPlaceTable td:nth-of-type(4):before { content: "赢取总额"; }
+  #betReportPlaceTable td:nth-of-type(5):before { content: "输赢总额"; }
+  #betReportPlaceTable td:nth-of-type(6):before { content: "平均投注"; }
+  #betReportPlaceTable td:nth-of-type(7):before { content: "平均赢取"; }
+  #betReportPlaceTable td:nth-of-type(8):before { content: "平均输赢"; }
+  #betReportPlaceTable td:nth-of-type(9):before { content: "正确次数"; }
+  #betReportPlaceTable td:nth-of-type(10):before { content: "错误次数"; }
+  #betReportPlaceTable td:nth-of-type(11):before { content: "未判断次数"; }
+  #betReportPlaceTable td:nth-of-type(12):before { content: "首次投注"; }
+  #betReportPlaceTable td:nth-of-type(13):before { content: "最后投注"; }
+  #betReportPlaceTable td:nth-of-type(14):before { content: "操作"; }
+
+  #betReportTimeTable td:nth-of-type(1):before { content: "月份"; }
+  #betReportTimeTable td:nth-of-type(2):before { content: "投注次数"; }
+  #betReportTimeTable td:nth-of-type(3):before { content: "投注总额"; }
+  #betReportTimeTable td:nth-of-type(4):before { content: "赢取总额"; }
+  #betReportTimeTable td:nth-of-type(5):before { content: "输赢总额"; }
+  #betReportTimeTable td:nth-of-type(6):before { content: "平均投注"; }
+  #betReportTimeTable td:nth-of-type(7):before { content: "平均赢取"; }
+  #betReportTimeTable td:nth-of-type(8):before { content: "平均输赢"; }
+
+  #betReportDistributionTable td:nth-of-type(1):before { content: "输赢范围"; }
+  #betReportDistributionTable td:nth-of-type(2):before { content: "次数"; }
+  #betReportDistributionTable td:nth-of-type(3):before { content: "投注总额"; }
+  #betReportDistributionTable td:nth-of-type(4):before { content: "赢取总额"; }
+  #betReportDistributionTable td:nth-of-type(5):before { content: "输赢总额"; }
+
+  #placeResultsTable td:nth-of-type(1):before { content: "关注点"; }
+  #placeResultsTable td:nth-of-type(2):before { content: "期数"; }
+  #placeResultsTable td:nth-of-type(3):before { content: "是否正确"; }
+  #placeResultsTable td:nth-of-type(4):before { content: "当前遗漏"; }
+  #placeResultsTable td:nth-of-type(5):before { content: "历史最大遗漏"; }
+  #placeResultsTable td:nth-of-type(6):before { content: "创建时间"; }
+  #placeResultsTable td:nth-of-type(7):before { content: "操作"; }
+
+  /* 其他表格的滚动处理，以防万一 */
+  .data-table.scrollable, .data-table.wide-table {
+    overflow-x: auto;
+  }
+
+  /* 菜单按钮适配 */
+  .menu-btn {
+    text-align: center !important; /* 居中显示文本 */
+    padding: 10px 0 !important; /* 调整内边距 */
+    width: 95% !important;
+  }
+
+  .menu-btn-sub {
+    text-align: center !important;
+    padding: 7px 0 !important;
+    width: 90% !important;
+  }
+
+  .toggle-section-btn {
+    width: 95% !important;
+    text-align: center !important;
+  }
+
+  #registerMenuBtns, .subgroup-btns {
+    padding: 0 2.5% !important;
+  }
+
+  .sidebar-header {
+    padding: 15px 0 !important;
+  }
+
+  .sidebar-title {
+    font-size: 18px !important;
+  }
+
+  /* 开奖结果页面号码球样式 */
+  .record-number-item {
+    display: inline-flex !important; /* 使号码球可以在一行内排列并换行 */
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    margin: 2px !important; /* 调整外边距 */
+    padding: 2px; /* 增加内边距 */
+    border: 1px solid #eee; /* 添加边框 */
+    border-radius: 4px; /* 较小的圆角 */
+  }
+
+  .record-number-ball {
+    font-size: 13px !important;
+    padding: 1px 4px !important;
+    border-radius: 8px !important;
+    min-width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    margin: 1px; /* 减小外边距 */
+  }
+
+  .records-animal-text {
+    font-size: 10px !important;
+    text-align: center;
+    width: auto; /* 自动宽度，不再强制100% */
+    margin-left: 4px; /* 与号码球的间距 */
   }
 }
 

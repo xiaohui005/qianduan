@@ -41,6 +41,20 @@ function initRestartButton() {
 // 注意：源头切换功能已移至 js/modules/collect.js 模块
 // 这里保留是为了向后兼容，实际功能由 collect 模块提供
 
+/**
+ * 绑定侧边栏切换按钮
+ */
+function initSidebarToggle() {
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (sidebarToggleBtn && sidebar) {
+    sidebarToggleBtn.addEventListener('click', function() {
+      sidebar.classList.toggle('open');
+    });
+  }
+}
+
 // ==================== 主初始化函数 ====================
 
 /**
@@ -51,6 +65,9 @@ function initApp() {
 
   // 初始化重启按钮
   initRestartButton();
+
+  // 初始化侧边栏切换
+  initSidebarToggle();
 
   // 初始化数据采集模块（如果存在）
   if (typeof window.initCollectModule === 'function') {
