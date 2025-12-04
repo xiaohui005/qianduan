@@ -13,7 +13,10 @@ const VIEW_NAME_MAP = {
     'lottery_analysis_view': '8码',
     'prediction_analysis_view': '三12两相同码',
     'v_lottery_analysis': '双12相同码',
-    'zodiac_analysis_view': '三站2肖'
+    'zodiac_analysis_view': '三站2肖',
+    'three_stations_non_repeat_stats_simple': '3站非重复统计',
+    'two_stations_non_repeat_stats_simple': '两站非重复统计'
+
 };
 
 // 全局状态
