@@ -177,29 +177,80 @@ function renderOmissionAlerts(data, type) {
  * 渲染预警号码
  * @param {Object} alert - 预警数据
  */
+/**
+ * 渲染预警号码
+ * @param {Object} alert - 预警数据
+ */
 function renderAlertNumbers(alert) {
-    if (alert.numbers.includes('±')) {
+    const numbersText = alert.numbers.trim();
+    const uniqueId = `qr-${alert.analysis_type}-${alert.period}-${alert.detail}-${Math.random().toString(36).substring(2, 9)}`;
+    const numbers = numbersText.split(',').map(n => n.trim());
+
+    let html = '<div style="display:flex;flex-direction:column;gap:5px;">';
+
+    if (numbersText.includes('±')) {
         // 加减前6码格式
-        return `<span style="font-size:14px;color:#1976d2;font-weight:500;">${alert.numbers}</span>`;
+        html += `<span style="font-size:14px;color:#1976d2;font-weight:500;">${numbersText}</span>`;
+    } else {
+        // 号码列表格式
+        html += '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+        numbers.forEach(num => {
+            const paddedNum = String(num).padStart(2, '0');
+            const colorClass = getBallColorClass(paddedNum);
+
+            html += `
+                <span class="number-ball ${colorClass}" style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:13px;font-weight:500;">
+                    ${paddedNum}
+                </span>
+            `;
+        });
+        html += '</div>';
     }
 
-    // 号码列表格式
-    const numbers = alert.numbers.split(',').map(n => n.trim());
-    let html = '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
-
-    numbers.forEach(num => {
-        const paddedNum = String(num).padStart(2, '0');
-        const colorClass = getBallColorClass(paddedNum);
-
-        html += `
-            <span class="number-ball ${colorClass}" style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:13px;font-weight:500;">
-                ${paddedNum}
-            </span>
-        `;
-    });
+    // 二维码按钮和容器
+    html += `
+        <div style="display:flex;align-items:center;margin-top:5px;">
+            <button onclick="toggleOmissionQRCode('${uniqueId}', '${numbersText}')" 
+                    style="padding: 3px 8px; font-size: 12px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                二维码
+            </button>
+            <button onclick="window.copyNumbersToClipboard('${numbersText}')" 
+                    style="padding: 3px 8px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">
+                复制
+            </button>
+        </div>
+        <div id="${uniqueId}" style="margin-top:5px;display:none;border:1px solid #ddd;padding:5px;width:80px;height:80px;"></div>
+    `;
 
     html += '</div>';
     return html;
+}
+
+/**
+ * 切换遗漏监控二维码的显示状态并生成二维码
+ * @param {string} id - 二维码容器的ID
+ * @param {string} numbers - 要编码的号码字符串
+ */
+window.toggleOmissionQRCode = function(id, numbers) {
+    const qrContainer = document.getElementById(id);
+    if (!qrContainer) return;
+
+    if (qrContainer.style.display === 'none') {
+        // 显示并生成二维码
+        qrContainer.style.display = 'block';
+        
+        // 确保 generateQRCode 函数已全局可用
+        if (typeof window.generateQRCode === 'function') {
+            // 扫码内容：号码字符串
+            const qrcodeText = numbers;
+            generateQRCode(qrcodeText, qrContainer, 70); // 尺寸设为70x70
+        } else {
+            qrContainer.innerHTML = '<span style="color:red; font-size: 8px;">QR库未加载</span>';
+        }
+    } else {
+        // 隐藏二维码
+        qrContainer.style.display = 'none';
+    }
 }
 
 /**
