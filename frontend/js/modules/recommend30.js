@@ -111,7 +111,93 @@ export function initRecommend30Page() {
                 transform: translateY(-2px) !important;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
             }
+
+                        /* 二维码弹窗样式 */
+            .qrcode-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1050;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .qrcode-modal.active {
+                display: flex;
+            }
+
+            .qrcode-content {
+                background-color: white;
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 300px;
+                width: 90%;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            }
+
+            .qrcode-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+
+            .qrcode-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .qrcode-close {
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #999;
+            }
+
+            .qrcode-close:hover {
+                color: #333;
+            }
+
+            .qrcode-body {
+                text-align: center;
+            }
+
+            #qrcodeCanvas {
+                border: 1px solid #eee;
+                background: white;
+                margin: 0 auto 10px;
+                display: block;
+            }
+
+            .qrcode-info {
+                font-size: 12px;
+                color: #999;
+                margin-top: 10px;
+            }
         </style>
+
+        <!-- 二维码弹窗 -->
+        <div id="qrcodeModal" class="qrcode-modal">
+            <div class="qrcode-content">
+                <div class="qrcode-header">
+                    <div class="qrcode-title">扫码查看号码</div>
+                    <button class="qrcode-close" onclick="window.recommend30Module.closeQRCode()">&times;</button>
+                </div>
+                <div class="qrcode-body">
+                    <canvas id="qrcodeCanvas"></canvas>
+                    <div id="qrcodeText" class="qrcode-text"></div>
+                    <div class="qrcode-info">使用微信扫码查看号码信息</div>
+                </div>
+            </div>
+        </div>
 
         <div class="container-fluid">
             <h2 class="mb-4">推荐30码分析</h2>
@@ -252,7 +338,9 @@ export function initRecommend30Page() {
         loadWeekStats,
         loadMissAnalysis,
         exportData,
-        switchTab
+        switchTab,
+        showQRCode,      // 新增
+        closeQRCode      // 新增
     };
 
     // 默认加载历史记录
@@ -361,6 +449,7 @@ function renderHistoryTable(data, container) {
                     <tr>
                         <th>期号</th>
                         <th>推荐30码</th>
+                        <th>操作</th>
                         <th>下一期</th>
                         <th>第7码</th>
                         <th>命中状态</th>
@@ -405,6 +494,13 @@ function renderHistoryTable(data, container) {
             <tr>
                 <td>${row.period}</td>
                 <td>${numbersHtml}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="window.recommend30Module.showQRCode('${row.period}', '${row.recommend_numbers}')"
+                            title="查看二维码">
+                        <i class="fas fa-qrcode"></i> 二维码
+                    </button>
+                </td>
                 <td>${row.next_period || '-'}</td>
                 <td class="text-center">${seventhNumHtml}</td>
                 <td class="text-center">${statusBadge}</td>
@@ -423,6 +519,192 @@ function renderHistoryTable(data, container) {
     `;
 
     container.innerHTML = html;
+} 
+/**
+ * 显示二维码弹窗
+ */
+function showQRCode(period, numbers) {
+    // 确保内容不要太长（微信有限制）
+    let displayNumbers = numbers;
+    if (displayNumbers.length > 100) {
+        displayNumbers = displayNumbers.substring(0, 100) + '...';
+    }
+    
+    const qrContent = `${displayNumbers}`;
+    
+    // 使用多个二维码API，确保至少有一个能工作
+    const apiUrls = [
+        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`,
+        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&data=${encodeURIComponent(qrContent)}`,
+        `https://quickchart.io/qr?text=${encodeURIComponent(qrContent)}&size=200`,
+        `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(qrContent)}&choe=UTF-8`
+    ];
+    
+    // 创建弹窗
+    const modalHTML = `
+        <div id="qrcodeModal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        ">
+            <div style="
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+                text-align: center;
+                max-width: 90vw;
+            ">
+                <h5 style="margin-bottom: 15px;">期号：${period}</h5>
+                
+                <!-- 尝试显示二维码 -->
+                <img id="realQRCode" 
+                     src="${apiUrls[0]}"
+                     style="width: 220px; height: 220px; border: 2px solid #eee; border-radius: 5px;"
+                     alt="二维码"
+                >
+                
+                <div style="margin: 15px 0; font-size: 13px; color: #666;">
+                    <div>使用微信扫一扫查看</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                        如果无法扫描，请尝试：<br>
+                        1. 确保网络连接<br>
+                        2. 截图后再扫描<br>
+                        3. 手动记录下方号码
+                    </div>
+                </div>
+                
+                <!-- 显示号码信息 -->
+                <div style="
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-radius: 5px;
+                    margin: 10px 0;
+                    text-align: left;
+                    max-height: 120px;
+                    overflow-y: auto;
+                    font-size: 13px;
+                ">
+                    <div><strong>期号：</strong>${period}</div>
+                    <div><strong>推荐号码：</strong></div>
+                    <div style="color: #333;">${numbers}</div>
+                </div>
+                
+                <button onclick="document.getElementById('qrcodeModal').remove()" style="
+                    padding: 8px 25px;
+                    background: #dc3545;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">关闭</button>
+            </div>
+        </div>
+    `;
+    
+    // 移除旧的弹窗
+    const oldModal = document.getElementById('qrcodeModal');
+    if (oldModal) oldModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // 如果第一个API失败，尝试其他的
+    const qrImg = document.getElementById('realQRCode');
+    let currentApi = 0;
+    
+    qrImg.onerror = function() {
+        currentApi++;
+        if (currentApi < apiUrls.length) {
+            console.log(`API ${currentApi}失败，尝试下一个`);
+            qrImg.src = apiUrls[currentApi];
+        } else {
+            console.log('所有API都失败，显示错误信息');
+            qrImg.style.display = 'none';
+            const modalContent = document.querySelector('#qrcodeModal > div');
+            const errorMsg = document.createElement('div');
+            errorMsg.innerHTML = `
+                <div style="color: #dc3545; padding: 20px; border: 2px dashed #dc3545; border-radius: 5px; margin: 15px 0;">
+                    <strong>二维码生成失败</strong><br>
+                    请手动复制以下信息：
+                </div>
+            `;
+            modalContent.insertBefore(errorMsg, modalContent.children[2]);
+        }
+    };
+}
+
+/**
+ * 关闭二维码弹窗
+ */
+function closeQRCode() {
+    const modal = document.getElementById('qrcodeModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+/**
+ * 生成二维码（使用最简单的方法）
+ */
+function generateQRCode(period, numbers) {
+    console.log('开始生成二维码');
+    
+    const canvas = document.getElementById('qrcodeCanvas');
+    if (!canvas) {
+        console.error('错误：未找到Canvas元素！');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    console.log('Canvas上下文:', ctx ? '正常' : '异常');
+    
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 先画一个简单的测试图案
+    console.log('绘制测试图案...');
+    
+    // 红色背景
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 绿色方块
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(50, 50, 100, 100);
+    
+    // 黑色文字
+    ctx.fillStyle = '#000000';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('测试', 100, 30);
+    
+    console.log('测试图案绘制完成');
+}
+
+/**
+ * 绘制定位方块
+ */
+function drawPositionSquare(ctx, x, y, size) {
+    const cellSize = 4;
+    
+    // 外层黑色
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x, y, size * cellSize, size * cellSize);
+    
+    // 内层白色
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + cellSize, y + cellSize, (size - 2) * cellSize, (size - 2) * cellSize);
+    
+    // 中心黑色
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 2 * cellSize, y + 2 * cellSize, (size - 4) * cellSize, (size - 4) * cellSize);
 }
 
 /**
@@ -597,7 +879,12 @@ async function loadMissAnalysis(page = 1) {
 /**
  * 渲染遗漏分析表格
  */
+/**
+ * 渲染遗漏分析表格
+ */
 function renderMissAnalysisTable(data, container) {
+    console.log('渲染遗漏分析表格数据:', data); // 调试用
+    
     let html = `
         <div class="alert alert-warning">
             <strong>说明：</strong>
@@ -614,6 +901,8 @@ function renderMissAnalysisTable(data, container) {
                 <thead class="thead-light">
                     <tr>
                         <th>期号</th>
+                        <th>推荐30码</th>
+                        <th>操作</th>
                         <th>下一期</th>
                         <th>第7码</th>
                         <th>遗漏状态</th>
@@ -624,34 +913,81 @@ function renderMissAnalysisTable(data, container) {
                 <tbody>
     `;
 
-    data.forEach(row => {
-        // 命中状态颜色
-        const rowClass = row.is_hit === 1 ? 'table-success' : 'table-danger';
-        const statusBadge = row.is_hit === 1
-            ? '<span class="badge badge-success">命中</span>'
-            : '<span class="badge badge-danger">遗漏</span>';
-
-        // 第7码显示
-        let seventhNumHtml = '-';
-        if (row.next_number) {
-            const colorClass = window.getBallColorClass(row.next_number);
-            seventhNumHtml = `<span class="badge ${colorClass}">${row.next_number}</span>`;
-        }
-
-        // 最大遗漏颜色（超过2次标红）
-        const maxMissClass = row.max_miss > 2 ? 'text-danger font-weight-bold' : '';
-
+    if (!data || data.length === 0) {
         html += `
-            <tr class="${rowClass}">
-                <td>${row.period}</td>
-                <td>${row.next_period || '-'}</td>
-                <td class="text-center">${seventhNumHtml}</td>
-                <td class="text-center">${statusBadge}</td>
-                <td class="text-center">${row.miss_count}</td>
-                <td class="text-center ${maxMissClass}">${row.max_miss}</td>
+            <tr>
+                <td colspan="8" class="text-center text-muted">
+                    暂无遗漏分析数据
+                </td>
             </tr>
         `;
-    });
+    } else {
+        data.forEach((row, index) => {
+            console.log(`处理第${index}行数据:`, row); // 调试用
+            
+            // 检查 recommend_numbers 是否存在
+            const numbersStr = row.recommend_numbers || '';
+            
+            // 处理推荐号码显示（添加空值检查）
+            let numbersHtml = '-';
+            if (numbersStr && numbersStr.trim() !== '') {
+                try {
+                    const numbers = numbersStr.split(',').map(n => {
+                        const num = parseInt(n.trim());
+                        return isNaN(num) ? null : num;
+                    }).filter(n => n !== null);
+                    
+                    if (numbers.length > 0) {
+                        numbersHtml = numbers.map(num => {
+                            const colorClass = window.getBallColorClass ? window.getBallColorClass(num) : 'badge-secondary';
+                            return `<span class="badge ${colorClass} mr-1">${num}</span>`;
+                        }).join('');
+                    }
+                } catch (error) {
+                    console.error('处理号码错误:', error, '行数据:', row);
+                    numbersHtml = `<span class="text-danger">数据异常</span>`;
+                }
+            }
+
+            // 命中状态颜色
+            const rowClass = (row.is_hit === 1) ? 'table-success' : 'table-danger';
+            const statusBadge = (row.is_hit === 1)
+                ? '<span class="badge badge-success">命中</span>'
+                : '<span class="badge badge-danger">遗漏</span>';
+
+            // 第7码显示
+            let seventhNumHtml = '-';
+            if (row.next_number) {
+                const colorClass = window.getBallColorClass ? window.getBallColorClass(row.next_number) : 'badge-secondary';
+                seventhNumHtml = `<span class="badge ${colorClass}">${row.next_number}</span>`;
+            }
+
+            // 最大遗漏颜色（超过2次标红）
+            const maxMissClass = (row.max_miss > 2) ? 'text-danger font-weight-bold' : '';
+
+            // 转义单引号，防止onclick中断
+            const escapedNumbers = (numbersStr || '').replace(/'/g, "\\'");
+            
+            html += `
+                <tr class="${rowClass}">
+                    <td>${row.period || '-'}</td>
+                    <td>${numbersHtml}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="window.recommend30Module.showQRCode('${row.period || ''}', '${escapedNumbers}')"
+                                title="查看二维码" ${!numbersStr ? 'disabled' : ''}>
+                            二维码
+                        </button>
+                    </td>
+                    <td>${row.next_period || '-'}</td>
+                    <td class="text-center">${seventhNumHtml}</td>
+                    <td class="text-center">${statusBadge}</td>
+                    <td class="text-center">${row.miss_count || 0}</td>
+                    <td class="text-center ${maxMissClass}">${row.max_miss || 0}</td>
+                </tr>
+            `;
+        });
+    }
 
     html += `
                 </tbody>

@@ -246,6 +246,7 @@ function renderAnalysisTable8(analysisResults, position) {
         <tr>
           <th>推荐期号</th>
           <th>第${position}位推荐号码（8个）</th>
+          <th>二维码</th>
           <th>后续${NEXT_PERIODS_COUNT}期号码</th>
           <th>命中情况</th>
           <th>命中次数</th>
@@ -286,15 +287,16 @@ function renderAnalysisTable8(analysisResults, position) {
     // 行样式
     const rowClass = item.isHit ? 'hit-row' : '';
 
-    html += `
-      <tr class="${rowClass}">
-        <td>${item.recommendPeriod}</td>
-        <td class="numbers-cell">${numberBalls}</td>
-        <td class="next-periods-cell">${nextPeriodsHtml}</td>
-        <td>${statusHtml}</td>
-        <td>${item.hitCount}</td>
-      </tr>
-    `;
+	    html += `
+	      <tr class="${rowClass}">
+	        <td>${item.recommendPeriod}</td>
+	        <td class="numbers-cell">${numberBalls}</td>
+	        <td class="qrcode-cell" id="qrcode-8-${item.recommendPeriod}"></td>
+	        <td class="next-periods-cell">${nextPeriodsHtml}</td>
+	        <td>${statusHtml}</td>
+	        <td>${item.hitCount}</td>
+	      </tr>
+	    `;
   });
 
   html += `
@@ -314,8 +316,23 @@ function renderAnalysisTable8(analysisResults, position) {
     </style>
   `;
 
-  resultDiv.innerHTML = html;
-}
+	  resultDiv.innerHTML = html;
+
+	  // 生成二维码
+	  analysisResults.forEach(item => {
+	    const qrcodeElement = document.getElementById(`qrcode-8-${item.recommendPeriod}`);
+	    if (qrcodeElement) {
+	      // 扫码后获取的文本内容：期号:号码1,号码2,...
+	      const qrcodeText = `${item.recommendPeriod}:${item.recommendNumbers.join(',')}`;
+	      // 确保 generateQRCode 函数已全局可用
+	      if (typeof window.generateQRCode === 'function') {
+	        generateQRCode(qrcodeText, qrcodeElement, 60); // 尺寸设为60x60
+	      } else {
+	        qrcodeElement.innerHTML = '<span style="color:red;">QR库未加载</span>';
+	      }
+	    }
+	  });
+	}
 
 /**
  * 渲染统计面板

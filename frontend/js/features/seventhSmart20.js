@@ -113,10 +113,13 @@ function renderSeventhSmart20(data, resultDiv, summaryDiv) {
   // 渲染推荐Top20表格
   let html = `
     <div style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;">推荐Top20号码</h3>
-        <span style="color: #666; font-size: 14px;">生成时间: ${generated_at}</span>
-      </div>
+	      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+	        <h3 style="margin: 0;">推荐Top20号码</h3>
+	        <div style="display: flex; align-items: center;">
+	          <div id="qrcode-smart20" style="margin-right: 15px; border: 1px solid #ddd; padding: 5px;"></div>
+	          <span style="color: #666; font-size: 14px;">生成时间: ${generated_at}</span>
+	        </div>
+	      </div>
 
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <thead>
@@ -206,8 +209,22 @@ function renderSeventhSmart20(data, resultDiv, summaryDiv) {
     </div>
   `;
 
-  resultDiv.innerHTML = html;
-}
+	  resultDiv.innerHTML = html;
+
+	  // 生成二维码
+	  const qrcodeElement = document.getElementById('qrcode-smart20');
+	  if (qrcodeElement) {
+	    // 扫码后获取的文本内容：号码1,号码2,... (只取前8个号码作为主要推荐)
+	    const top8Numbers = recommend_top20.slice(0, 8).map(item => item.number.toString().padStart(2, '0')).join(',');
+	    const qrcodeText = `智能推荐Top8:${top8Numbers}`;
+	    // 确保 generateQRCode 函数已全局可用
+	    if (typeof window.generateQRCode === 'function') {
+	      generateQRCode(qrcodeText, qrcodeElement, 80); // 尺寸设为80x80
+	    } else {
+	      qrcodeElement.innerHTML = '<span style="color:red;">QR库未加载</span>';
+	    }
+	  }
+	}
 
 // 加载逐期详细记录
 async function loadSeventhSmart20Details(lotteryType) {
