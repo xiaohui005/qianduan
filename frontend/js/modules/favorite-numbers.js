@@ -313,15 +313,232 @@ async function analyzeFavoriteNumber(id, position = 7) {
   }
 }
 
+/**
+ * 显示关注号码分析结果
+ */
 function showFavoriteNumberAnalysis(data) {
-  // 原有分析渲染代码保持不变（省略以节省篇幅）
-  // ... 你原来的 showFavoriteNumberAnalysis 内容保持原样即可
-  // （为了完整性，这里保留关键结构，实际使用时请把你原来的完整函数粘贴回来）
+  console.log('🎯 开始显示关注号码分析结果');
+  const analysisResult = document.getElementById('favoriteNumberAnalysisResult');
+  if (!analysisResult) {
+    console.error('❌ 找不到 favoriteNumberAnalysisResult 元素！');
+    return;
+  }
+  console.log('✅ 找到分析结果元素，准备显示数据');
+
+  const { favorite_group, numbers, analysis, position_stats, stats } = data;
+
+  const activeLotteryBtn = document.querySelector('.lottery-btn.active');
+  const activePositionBtn = document.querySelector('.position-btn.active');
+  const lotteryType = activeLotteryBtn ? activeLotteryBtn.getAttribute('data-lottery') : 'am';
+  const position = activePositionBtn ? activePositionBtn.getAttribute('data-position') : 7;
+  const lotteryName = lotteryType === 'am' ? '澳门' : '香港';
+
+  let html = `
+    <div class="analysis-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); animation: slideIn 0.5s ease-out;">
+      <h3 style="color: white; font-size: 22px; margin-bottom: 20px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">📊 关注号码组分析结果</h3>
+      <div class="analysis-info" style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 15px; backdrop-filter: blur(10px);">
+        <p style="color: white;"><strong style="color: #ffd700;">号码组名称：</strong>${favorite_group.name}</p>
+        <p style="color: white;"><strong style="color: #ffd700;">关注号码：</strong>${favorite_group.numbers}</p>
+        <p style="color: white;"><strong style="color: #ffd700;">分析彩种：</strong>${lotteryName}</p>
+        <p style="color: white;"><strong style="color: #ffd700;">分析位置：</strong>第${position}位</p>
+        <p style="color: white;"><strong style="color: #ffd700;">创建时间：</strong>${window.formatDateTime(favorite_group.created_at)}</p>
+      </div>
+      <button class="pagination-btn" onclick="exportFavoriteAnalysis()" style="margin-top: 15px; background: #ffd700; color: #333; font-weight: bold; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">📥 导出Excel</button>
+    </div>
+    <style>
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  `;
+
+  // 重置页码为第1页(每次加载新分析时)
+  window.currentAnalysisPage = 1;
+
+  // 详细记录分页
+  const pageSize = 20;
+  const currentPage = window.currentAnalysisPage;
+  const totalRecords = analysis.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+
+  html += `
+    <div class="stats-section" style="margin-top: 30px; border: 3px solid #667eea; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+      <h4 style="color: #667eea; font-size: 20px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #667eea; text-align: center;">📋 详细记录（共 <span style="color: #e74c3c; font-weight: bold; font-size: 22px;">${totalRecords}</span> 期）</h4>
+      <div class="table-container" style="overflow-x: auto; border-radius: 8px;">
+        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+          <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <tr>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">期数</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">开奖时间</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">开奖号码</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">中奖号码</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">中奖位置</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">是否中奖</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">当前遗漏</th>
+              <th style="padding: 12px; text-align: center; font-weight: bold;">历史最大遗漏</th>
+            </tr>
+          </thead>
+          <tbody id="analysisTableBody">
+  `;
+
+  // 取当前页的数据并按开奖时间从大到小排序（最新的开奖时间在前面）
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+
+  currentPageData.forEach(record => {
+    const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
+    const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
+    const isHitClass = record.is_hit ? 'hit-yes' : 'hit-no';
+
+    html += `
+      <tr>
+        <td>${record.period}</td>
+        <td>${window.formatDateTime(record.open_time)}</td>
+        <td>${record.open_numbers.join(',')}</td>
+        <td>${hitNumbers}</td>
+        <td>${hitPositions}</td>
+        <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
+        <td>${record.current_miss}</td>
+        <td>${record.max_miss || 0}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+            </tbody>
+          </table>
+        </div>
+
+      <!-- 分页控件 -->
+      <div class="pagination-container" style="margin-top: 25px; text-align: center; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+        <div class="pagination-info" style="margin-bottom: 15px; font-size: 16px; color: #667eea; font-weight: bold;">
+          第 <span style="color: #e74c3c; font-size: 18px;">${currentPage}</span> / ${totalPages} 页，共 <span style="color: #e74c3c; font-size: 18px;">${totalRecords}</span> 条记录
+        </div>
+        <div class="pagination-controls" style="display: flex; justify-content: center; gap: 15px;">
+          <button class="pagination-btn" id="analysisPrevPageBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">⬅️ 上一页</button>
+          <button class="pagination-btn" id="analysisNextPageBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">下一页 ➡️</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  analysisResult.innerHTML = html;
+  analysisResult.style.display = 'block';
+  console.log('✅ 分析结果已设置到页面，display = block');
+  console.log('📊 HTML内容长度:', html.length);
+
+  // 保存分析数据到全局变量，供分页使用
+  window.currentAnalysisData = analysis;
+
+  // 简单直接的事件绑定
+  const prevBtn = document.getElementById('analysisPrevPageBtn');
+  const nextBtn = document.getElementById('analysisNextPageBtn');
+
+  if (prevBtn) {
+    prevBtn.disabled = (currentPage === 1);
+    prevBtn.onclick = function() {
+      if (window.currentAnalysisPage > 1) {
+        window.currentAnalysisPage--;
+        refreshAnalysisPage();
+      }
+    };
+  }
+
+  if (nextBtn) {
+    nextBtn.disabled = (currentPage === totalPages);
+    nextBtn.onclick = function() {
+      const totalPages = Math.ceil(window.currentAnalysisData.length / 20);
+      if (window.currentAnalysisPage < totalPages) {
+        window.currentAnalysisPage++;
+        refreshAnalysisPage();
+      }
+    };
+  }
 }
 
+/**
+ * 刷新分析结果分页显示
+ */
 function refreshAnalysisPage() {
-  // 原有分页刷新函数保持不变
+  console.log('refreshAnalysisPage 被调用');
+  const analysis = window.currentAnalysisData;
+  if (!analysis) {
+    console.log('错误: currentAnalysisData 不存在');
+    return;
+  }
+
+  const pageSize = 20;
+  const currentPage = window.currentAnalysisPage || 1;
+  const totalRecords = analysis.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+
+  console.log('currentPage:', currentPage, 'totalPages:', totalPages, 'totalRecords:', totalRecords);
+
+  // 更新表格数据
+  const tbody = document.getElementById('analysisTableBody');
+  if (!tbody) {
+    console.log('错误: analysisTableBody 不存在');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentPageData = analysis.slice(startIndex, endIndex).sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+
+  currentPageData.forEach(record => {
+    const hitNumbers = record.hits.length > 0 ? record.hits.join(',') : '-';
+    const hitPositions = record.hit_positions.length > 0 ? record.hit_positions.join(',') : '-';
+    const isHitClass = record.is_hit ? 'hit-yes' : 'hit-no';
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${record.period}</td>
+      <td>${window.formatDateTime(record.open_time)}</td>
+      <td>${record.open_numbers.join(',')}</td>
+      <td>${hitNumbers}</td>
+      <td>${hitPositions}</td>
+      <td class="${isHitClass}">${record.is_hit ? '是' : '否'}</td>
+      <td>${record.current_miss}</td>
+      <td>${record.max_miss || 0}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  console.log('表格数据已渲染，共', currentPageData.length, '条记录');
+
+  // 更新分页信息
+  const paginationInfo = document.querySelector('.pagination-info');
+  if (paginationInfo) {
+    paginationInfo.innerHTML = `
+      第 <span style="color: #e74c3c; font-size: 18px;">${currentPage}</span> / ${totalPages} 页，共 <span style="color: #e74c3c; font-size: 18px;">${totalRecords}</span> 条记录
+    `;
+  }
+
+  // 更新按钮状态
+  const prevBtn = document.getElementById('analysisPrevPageBtn');
+  const nextBtn = document.getElementById('analysisNextPageBtn');
+
+  if (prevBtn) {
+    prevBtn.disabled = (currentPage === 1);
+  }
+
+  if (nextBtn) {
+    nextBtn.disabled = (currentPage === totalPages);
+  }
+
+  console.log('分页控件状态已更新');
 }
+
 
 function exportFavoriteAnalysis() {
   const analysis = window.currentAnalysisData;
