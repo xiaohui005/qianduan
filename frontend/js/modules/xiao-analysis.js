@@ -112,6 +112,8 @@ function renderSecondFourxiao(data) {
     </div>
   `;
 
+  const qrEntries = [];
+
   let html = `
     ${pagerHtml}
     <div class="table-container">
@@ -132,10 +134,23 @@ function renderSecondFourxiao(data) {
         <tbody>
   `;
 
-  (results || []).forEach(r => {
-    const rangeStr = (r.generated_numbers || []).join(', ');
+  (results || []).forEach((r, idx) => {
+    const generatedNumbersArr = (r.generated_numbers || []).map(num => String(num).trim().padStart(2, '0'));
+    const rangeStr = generatedNumbersArr.join(', ');
     const winStr = (r.window_periods || []).join(', ');
     const win7Str = (r.window_seventh_numbers || []).map(x => x == null ? '-' : String(x).padStart(2, '0')).join(', ');
+
+    const rangeHtml = generatedNumbersArr.length > 0
+      ? generatedNumbersArr.map(num => {
+          const colorClass = window.getBallColorClass ? window.getBallColorClass(num) : '';
+          return `<span class="${colorClass}" style="display:inline-block;padding:4px 6px;margin:2px;border-radius:4px;font-weight:600;">${num}</span>`;
+        }).join('')
+      : '-';
+
+    const qrId = `second-fourxiao-qr-${r.current_period || 'p'}-${idx}`;
+    if (generatedNumbersArr.length > 0) {
+      qrEntries.push({ id: qrId, text: generatedNumbersArr.join(','), size: 80 });
+    }
 
     html += `
       <tr>
@@ -143,7 +158,15 @@ function renderSecondFourxiao(data) {
         <td>${r.current_open_time}</td>
         <td>${r.base_position || 2}</td>
         <td>${String(r.current_base ?? r.current_second).padStart(2, '0')}</td>
-        <td><div style="max-width:380px;overflow-x:auto;white-space:nowrap;">${rangeStr}</div></td>
+        <td>
+          <div style="max-width:380px;overflow-x:auto;white-space:nowrap;">${rangeHtml || '-'}</div>
+          ${generatedNumbersArr.length > 0 ? `
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div id="${qrId}" class="second-fourxiao-qr" style="width:80px;height:80px;border:1px solid #eee;border-radius:6px;background:#fff;"></div>
+              <span style="font-size:12px;color:#555;">扫码获取16码</span>
+            </div>
+          ` : ''}
+        </td>
         <td>${winStr}</td>
         <td>${win7Str}</td>
         <td class="${r.is_hit ? 'hit' : 'miss'}">${r.is_hit ? '命中' : '遗漏'}</td>
@@ -155,6 +178,14 @@ function renderSecondFourxiao(data) {
   html += `</tbody></table></div>${pagerHtml}`;
 
   resultDiv.innerHTML = html;
+
+  if (qrEntries.length > 0) {
+    if (window.QRTool) {
+      window.QRTool.renderBatch(qrEntries, 80);
+    } else {
+      console.warn('QRTool 未加载，无法渲染第二码四肖二维码');
+    }
+  }
 
   // 更新统计信息
   if (statsDiv) {

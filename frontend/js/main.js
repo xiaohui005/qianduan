@@ -48,10 +48,30 @@ function initSidebarToggle() {
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
   const sidebar = document.getElementById('sidebar');
 
-  if (sidebarToggleBtn && sidebar) {
-    sidebarToggleBtn.addEventListener('click', function() {
-      sidebar.classList.toggle('open');
-    });
+  if (!sidebar) {
+    return;
+  }
+
+  let overlay = document.getElementById('sidebarOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'sidebarOverlay';
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  const setSidebarState = (isOpen) => {
+    sidebar.classList.toggle('open', isOpen);
+    overlay.classList.toggle('active', isOpen);
+    document.body.classList.toggle('no-scroll', isOpen);
+  };
+
+  const toggleSidebar = () => setSidebarState(!sidebar.classList.contains('open'));
+
+  overlay.addEventListener('click', () => setSidebarState(false));
+
+  if (sidebarToggleBtn) {
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
   }
 }
 

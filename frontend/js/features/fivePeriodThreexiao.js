@@ -178,15 +178,21 @@ function displayFivePeriodThreexiaoResults(data) {
                         <th>当前遗漏</th>
                         <th>最大遗漏</th>
                         <th>历史最大遗漏</th>
+                        <th>二维码</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
+
+    const qrEntries = [];
     
     data.results.forEach(item => {
         const isHit = item.is_hit;
         const hitClass = isHit ? 'hit-yes' : 'hit-no';
         const hitText = isHit ? '命中' : '遗漏';
+        const qrText = (item.generated_numbers || []).join(',');
+        const qrId = `five3xiao-qr-${item.trigger_period}`;
+        qrEntries.push({ id: qrId, text: qrText });
         
         html += `
             <tr>
@@ -230,6 +236,9 @@ function displayFivePeriodThreexiaoResults(data) {
                 <td>
                     <span style="color: #8e44ad; font-weight: bold;">${item.history_max_miss}</span>
                 </td>
+                <td>
+                    <div class="five3xiao-qr" id="${qrId}" data-qr="${qrText}"></div>
+                </td>
             </tr>
         `;
     });
@@ -240,12 +249,28 @@ function displayFivePeriodThreexiaoResults(data) {
         </div>
     `;
     
+    // 渲染二维码
+    renderFiveThreeXiaoQRCodes(qrEntries);
+
     // 添加分页控件
     if (data.total_pages > 1) {
         html += createPaginationControls(data);
     }
     
     resultDiv.innerHTML = html;
+}
+
+/**
+ * 渲染生成号码二维码
+ */
+function renderFiveThreeXiaoQRCodes(qrEntries) {
+    if (!qrEntries || qrEntries.length === 0) return;
+
+    if (window.QRTool) {
+        window.QRTool.renderBatch(qrEntries, 96);
+    } else {
+        console.warn('QRTool 未加载，无法渲染二维码');
+    }
 }
 
 /**

@@ -76,6 +76,7 @@ function renderEachIssueTable(rows, page, totalPages, currentMaxMiss, currentMax
   }
 
   let html = '';
+  const qrEntries = [];
 
   // 显示当前筛选条件
   if (currentEachIssueUnitGroup) {
@@ -114,6 +115,7 @@ function renderEachIssueTable(rows, page, totalPages, currentMaxMiss, currentMax
           <th>期号</th>
           <th>开奖时间</th>
           <th>开奖号码</th>
+          <th>二维码</th>
           <th>已经有几期没有开了</th>
           <th>状态</th>
         </tr>
@@ -124,11 +126,15 @@ function renderEachIssueTable(rows, page, totalPages, currentMaxMiss, currentMax
   rows.forEach(row => {
     const statusText = row.stop_reason === 'hit' ? '<span style="color:green;font-weight:bold;">✓ 已命中</span>' :
                        row.stop_reason === 'end' ? '<span style="color:#888;">未命中到末期</span>' : '-';
+    const qrId = `each-issue-qr-${row.period}`;
+    const qrText = row.numbers || '';
+    qrEntries.push({ id: qrId, text: qrText });
     html += `
       <tr>
         <td>${row.period}</td>
         <td>${row.open_time}</td>
         <td>${row.numbers}</td>
+        <td><div class="each-issue-qr" id="${qrId}" data-qr="${qrText}"></div></td>
         <td style="color:#c0392b;font-weight:bold;">${row.miss_count}</td>
         <td>${statusText}</td>
       </tr>
@@ -155,6 +161,14 @@ function renderEachIssueTable(rows, page, totalPages, currentMaxMiss, currentMax
   html += `</div>`;
 
   eachIssueResult.innerHTML = html;
+
+  if (qrEntries.length > 0) {
+    if (window.QRTool) {
+      window.QRTool.renderBatch(qrEntries, 96);
+    } else {
+      console.warn('QRTool 未加载，无法渲染每期分析二维码');
+    }
+  }
 
   // 绑定分页按钮事件
   const prevBtn = document.getElementById('eachIssuePrevPage');

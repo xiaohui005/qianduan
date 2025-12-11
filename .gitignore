@@ -45,3 +45,5 @@ build/
 *.bak
 *.swp
 nul
+
+/frontend/js/config.js

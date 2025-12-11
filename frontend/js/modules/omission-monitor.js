@@ -238,14 +238,11 @@ window.toggleOmissionQRCode = function(id, numbers) {
     if (qrContainer.style.display === 'none') {
         // 显示并生成二维码
         qrContainer.style.display = 'block';
-        
-        // 确保 generateQRCode 函数已全局可用
-        if (typeof window.generateQRCode === 'function') {
-            // 扫码内容：号码字符串
-            const qrcodeText = numbers;
-            generateQRCode(qrcodeText, qrContainer, 70); // 尺寸设为70x70
+        const qrcodeText = numbers;
+        if (window.QRTool) {
+            window.QRTool.render(qrContainer, qrcodeText, 70);
         } else {
-            qrContainer.innerHTML = '<span style="color:red; font-size: 8px;">QR库未加载</span>';
+            qrContainer.innerHTML = '<span style="color:red; font-size: 8px;">QR工具未加载</span>';
         }
     } else {
         // 隐藏二维码

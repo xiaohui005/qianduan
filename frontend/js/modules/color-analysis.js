@@ -5,6 +5,12 @@
 
 // ==================== 波色分析功能 ====================
 
+const COLOR_GROUPS = {
+  red: [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+  blue: [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+  green: [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+};
+
 // 全局状态变量
 let currentColorType = 'am';
 let currentColorAnalysisResults = [];
@@ -547,6 +553,19 @@ function showLatestPrediction(prediction) {
 
   const { current_period, second_number, second_color, predicted_color } = prediction;
 
+  let predictedNumbersArr = [];
+  if (prediction.predicted_numbers) {
+    predictedNumbersArr = String(prediction.predicted_numbers)
+      .split(',')
+      .map(n => n.trim())
+      .filter(Boolean);
+  } else if (COLOR_GROUPS[predicted_color]) {
+    predictedNumbersArr = COLOR_GROUPS[predicted_color].map(n => String(n).padStart(2, '0'));
+  }
+  const predictedNumbersText = predictedNumbersArr.join(', ');
+  const predictedNumbersForQr = predictedNumbersArr.join(',');
+  const shouldShowQr = predicted_color === 'green' && predictedNumbersArr.length > 0;
+
   const nextPeriod = prediction.next_period || (parseInt(current_period) + 1);
 
   let html = `
@@ -586,9 +605,15 @@ function showLatestPrediction(prediction) {
         </div>
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 6px; text-align: center;">
           <div style="font-size: 13px; opacity: 0.95; margin-bottom: 8px;">预测 ${nextPeriod} 期第7个号码波色为</div>
-          <div style="font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+        <div style="font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
             ${getColorGroupName(predicted_color)}
           </div>
+        <div id="colorPredictionQrRow" style="margin-top: 12px; display: ${shouldShowQr ? 'flex' : 'none'}; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <div style="font-size: 13px; color: #333; background: rgba(255,255,255,0.85); padding: 8px 12px; border-radius: 6px;">
+            <b>号码二维码：</b><span style="color:#2980d9;">${predictedNumbersText}</span>
+          </div>
+          <div id="colorPredictionQr" class="color-prediction-qr" style="width: 96px; height: 96px; background: #fff; border-radius: 8px; padding: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);"></div>
+        </div>
         </div>
       </div>
     </div>
@@ -627,6 +652,15 @@ function showLatestPrediction(prediction) {
     height: computedStyle.height,
     width: computedStyle.width
   });
+
+  // 在绿波预测时渲染二维码
+  if (shouldShowQr) {
+    if (window.QRTool) {
+      window.QRTool.render('colorPredictionQr', predictedNumbersForQr, 96);
+    } else {
+      console.warn('QRTool 未加载，无法渲染波色预测二维码');
+    }
+  }
 }
 
 // 导出模块初始化函数

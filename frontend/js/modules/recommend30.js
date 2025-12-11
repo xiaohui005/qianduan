@@ -524,23 +524,12 @@ function renderHistoryTable(data, container) {
  * 显示二维码弹窗
  */
 function showQRCode(period, numbers) {
-    // 确保内容不要太长（微信有限制）
-    let displayNumbers = numbers;
-    if (displayNumbers.length > 100) {
-        displayNumbers = displayNumbers.substring(0, 100) + '...';
-    }
-    
-    const qrContent = `${displayNumbers}`;
-    
-    // 使用多个二维码API，确保至少有一个能工作
-    const apiUrls = [
-        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`,
-        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&data=${encodeURIComponent(qrContent)}`,
-        `https://quickchart.io/qr?text=${encodeURIComponent(qrContent)}&size=200`,
-        `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(qrContent)}&choe=UTF-8`
-    ];
-    
-    // 创建弹窗
+    const normalizedNumbers = String(numbers || '')
+        .replace(/\\'/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+    const qrContent = `${period || ''}:${normalizedNumbers}`;
+
     const modalHTML = `
         <div id="qrcodeModal" style="
             position: fixed;
@@ -555,32 +544,36 @@ function showQRCode(period, numbers) {
             align-items: center;
         ">
             <div style="
-                background: white;
+                background: #ffffff;
                 padding: 25px;
                 border-radius: 10px;
                 text-align: center;
                 max-width: 90vw;
             ">
-                <h5 style="margin-bottom: 15px;">期号：${period}</h5>
-                
-                <!-- 尝试显示二维码 -->
-                <img id="realQRCode" 
-                     src="${apiUrls[0]}"
-                     style="width: 220px; height: 220px; border: 2px solid #eee; border-radius: 5px;"
-                     alt="二维码"
-                >
-                
+                <h5 style="margin-bottom: 15px;">Period: ${period}</h5>
+
+                <div id="recommend30Qr" style="
+                    width: 220px;
+                    height: 220px;
+                    border: 2px solid #eee;
+                    border-radius: 5px;
+                    margin: 0 auto 10px auto;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #fff;
+                "></div>
+
                 <div style="margin: 15px 0; font-size: 13px; color: #666;">
-                    <div>使用微信扫一扫查看</div>
+                    <div>Scan with WeChat or any QR app</div>
                     <div style="font-size: 11px; color: #999; margin-top: 5px;">
-                        如果无法扫描，请尝试：<br>
-                        1. 确保网络连接<br>
-                        2. 截图后再扫描<br>
-                        3. 手动记录下方号码
+                        Tips:<br>
+                        1. Ensure network access<br>
+                        2. Screenshot and scan if needed<br>
+                        3. Copy numbers manually if scanning fails
                     </div>
                 </div>
-                
-                <!-- 显示号码信息 -->
+
                 <div style="
                     background: #f8f9fa;
                     padding: 10px;
@@ -590,12 +583,13 @@ function showQRCode(period, numbers) {
                     max-height: 120px;
                     overflow-y: auto;
                     font-size: 13px;
+                    word-break: break-all;
                 ">
-                    <div><strong>期号：</strong>${period}</div>
-                    <div><strong>推荐号码：</strong></div>
-                    <div style="color: #333;">${numbers}</div>
+                    <div><strong>Period:</strong> ${period}</div>
+                    <div><strong>Recommended Numbers:</strong></div>
+                    <div style="color: #333;">${normalizedNumbers || '-'}</div>
                 </div>
-                
+
                 <button onclick="document.getElementById('qrcodeModal').remove()" style="
                     padding: 8px 25px;
                     background: #dc3545;
@@ -604,45 +598,27 @@ function showQRCode(period, numbers) {
                     border-radius: 5px;
                     cursor: pointer;
                     font-size: 14px;
-                ">关闭</button>
+                ">Close</button>
             </div>
         </div>
     `;
-    
-    // 移除旧的弹窗
+
     const oldModal = document.getElementById('qrcodeModal');
     if (oldModal) oldModal.remove();
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // 如果第一个API失败，尝试其他的
-    const qrImg = document.getElementById('realQRCode');
-    let currentApi = 0;
-    
-    qrImg.onerror = function() {
-        currentApi++;
-        if (currentApi < apiUrls.length) {
-            console.log(`API ${currentApi}失败，尝试下一个`);
-            qrImg.src = apiUrls[currentApi];
+
+    const qrContainer = document.getElementById('recommend30Qr');
+    if (qrContainer) {
+        if (window.QRTool) {
+            window.QRTool.render(qrContainer, qrContent, 200);
         } else {
-            console.log('所有API都失败，显示错误信息');
-            qrImg.style.display = 'none';
-            const modalContent = document.querySelector('#qrcodeModal > div');
-            const errorMsg = document.createElement('div');
-            errorMsg.innerHTML = `
-                <div style="color: #dc3545; padding: 20px; border: 2px dashed #dc3545; border-radius: 5px; margin: 15px 0;">
-                    <strong>二维码生成失败</strong><br>
-                    请手动复制以下信息：
-                </div>
-            `;
-            modalContent.insertBefore(errorMsg, modalContent.children[2]);
+            qrContainer.innerHTML = '<span style="color:#dc3545;">QR tool unavailable</span>';
         }
-    };
+    }
 }
 
-/**
- * 关闭二维码弹窗
- */
+
 function closeQRCode() {
     const modal = document.getElementById('qrcodeModal');
     if (modal) {
@@ -650,43 +626,6 @@ function closeQRCode() {
     }
 }
 
-/**
- * 生成二维码（使用最简单的方法）
- */
-function generateQRCode(period, numbers) {
-    console.log('开始生成二维码');
-    
-    const canvas = document.getElementById('qrcodeCanvas');
-    if (!canvas) {
-        console.error('错误：未找到Canvas元素！');
-        return;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    console.log('Canvas上下文:', ctx ? '正常' : '异常');
-    
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 先画一个简单的测试图案
-    console.log('绘制测试图案...');
-    
-    // 红色背景
-    ctx.fillStyle = '#ff0000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 绿色方块
-    ctx.fillStyle = '#00ff00';
-    ctx.fillRect(50, 50, 100, 100);
-    
-    // 黑色文字
-    ctx.fillStyle = '#000000';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('测试', 100, 30);
-    
-    console.log('测试图案绘制完成');
-}
 
 /**
  * 绘制定位方块

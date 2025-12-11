@@ -407,22 +407,25 @@ function displayResults(records) {
     }
 
     let html = `
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover">
+        <div class="table-responsive high20-table-container">
+            <table class="table table-bordered table-hover high20-table">
                 <thead class="thead-light">
                     <tr>
                         <th style="width:8%;">期号</th>
-                        <th style="width:48%;">高20码</th>
+                        <th style="width:40%;">高20码</th>
                         <th style="width:8%;">下期</th>
                         <th style="width:6%;">命中</th>
                         <th style="width:6%;">命中号</th>
                         <th style="width:6%;">遗漏</th>
                         <th style="width:6%;">连错</th>
-                        <th style="width:12%;">警告</th>
+                        <th style="width:10%;">警告</th>
+                        <th style="width:10%;">二维码</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
+
+    const qrEntries = [];
 
     records.forEach(record => {
         const hitClass = record.is_hit === 1 ? 'table-success' : '';
@@ -449,6 +452,10 @@ function displayResults(records) {
         const alertHtml = record.over5_alert ?
             `<span class="badge badge-warning">${record.over5_alert}</span>` : '-';
 
+        const qrText = numbers.join(',');
+        const qrId = `high20-qr-${record.period}`;
+        qrEntries.push({ id: qrId, text: qrText });
+
         html += `
             <tr class="${rowClass}">
                 <td>${record.period}</td>
@@ -459,6 +466,7 @@ function displayResults(records) {
                 <td>${record.omission}</td>
                 <td>${record.consecutive_miss}</td>
                 <td>${alertHtml}</td>
+                <td><div class="high20-qr" id="${qrId}" data-qr="${qrText}"></div></td>
             </tr>
         `;
     });
@@ -470,6 +478,12 @@ function displayResults(records) {
     `;
 
     resultDiv.innerHTML = html;
+
+    if (window.QRTool) {
+        window.QRTool.renderBatch(qrEntries, 96);
+    } else {
+        console.warn('QRTool 未加载，无法渲染二维码');
+    }
 }
 
 /**

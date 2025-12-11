@@ -319,19 +319,22 @@ function renderAnalysisTable8(analysisResults, position) {
 	  resultDiv.innerHTML = html;
 
 	  // 生成二维码
+	  const qrEntries = [];
 	  analysisResults.forEach(item => {
-	    const qrcodeElement = document.getElementById(`qrcode-8-${item.recommendPeriod}`);
-	    if (qrcodeElement) {
-	      // 扫码后获取的文本内容：期号:号码1,号码2,...
-	      const qrcodeText = `${item.recommendPeriod}:${item.recommendNumbers.join(',')}`;
-	      // 确保 generateQRCode 函数已全局可用
-	      if (typeof window.generateQRCode === 'function') {
-	        generateQRCode(qrcodeText, qrcodeElement, 60); // 尺寸设为60x60
-	      } else {
-	        qrcodeElement.innerHTML = '<span style="color:red;">QR库未加载</span>';
-	      }
+	    const elementId = `qrcode-8-${item.recommendPeriod}`;
+	    const qrcodeElement = document.getElementById(elementId);
+	    if (!qrcodeElement) return;
+	    const qrcodeText = `${item.recommendPeriod}:${item.recommendNumbers.join(',')}`;
+	    if (window.QRTool) {
+	      qrEntries.push({ element: qrcodeElement, text: qrcodeText, size: 60 });
+	    } else {
+	      qrcodeElement.innerHTML = '<span style="color:red;">QR工具未加载</span>';
 	    }
 	  });
+
+	  if (window.QRTool && qrEntries.length > 0) {
+	    window.QRTool.renderBatch(qrEntries, 60);
+	  }
 	}
 
 /**

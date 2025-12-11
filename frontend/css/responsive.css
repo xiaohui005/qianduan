@@ -3,6 +3,10 @@
  * 定义不同屏幕尺寸下的自适应布局
  */
 
+.sidebar-overlay {
+  display: none;
+}
+
 /* ==================== 平板设备 (≤1024px) ==================== */
 @media (max-width: 1024px) {
   /* 主内容区宽度调整 */
@@ -56,6 +60,28 @@
     z-index: 200;
     transition: left var(--transition-slow);
     box-shadow: var(--shadow-xl);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 150;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-slow), visibility var(--transition-slow);
+    pointer-events: none;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  body.no-scroll {
+    overflow: hidden;
   }
 
   .sidebar.open {
@@ -479,6 +505,75 @@
     text-align: center !important;
     padding: 7px 0 !important;
     width: 90% !important;
+  }
+
+  /* 高20码分析表格：保持原始表头/单元格结构，用横向滚动查看 */
+  .high20-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .high20-table {
+    display: table !important;
+    width: max-content;
+    min-width: 840px;
+    white-space: nowrap;
+  }
+
+  .high20-table thead {
+    display: table-header-group !important;
+  }
+
+  .high20-table thead tr {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+  }
+
+  .high20-table tbody {
+    display: table-row-group !important;
+  }
+
+  .high20-table tr {
+    display: table-row !important;
+    border: none !important;
+    margin-bottom: 0 !important;
+  }
+
+  .high20-table th,
+  .high20-table td {
+    display: table-cell !important;
+    position: static !important;
+    padding: 10px 12px !important;
+    text-align: center !important;
+  }
+
+  .high20-table td:before {
+    content: none !important;
+  }
+
+  .high20-qr {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto;
+  }
+
+  .five3xiao-qr {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto;
+  }
+
+  .pm6-qr {
+    width: 96px;
+    height: 96px;
+    margin-left: auto;
+  }
+
+  .each-issue-qr {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto;
   }
 
   .toggle-section-btn {

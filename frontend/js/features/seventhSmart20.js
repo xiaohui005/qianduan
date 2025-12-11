@@ -212,18 +212,27 @@ function renderSeventhSmart20(data, resultDiv, summaryDiv) {
 	  resultDiv.innerHTML = html;
 
 	  // 生成二维码
-	  const qrcodeElement = document.getElementById('qrcode-smart20');
-	  if (qrcodeElement) {
-	    // 扫码后获取的文本内容：号码1,号码2,... (只取前8个号码作为主要推荐)
-	    const top8Numbers = recommend_top20.slice(0, 8).map(item => item.number.toString().padStart(2, '0')).join(',');
-	    const qrcodeText = `智能推荐Top8:${top8Numbers}`;
-	    // 确保 generateQRCode 函数已全局可用
-	    if (typeof window.generateQRCode === 'function') {
-	      generateQRCode(qrcodeText, qrcodeElement, 80); // 尺寸设为80x80
-	    } else {
-	      qrcodeElement.innerHTML = '<span style="color:red;">QR库未加载</span>';
-	    }
-	  }
+  const qrcodeContainer = document.getElementById('qrcode-smart20');
+  const qrcodeToggleBtn = document.getElementById('qrcode-smart20-btn');
+  if (qrcodeContainer && qrcodeToggleBtn) {
+    const top20Numbers = recommend_top20
+      .map(item => item.number.toString().padStart(2, '0'))
+      .join(',');
+    qrcodeContainer.dataset.qrText = `第7码智能推荐Top20:${top20Numbers}`;
+    qrcodeContainer.dataset.qrSize = '80';
+    qrcodeContainer.dataset.qrShow = '显示20码二维码';
+    qrcodeContainer.dataset.qrHide = '隐藏20码二维码';
+    qrcodeContainer.dataset.qrReady = '0';
+    qrcodeContainer.style.display = 'none';
+    if (window.QRTool && window.QRTool.attachToggle) {
+      window.QRTool.attachToggle(qrcodeToggleBtn, qrcodeContainer, qrcodeContainer.dataset.qrText, 80, {
+        show: '显示20码二维码',
+        hide: '隐藏20码二维码'
+      });
+    } else {
+      qrcodeContainer.innerHTML = '<span style="color:red;">QR工具未加载</span>';
+    }
+  }
 	}
 
 // 加载逐期详细记录
@@ -364,6 +373,24 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
           <div>
             ${formattedNumbers}
           </div>
+          <div style="margin-top: 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button
+              type="button"
+              class="btn btn-secondary qr-toggle-btn"
+              id="smart20-detail-btn-${index}"
+            >
+              查看20码二维码
+            </button>
+            <div
+              id="smart20-detail-qr-${index}"
+              class="qr-hidden-box"
+              data-qr-text="${commaNumbers}"
+              data-qr-size="80"
+              data-qr-show="查看20码二维码"
+              data-qr-hide="隐藏20码二维码"
+              style="width:80px;height:80px;border:1px solid #eee;border-radius:6px;background:#fff;display:none;"
+            ></div>
+          </div>
         </td>
         <td style="padding: 8px; text-align: center;">${detail.next_period || '<span style="color: #999;">-</span>'}</td>
         <td style="padding: 8px; text-align: center;">
@@ -398,6 +425,21 @@ function renderSeventhSmart20Details(data, resultDiv, summaryDiv) {
   `;
 
   resultDiv.innerHTML = html;
+
+  if (window.QRTool && window.QRTool.attachToggle) {
+    period_details.forEach((detail, index) => {
+      const btn = document.getElementById(`smart20-detail-btn-${index}`);
+      const box = document.getElementById(`smart20-detail-qr-${index}`);
+      if (btn && box) {
+        window.QRTool.attachToggle(btn, box, box.dataset.qrText, parseInt(box.dataset.qrSize || '80', 10), {
+          show: box.dataset.qrShow || '显示20码二维码',
+          hide: box.dataset.qrHide || '隐藏20码二维码'
+        });
+      }
+    });
+  } else {
+    console.warn('QRTool 未加载，无法渲染逐期记录二维码');
+  }
 }
 
 // 导出CSV

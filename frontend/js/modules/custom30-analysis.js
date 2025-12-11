@@ -279,13 +279,14 @@ window.queryCustom30Analysis = async function(page = 1) {
         // 3. 生成二维码
         const qrcodeElement = document.getElementById('qrcode-custom30-next');
         if (qrcodeElement && latestPrediction.success && latestPrediction.prediction?.all30) {
-            const all30Numbers = latestPrediction.prediction.all30.map(num => String(num).padStart(2, '0')).join(',');
+            const all30Numbers = latestPrediction.prediction.all30
+                .map(num => String(num).padStart(2, '0'))
+                .join(',');
             const qrcodeText = `${latestPrediction.next_period}:${all30Numbers}`;
-            // 确保 generateQRCode 函数已全局可用
-            if (typeof window.generateQRCode === 'function') {
-                generateQRCode(qrcodeText, qrcodeElement, 90);
+            if (window.QRTool) {
+                window.QRTool.render(qrcodeElement, qrcodeText, 90);
             } else {
-                qrcodeElement.innerHTML = '<span style="color:red; font-size: 8px;">QR库未加载</span>';
+                qrcodeElement.innerHTML = '<span style="color:red; font-size: 8px;">QR工具未加载</span>';
             }
         }
 

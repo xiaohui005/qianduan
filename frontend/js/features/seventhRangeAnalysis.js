@@ -105,7 +105,9 @@ function renderSeventhRangeAnalysis(data) {
       <tbody>
   `;
 
-  results.forEach(record => {
+  const qrEntries = [];
+
+  results.forEach((record, idx) => {
     const hitStatus = record.is_hit ? '<span style="color: green; font-weight: bold;">✓ 命中</span>' : '<span style="color: red;">✗ 未中</span>';
     const ballClass = getBallColorClass(record.current_seventh);
     const nextBallClass = record.next_seventh ? getBallColorClass(record.next_seventh) : '';
@@ -113,6 +115,7 @@ function renderSeventhRangeAnalysis(data) {
     // 格式化预测区间 - 智能分组连续号码
     const rangeNumbers = record.range_numbers || [];
     let predictedRange = '-';
+    let predictedRangeText = '';
     if (rangeNumbers.length > 0) {
       const groups = [];
       let start = rangeNumbers[0];
@@ -133,6 +136,7 @@ function renderSeventhRangeAnalysis(data) {
       groups.push(start === end ? `${String(start).padStart(2, '0')}` : `${String(start).padStart(2, '0')}~${String(end).padStart(2, '0')}`);
 
       predictedRange = groups.join(', ');
+      predictedRangeText = rangeNumbers.map(num => String(num).padStart(2, '0')).join(',');
     }
 
     // 计算"后-前差值"
@@ -152,7 +156,22 @@ function renderSeventhRangeAnalysis(data) {
         <td>${record.current_period}</td>
         <td>${record.current_open_time || '-'}</td>
         <td><span class="${ballClass}">${record.current_seventh}</span></td>
-        <td>${predictedRange}</td>
+        <td>
+          <div>${predictedRange}</div>
+          ${predictedRangeText ? `
+            <div style="margin-top:6px;display:flex;align-items:center;gap:6px;justify-content:center;">
+              <div
+                data-qr-text="${predictedRangeText}"
+                data-qr-size="70"
+                data-qr-show="查看区间二维码"
+                data-qr-hide="收起区间二维码"
+                class="qr-hidden-box"
+                style="width:70px;height:70px;border:1px solid #eee;border-radius:6px;background:#fff;display:none;"
+              ></div>
+              <span style="font-size:12px;color:#555;">扫码查看区间</span>
+            </div>
+          ` : ''}
+        </td>
         <td>${record.next_seventh ? `<span class="${nextBallClass}">${record.next_seventh}</span>` : '-'}</td>
         <td>${hitStatus}</td>
         <td>${record.series_hit_count || 0}</td>
@@ -184,6 +203,10 @@ function renderSeventhRangeAnalysis(data) {
   html += `</div>`;
 
   resultDiv.innerHTML = html;
+
+  if (window.QRTool && window.QRTool.initAutoToggles) {
+    window.QRTool.initAutoToggles(resultDiv);
+  }
 
   // 绑定分页按钮事件
   const prevBtn = document.getElementById('seventhRangePrevPage');

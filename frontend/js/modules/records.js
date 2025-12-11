@@ -205,15 +205,15 @@ function buildTableHTML(data, areaId, title) {
     </div>
   `;
 
-  // 表格
+  // 表格容器，支持水平滚动
   html += `
-    <div class="table-container">
-      <table border="1" cellpadding="6" style="border-collapse:collapse;">
+    <div class="table-container" style="overflow-x: auto; width: 100%; ">
+      <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
         <thead>
           <tr>
-            <th>期号</th>
-            <th>开奖时间</th>
-            <th>开奖号码/生肖</th>
+            <th style="white-space: nowrap; min-width: 80px;">期号</th>
+            <th style="white-space: nowrap; min-width: 120px;">开奖时间</th>
+            <th style="white-space: nowrap; min-width: 200px;">开奖号码/生肖</th>
           </tr>
         </thead>
         <tbody>
@@ -235,7 +235,6 @@ function buildTableHTML(data, areaId, title) {
 
   return html;
 }
-
 /**
  * 构建单条记录的行HTML
  * @param {Object} record - 单条开奖记录
@@ -245,18 +244,17 @@ function buildRecordRow(record) {
   const nums = record.numbers ? record.numbers.split(',') : [];
   const animals = record.animals ? record.animals.split(',') : [];
 
-  // 构建号码和生肖显示
   const numAniRow = nums.map((num, index) => {
     const animal = animals[index] || '';
     const paddedNum = num.padStart(2, '0');
     const colorClass = getBallColorClass(paddedNum);
 
     return `
-      <div class='record-number-item' style='display:inline-block;margin:2px 6px;'>
-        <div class='${colorClass} record-number-ball' style='font-size:18px;display:inline-block;padding:2px 10px;border-radius:16px;'>
+      <div class='record-number-item' style='display: inline-block; margin: 2px 6px; text-align: left; min-width: 50px;'>
+        <div class='${colorClass} record-number-ball' style='font-size: 18px; display: inline-block; padding: 2px 10px; border-radius: 16px; text-align: center; min-width: 30px;'>
           ${num}
         </div>
-        <div class='records-animal-text' style='color:#000;font-size:13px;font-weight:bold;'>${animal}</div>
+        <div class='records-animal-text' style='color: #000; font-size: 13px; font-weight: bold; text-align: left; min-width: 30px;'>${animal}</div>
       </div>
     `;
   }).join('');
@@ -265,9 +263,9 @@ function buildRecordRow(record) {
 
   return `
     <tr>
-      <td data-label="期号">${record.period}</td>
-      <td data-label="开奖时间">${openTime}</td>
-      <td data-label="开奖号码/生肖">${numAniRow}</td>
+      <td style="white-space: nowrap; min-width: 80px;">${record.period}</td>
+      <td style="white-space: nowrap; min-width: 120px;">${openTime}</td>
+      <td style="white-space: nowrap; min-width: 200px; text-align: left; overflow-x: auto;">${numAniRow}</td>
     </tr>
   `;
 }

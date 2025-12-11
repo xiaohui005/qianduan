@@ -69,6 +69,7 @@ function renderPlusMinus6Analysis(data) {
   if (!resultDiv) return;
 
   const { header, data: rows, page, total, page_size, max_miss, cur_miss, predict } = data;
+  const qrEntries = [];
 
   let html = '';
 
@@ -87,7 +88,15 @@ function renderPlusMinus6Analysis(data) {
     html += '<div style="margin-bottom:16px;padding:12px;background:#e7f3ff;border:2px solid #27ae60;border-radius:8px;">';
     html += `<h4 style="margin:0 0 8px 0;color:#27ae60;">${predict.desc || '最新一期12码预测'}</h4>`;
     predict.groups.forEach(g => {
-      html += `<div style="margin-bottom:4px;"><b>加减${g.n}：</b><span style="color:#2980d9;">${g.numbers.join(', ')}</span></div>`;
+      const qrId = `pm6-qr-${predict.period || 'latest'}-${g.n}`;
+      const qrText = g.numbers.join(', ');
+      qrEntries.push({ id: qrId, text: qrText });
+      html += `
+        <div class="pm6-predict-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+          <div><b>加减${g.n}：</b><span style="color:#2980d9;">${qrText}</span></div>
+          <div class="pm6-qr" id="${qrId}" data-qr="${qrText}"></div>
+        </div>
+      `;
     });
     html += '</div>';
   }
@@ -152,6 +161,14 @@ function renderPlusMinus6Analysis(data) {
   html += `</div>`;
 
   resultDiv.innerHTML = html;
+
+  if (qrEntries.length > 0) {
+    if (window.QRTool) {
+      window.QRTool.renderBatch(qrEntries, 96);
+    } else {
+      console.warn('QRTool 未加载，无法渲染加减前6码二维码');
+    }
+  }
 
   // 绑定分页按钮事件
   const prevBtn = document.getElementById('plusMinus6PrevPage');

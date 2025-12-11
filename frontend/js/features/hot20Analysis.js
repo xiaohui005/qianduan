@@ -252,6 +252,8 @@ function renderHot20Result(data) {
     </div>
   `;
 
+  const qrEntries = [];
+
   // 数据表格
   html += `
     <div style="overflow-x:auto;">
@@ -300,8 +302,9 @@ function renderHot20Result(data) {
       }).join('') : '-';
 
     // 格式化最热20号码（带颜色，并标注命中）
-    const hot20Html = item.hot20_str ?
-      item.hot20_str.split(',').map(num => {
+    let hot20Html = '-';
+    if (item.hot20_str) {
+      const hot20Numbers = item.hot20_str.split(',').map(num => {
         const numStr = String(num).trim().padStart(2, '0');
         const colorClass = window.getBallColorClass ? window.getBallColorClass(numStr) : '';
         const isHit = item.next_period_number !== null && item.next_period_number !== undefined &&
@@ -313,7 +316,20 @@ function renderHot20Result(data) {
         } else {
           return `<span class="${colorClass}" style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-weight:bold;">${numStr}</span>`;
         }
-      }).join('') : '-';
+      }).join('');
+
+      const qrId = `hot20-qr-${item.period}`;
+      const qrText = item.hot20_str.split(',').map(num => String(num).trim().padStart(2, '0')).join(',');
+      qrEntries.push({ id: qrId, text: qrText, size: 80 });
+
+      hot20Html = `
+        <div>${hot20Numbers}</div>
+        <div style="margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+          <div id="${qrId}" class="hot20-qr" style="width:80px;height:80px;border:1px solid #eee;border-radius:6px;background:#fff;"></div>
+          <span style="font-size:12px;color:#555;">扫码获取最热20号码</span>
+        </div>
+      `;
+    }
 
     html += `
       <tr style="background:${rowBg};">
@@ -339,6 +355,14 @@ function renderHot20Result(data) {
   }
 
   resultDiv.innerHTML = html;
+
+  if (qrEntries.length > 0) {
+    if (window.QRTool) {
+      window.QRTool.renderBatch(qrEntries, 80);
+    } else {
+      console.warn('QRTool 未加载，无法渲染最热20二维码');
+    }
+  }
 
   // 绑定导出按钮事件
   const exportBtn = document.getElementById('hot20ExportBtn');
