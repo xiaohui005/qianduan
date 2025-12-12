@@ -144,7 +144,7 @@ async function initAutoCollectPage() {
     document.getElementById('autoCollectPage').innerHTML = content;
 
     // 绑定事件
-    bindEvents();
+    bindAutoCollectEvents();
 
     // 加载状态
     await loadStatus();
@@ -154,7 +154,7 @@ async function initAutoCollectPage() {
 }
 
 // 绑定事件
-function bindEvents() {
+function bindAutoCollectEvents() {
     document.getElementById('refreshStatusBtn').addEventListener('click', loadStatus);
     document.getElementById('enableBtn').addEventListener('click', enableAutoCollect);
     document.getElementById('disableBtn').addEventListener('click', disableAutoCollect);

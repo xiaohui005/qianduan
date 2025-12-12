@@ -1943,28 +1943,7 @@
 
   <!-- 主入口 -->
   <script src="js/main.js"></script>
-    <script>
-      // 调试信息
-      console.log('页面加载完成');
-      console.log('recommend16.js 加载状态:', typeof initRecommend16HitAnalysis);
-      console.log('recommend16HitPage 元素:', document.getElementById('recommend16HitPage'));
 
-      // 自动采集设置页面初始化
-      const menuAutoCollectBtn = document.getElementById('menuAutoCollectBtn');
-      if (menuAutoCollectBtn) {
-        menuAutoCollectBtn.addEventListener('click', async () => {
-          try {
-            if (typeof window.initAutoCollectPage === 'function') {
-              await window.initAutoCollectPage();
-            } else {
-              console.error('initAutoCollectPage 函数未定义');
-            }
-          } catch (error) {
-            console.error('加载自动采集设置页面失败:', error);
-          }
-        });
-      }
-    </script>
 
 </body>
 </html> 

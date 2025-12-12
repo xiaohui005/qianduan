@@ -8,7 +8,7 @@ const PAGE_CONFIG = {
   // 数据相关
   'menuCollectBtn': { pageId: 'collectPage', title: '数据采集' },
   'menuRecordsBtn': { pageId: 'recordsPage', title: '开奖结果' },
-  'menuAutoCollectBtn': { pageId: 'autoCollectPage', title: '自动采集设置' },
+  'menuAutoCollectBtn': { pageId: 'autoCollectPage', title: '自动采集设置', initFunc: 'initAutoCollectPage' },
 
   // 分析推荐
   'menuRecommendBtn': { pageId: 'recommendPage', title: '推荐8码' },

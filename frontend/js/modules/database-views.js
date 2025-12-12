@@ -87,7 +87,7 @@ async function initDatabaseViewsPage() {
     addViewerStyles();
 
     // 绑定事件
-    bindEvents();
+    bindDatabaseViewsEvents();
 
     // 加载视图列表
     await loadViewsList();
@@ -96,7 +96,7 @@ async function initDatabaseViewsPage() {
 /**
  * 绑定事件
  */
-function bindEvents() {
+function bindDatabaseViewsEvents() {
     const refreshBtn = document.getElementById('refreshViewsBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadViewsList);
