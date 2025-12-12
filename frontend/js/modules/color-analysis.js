@@ -566,7 +566,7 @@ function showLatestPrediction(prediction) {
   const predictedNumbersForQr = predictedNumbersArr.join(',');
   const shouldShowQr = predicted_color === 'green' && predictedNumbersArr.length > 0;
 
-  const nextPeriod = prediction.next_period || (parseInt(current_period) + 1);
+  const nextPeriod = prediction.next_period || calculateNextPeriod(current_period);
 
   let html = `
     <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white;">

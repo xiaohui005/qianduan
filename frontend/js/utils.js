@@ -127,6 +127,36 @@ function isConsecutivePeriods(currentPeriod, nextPeriod) {
   return false;
 }
 
+/**
+ * 计算下一期期号
+ * @param {string} currentPeriod - 当前期号
+ * @returns {string} 下一期期号
+ */
+function calculateNextPeriod(currentPeriod) {
+  if (!currentPeriod) return '';
+  
+  // 尝试解析 YYYYNNN 格式 (7位)
+  if (currentPeriod.length === 7 && !isNaN(currentPeriod)) {
+     const year = parseInt(currentPeriod.substring(0, 4));
+     const seq = parseInt(currentPeriod.substring(4));
+     
+     // 判断闰年
+     const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+     const daysInYear = isLeap ? 366 : 365;
+     
+     if (seq >= daysInYear) {
+       return (year + 1) + '001';
+     } else {
+       return year + String(seq + 1).padStart(3, '0');
+     }
+  }
+  
+  // 默认递增，保持长度
+  const len = currentPeriod.length;
+  const nextVal = parseInt(currentPeriod) + 1;
+  return String(nextVal).padStart(len, '0');
+}
+
 // ==================== 数据导出相关 ====================
 
 /**
