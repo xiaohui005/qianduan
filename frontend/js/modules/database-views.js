@@ -71,6 +71,14 @@ async function initDatabaseViewsPage() {
                 </div>
             </div>
         </div>
+        <!-- QR Code Modal -->
+        <div id="db-view-qr-modal" class="qr-modal" style="display:none;">
+            <div class="qr-modal-content">
+                <span class="qr-modal-close">&times;</span>
+                <div id="db-view-qr-code"></div>
+                <p id="db-view-qr-text"></p>
+            </div>
+        </div>
     `;
 
     document.getElementById('databaseViewsPage').innerHTML = content;
@@ -89,19 +97,16 @@ async function initDatabaseViewsPage() {
  * 绑定事件
  */
 function bindEvents() {
-    // 刷新按钮
     const refreshBtn = document.getElementById('refreshViewsBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadViewsList);
     }
 
-    // 搜索框
     const searchInput = document.getElementById('viewSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', filterViews);
     }
 
-    // 批量操作按钮
     const openAllBtn = document.getElementById('openAllViewsBtn');
     if (openAllBtn) {
         openAllBtn.addEventListener('click', openAllViews);
@@ -111,11 +116,18 @@ function bindEvents() {
     if (closeAllBtn) {
         closeAllBtn.addEventListener('click', closeAllViews);
     }
+    
+    // QR Code Modal Events
+    const modal = document.getElementById('db-view-qr-modal');
+    const closeBtn = modal.querySelector('.qr-modal-close');
+    closeBtn.onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
 }
 
-/**
- * 加载视图列表
- */
 async function loadViewsList() {
     const viewsList = document.getElementById('viewsList');
     viewsList.innerHTML = '<div class="loading">加载中...</div>';
@@ -135,27 +147,14 @@ async function loadViewsList() {
     }
 }
 
-/**
- * 获取视图的显示名称
- * @param {string} viewName - 视图名称
- * @returns {string} 显示名称（映射表中有则返回中文名，否则返回原视图名）
- */
 function getViewDisplayName(viewName) {
     return VIEW_NAME_MAP[viewName] || viewName;
 }
 
-/**
- * 检查视图是否有中文映射
- * @param {string} viewName - 视图名称
- * @returns {boolean} 是否有映射
- */
 function hasChineseMapping(viewName) {
     return !!VIEW_NAME_MAP[viewName];
 }
 
-/**
- * 渲染视图列表
- */
 function renderViewsList(views) {
     const viewsList = document.getElementById('viewsList');
 
@@ -168,8 +167,6 @@ function renderViewsList(views) {
         const displayName = getViewDisplayName(view.view_name);
         const hasMapped = hasChineseMapping(view.view_name);
 
-        // 如果有映射：显示中文名（大）+ 英文名（小灰色）
-        // 如果无映射：只显示英文名（大），不显示副标题
         return `
             <div class="view-item ${hasMapped ? 'mapped' : 'unmapped'}" data-view="${view.view_name}">
                 <div class="view-name">${displayName}</div>
@@ -180,7 +177,6 @@ function renderViewsList(views) {
 
     viewsList.innerHTML = html;
 
-    // 绑定视图项点击事件
     document.querySelectorAll('.view-item').forEach(item => {
         item.addEventListener('dblclick', () => {
             const viewName = item.dataset.view;
@@ -189,9 +185,6 @@ function renderViewsList(views) {
     });
 }
 
-/**
- * 过滤视图
- */
 function filterViews() {
     const keyword = document.getElementById('viewSearchInput').value.toLowerCase();
     const filtered = allViews.filter(v => {
@@ -203,30 +196,22 @@ function filterViews() {
     renderViewsList(filtered);
 }
 
-/**
- * 一键打开所有视图
- */
 async function openAllViews() {
     if (allViews.length === 0) {
         alert('暂无视图可打开');
         return;
     }
 
-    // 显示加载提示
     const openBtn = document.getElementById('openAllViewsBtn');
     const originalText = openBtn.textContent;
     openBtn.disabled = true;
     openBtn.textContent = '⏳ 打开中...';
 
     try {
-        // 依次打开所有视图
         for (const view of allViews) {
             await openViewTab(view.view_name);
-            // 添加小延迟，避免同时请求过多
             await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        console.log(`成功打开 ${allViews.length} 个视图`);
     } catch (error) {
         alert('打开视图时发生错误: ' + error.message);
     } finally {
@@ -235,59 +220,32 @@ async function openAllViews() {
     }
 }
 
-/**
- * 一键关闭所有视图
- */
 function closeAllViews() {
-    if (openedTabs.length === 0) {
-        return; // 没有打开的视图，静默返回
-    }
-
-    const count = openedTabs.length;
-
-    // 清空所有标签页
+    if (openedTabs.length === 0) return;
     openedTabs = [];
     activeTabId = null;
     viewDataCache = {};
-
-    // 更新UI
     renderTabsHeader();
     showEmptyState();
-
-    console.log(`已关闭 ${count} 个视图标签页`);
 }
 
-/**
- * 打开视图标签页
- */
 async function openViewTab(viewName) {
-    // 检查是否已打开
     const existingTab = openedTabs.find(tab => tab.viewName === viewName);
     if (existingTab) {
         switchTab(existingTab.id);
         return;
     }
 
-    // 创建新标签页
     const tabId = `tab_${Date.now()}`;
-    const newTab = {
-        id: tabId,
-        viewName: viewName,
-        currentPage: 1,
-        pageSize: 100
-    };
+    const newTab = { id: tabId, viewName: viewName, currentPage: 1, pageSize: 100 };
 
     openedTabs.push(newTab);
     activeTabId = tabId;
 
-    // 渲染标签页头部和内容
     renderTabsHeader();
     await loadViewData(tabId);
 }
 
-/**
- * 渲染标签页头部
- */
 function renderTabsHeader() {
     const tabsHeader = document.getElementById('tabsHeader');
 
@@ -308,7 +266,6 @@ function renderTabsHeader() {
 
     tabsHeader.innerHTML = html;
 
-    // 绑定标签页点击事件
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             if (!e.target.classList.contains('tab-close')) {
@@ -317,7 +274,6 @@ function renderTabsHeader() {
         });
     });
 
-    // 绑定关闭按钮事件
     document.querySelectorAll('.tab-close').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -326,18 +282,12 @@ function renderTabsHeader() {
     });
 }
 
-/**
- * 切换标签页
- */
 function switchTab(tabId) {
     activeTabId = tabId;
     renderTabsHeader();
     renderTabContent(tabId);
 }
 
-/**
- * 关闭标签页
- */
 function closeTab(tabId) {
     const index = openedTabs.findIndex(tab => tab.id === tabId);
     if (index === -1) return;
@@ -345,15 +295,8 @@ function closeTab(tabId) {
     openedTabs.splice(index, 1);
     delete viewDataCache[tabId];
 
-    // 如果关闭的是当前激活的标签页
     if (activeTabId === tabId) {
-        if (openedTabs.length > 0) {
-            // 切换到前一个或后一个标签页
-            const newIndex = Math.max(0, index - 1);
-            activeTabId = openedTabs[newIndex].id;
-        } else {
-            activeTabId = null;
-        }
+        activeTabId = openedTabs.length > 0 ? openedTabs[Math.max(0, index - 1)].id : null;
     }
 
     renderTabsHeader();
@@ -364,9 +307,6 @@ function closeTab(tabId) {
     }
 }
 
-/**
- * 显示空状态
- */
 function showEmptyState() {
     const tabsBody = document.getElementById('tabsBody');
     tabsBody.innerHTML = `
@@ -378,9 +318,6 @@ function showEmptyState() {
     `;
 }
 
-/**
- * 加载视图数据
- */
 async function loadViewData(tabId) {
     const tab = openedTabs.find(t => t.id === tabId);
     if (!tab) return;
@@ -393,24 +330,14 @@ async function loadViewData(tabId) {
             `${window.BACKEND_URL}/api/database/view_data/${tab.viewName}?page=${tab.currentPage}&page_size=${tab.pageSize}`
         );
         const result = await response.json();
-
-        if (!result.success) {
-            throw new Error(result.message || '加载数据失败');
-        }
-
-        // 缓存数据
+        if (!result.success) throw new Error(result.message || '加载数据失败');
         viewDataCache[tabId] = result;
-
-        // 渲染数据
         renderTabContent(tabId);
     } catch (error) {
         tabsBody.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
     }
 }
 
-/**
- * 渲染标签页内容
- */
 function renderTabContent(tabId) {
     const data = viewDataCache[tabId];
     if (!data) {
@@ -420,11 +347,8 @@ function renderTabContent(tabId) {
 
     const tab = openedTabs.find(t => t.id === tabId);
     const tabsBody = document.getElementById('tabsBody');
-
-    // 获取显示名称
     const displayName = getViewDisplayName(data.view_name);
 
-    // 渲染表格
     const tableHtml = `
         <div class="view-data-container">
             <div class="view-header">
@@ -434,530 +358,143 @@ function renderTabContent(tabId) {
                     <button class="btn-sm" onclick="exportViewData('${tabId}')">📥 导出CSV</button>
                 </div>
             </div>
-
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            ${data.columns.map(col => `
-                                <th title="${col.column_comment || col.column_name}">
-                                    ${col.column_name}
-                                    ${col.column_comment ? `<br><small>${col.column_comment}</small>` : ''}
-                                </th>
-                            `).join('')}
+                            ${data.columns.map(col => `<th title="${col.column_comment || col.column_name}">${col.column_name}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${data.data.map(row => `
                             <tr>
                                 ${data.columns.map(col => `
-                                    <td>${formatCellValue(row[col.column_name])}</td>
+                                    <td class="cell-content">${formatCellValue(row[col.column_name], col.column_name)}</td>
                                 `).join('')}
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
-
             <div class="pagination">
                 <div class="pagination-info">
-                    显示 ${(data.pagination.page - 1) * data.pagination.page_size + 1} -
-                    ${Math.min(data.pagination.page * data.pagination.page_size, data.pagination.total_count)}
-                    / 共 ${data.pagination.total_count} 条
+                    显示 ${(data.pagination.page - 1) * data.pagination.page_size + 1} - ${Math.min(data.pagination.page * data.pagination.page_size, data.pagination.total_count)} / 共 ${data.pagination.total_count} 条
                 </div>
                 <div class="pagination-controls">
-                    <button ${data.pagination.page <= 1 ? 'disabled' : ''}
-                            onclick="changePage('${tabId}', ${data.pagination.page - 1})">上一页</button>
+                    <button ${data.pagination.page <= 1 ? 'disabled' : ''} onclick="changePage('${tabId}', ${data.pagination.page - 1})">上一页</button>
                     <span>第 ${data.pagination.page} / ${data.pagination.total_pages} 页</span>
-                    <button ${data.pagination.page >= data.pagination.total_pages ? 'disabled' : ''}
-                            onclick="changePage('${tabId}', ${data.pagination.page + 1})">下一页</button>
+                    <button ${data.pagination.page >= data.pagination.total_pages ? 'disabled' : ''} onclick="changePage('${tabId}', ${data.pagination.page + 1})">下一页</button>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
 
     tabsBody.innerHTML = tableHtml;
+    
+    // Add event listener for QR code icons
+    tabsBody.querySelector('.data-table').addEventListener('click', function(e) {
+        if (e.target.classList.contains('qr-icon')) {
+            const text = e.target.dataset.text;
+            if (text) {
+                const modal = document.getElementById('db-view-qr-modal');
+                const qrCodeDiv = document.getElementById('db-view-qr-code');
+                const qrTextP = document.getElementById('db-view-qr-text');
+                
+                qrCodeDiv.innerHTML = '';
+                QRTool.render(qrCodeDiv, text, 200);
+                qrTextP.textContent = `内容: ${text}`;
+                modal.style.display = 'block';
+            }
+        }
+    });
 }
 
-/**
- * 格式化单元格值
- */
-function formatCellValue(value) {
+function formatCellValue(value, columnName) {
     if (value === null || value === undefined) {
         return '<span class="null-value">NULL</span>';
     }
-    if (typeof value === 'object') {
-        return JSON.stringify(value);
+    const strValue = String(value);
+    
+    // Only add QR code to non-empty cells that contain numbers separated by commas, or just numbers.
+    const hasNumbers = /[0-9]/.test(strValue);
+    const likelyNumbers = /^[0-9,]+$/.test(strValue);
+
+    let qrIcon = '';
+    if (hasNumbers && likelyNumbers && strValue.length > 0) {
+        qrIcon = `<span class="qr-icon" data-text="${strValue}" title="生成二维码"></span>`;
     }
-    return value;
+    
+    return `<div>${strValue}${qrIcon}</div>`;
 }
 
-/**
- * 切换页码
- */
 window.changePage = function(tabId, page) {
     const tab = openedTabs.find(t => t.id === tabId);
     if (!tab) return;
-
     tab.currentPage = page;
-    delete viewDataCache[tabId]; // 清除缓存
     loadViewData(tabId);
 };
 
-/**
- * 刷新视图数据
- */
 window.refreshViewData = function(tabId) {
-    delete viewDataCache[tabId];
     loadViewData(tabId);
 };
 
-/**
- * 导出视图数据为CSV
- */
 window.exportViewData = async function(tabId) {
     const data = viewDataCache[tabId];
     if (!data) return;
-
-    // 获取显示名称
     const displayName = getViewDisplayName(data.view_name);
-
-    // CSV头部
     const headers = data.columns.map(col => col.column_name);
-    const rows = [headers];
-
-    // CSV数据行
-    data.data.forEach(row => {
-        const rowData = data.columns.map(col => {
-            const value = row[col.column_name];
-            if (value === null || value === undefined) return '';
-            if (typeof value === 'object') return JSON.stringify(value);
-            return String(value);
-        });
-        rows.push(rowData);
-    });
-
-    // 生成CSV内容
-    const csvContent = rows.map(row =>
-        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-    ).join('\r\n');
-
-    // 下载（使用中文名称）
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${displayName}_${data.view_name}_${new Date().getTime()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const rows = [headers, ...data.data.map(row => data.columns.map(col => row[col.column_name]))];
+    downloadCSV(rows, `${displayName}_${data.view_name}.csv`);
 };
 
-/**
- * 添加样式
- */
 function addViewerStyles() {
     if (document.getElementById('databaseViewsStyles')) return;
-
     const style = document.createElement('style');
     style.id = 'databaseViewsStyles';
     style.textContent = `
-        .views-container {
-            display: flex;
-            height: calc(100vh - 140px);
-            gap: 0;
-        }
-
-        /* 左侧视图列表 */
-        .views-sidebar {
-            width: 280px;
-            background: #f8f9fa;
-            border-right: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 15px;
-            background: white;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .sidebar-header h3 {
-            margin: 0;
-            font-size: 16px;
-            color: #333;
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 4px;
-        }
-
-        .btn-icon:hover {
-            background: #f0f0f0;
-        }
-
-        .search-box {
-            padding: 10px;
-            background: white;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .batch-actions {
-            padding: 10px;
-            background: white;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            gap: 8px;
-        }
-
-        .batch-btn {
-            flex: 1;
-            padding: 10px 12px;
-            border: 2px solid #007bff;
-            background: white;
-            color: #007bff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .batch-btn:hover:not(:disabled) {
-            background: #007bff;
-            color: white;
-            border-color: #0056b3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,123,255,0.3);
-        }
-
-        .batch-btn:active:not(:disabled) {
-            transform: translateY(0);
-            box-shadow: 0 1px 2px rgba(0,123,255,0.2);
-        }
-
-        .batch-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f0f0f0;
-            color: #999;
-            border-color: #ddd;
-        }
-
-        .views-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-
-        .view-item {
-            padding: 12px;
-            background: white;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            border: 1px solid #e0e0e0;
-            transition: all 0.2s;
-        }
-
-        .view-item:hover {
-            border-color: #007bff;
-            box-shadow: 0 2px 4px rgba(0,123,255,0.1);
-        }
-
-        /* 已映射的视图 */
-        .view-item.mapped {
-            border-left: 3px solid #28a745;
-        }
-
-        /* 未映射的视图 */
-        .view-item.unmapped {
-            border-left: 3px solid #ffc107;
-            opacity: 0.85;
-        }
-
-        .view-item.unmapped:hover {
-            opacity: 1;
-        }
-
-        .view-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 15px;
-            margin-bottom: 4px;
-        }
-
-        /* 未映射视图的名称样式 */
-        .view-item.unmapped .view-name {
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .view-comment {
-            font-size: 11px;
-            color: #999;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* 右侧内容区域 */
-        .views-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-        }
-
-        .tabs-header {
-            display: flex;
-            gap: 4px;
-            padding: 10px 10px 0 10px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #007bff;
-            overflow-x: auto;
-        }
-
-        .no-tabs {
-            padding: 10px;
-            color: #999;
-            text-align: center;
-            width: 100%;
-        }
-
-        .tab {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: #e9ecef;
-            border: 1px solid #dee2e6;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-
-        .tab:hover {
-            background: #dee2e6;
-        }
-
-        .tab.active {
-            background: white;
-            border-color: #007bff;
-            border-bottom-color: white;
-            position: relative;
-            z-index: 1;
-            margin-bottom: -2px;
-        }
-
-        .tab-title {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .tab-close {
-            background: none;
-            border: none;
-            font-size: 18px;
-            line-height: 1;
-            cursor: pointer;
-            color: #999;
-            padding: 0;
-            width: 18px;
-            height: 18px;
-        }
-
-        .tab-close:hover {
-            color: #dc3545;
-        }
-
-        .tabs-body {
-            flex: 1;
-            overflow: auto;
-            padding: 20px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-
-        .empty-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        .empty-state p {
-            margin: 10px 0;
-        }
-
-        .hint {
-            font-size: 14px;
-            color: #aaa;
-        }
-
-        /* 视图数据容器 */
-        .view-data-container {
-            max-width: 100%;
-        }
-
-        .view-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .view-header h3 {
-            margin: 0;
-            color: #333;
-        }
-
-        .view-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            color: #333;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .btn-sm:hover {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-
-        .btn-sm:active {
-            transform: translateY(1px);
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .data-table th {
-            background: #1c5fa8;
-            color: white;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-            position: sticky;
-            top: 0;
-            white-space: nowrap;
-        }
-
-        .data-table th small {
-            font-weight: normal;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 11px;
-            display: block;
-            margin-top: 2px;
-        }
-
-        .data-table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .data-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .null-value {
-            color: #999;
-            font-style: italic;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-
-        .pagination-info {
-            font-size: 14px;
-            color: #666;
-        }
-
-        .pagination-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .pagination-controls button {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .pagination-controls button:hover:not(:disabled) {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-
-        .pagination-controls button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .loading, .error {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .error {
-            color: #dc3545;
-        }
+        .views-container { display: flex; height: calc(100vh - 140px); gap: 0; }
+        .views-sidebar { width: 280px; background: #f8f9fa; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 15px; background: white; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-header h3 { margin: 0; font-size: 16px; }
+        .btn-icon { background: none; border: none; font-size: 16px; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .btn-icon:hover { background: #f0f0f0; }
+        .search-box { padding: 10px; background: white; border-bottom: 1px solid #ddd; }
+        .search-box input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .batch-actions { padding: 10px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 8px; }
+        .batch-btn { flex: 1; padding: 10px 12px; border: 2px solid #007bff; background: white; color: #007bff; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .batch-btn:hover:not(:disabled) { background: #007bff; color: white; transform: translateY(-2px); }
+        .views-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .view-item { padding: 12px; background: white; border-radius: 4px; margin-bottom: 8px; cursor: pointer; border: 1px solid #e0e0e0; transition: all 0.2s; }
+        .view-item:hover { border-color: #007bff; }
+        .view-item.mapped { border-left: 3px solid #28a745; }
+        .view-item.unmapped { border-left: 3px solid #ffc107; opacity: 0.85; }
+        .view-item.unmapped:hover { opacity: 1; }
+        .view-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+        .view-item.unmapped .view-name { font-family: 'Courier New', monospace; font-size: 13px; color: #666; }
+        .view-comment { font-size: 11px; color: #999; font-family: 'Courier New', monospace; }
+        .views-content { flex: 1; display: flex; flex-direction: column; background: white; }
+        .tabs-header { display: flex; gap: 4px; padding: 10px 10px 0 10px; background: #f8f9fa; border-bottom: 2px solid #007bff; overflow-x: auto; }
+        .no-tabs { padding: 10px; color: #999; text-align: center; width: 100%; }
+        .tab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e9ecef; border: 1px solid #dee2e6; border-bottom: none; border-radius: 4px 4px 0 0; cursor: pointer; white-space: nowrap; }
+        .tab:hover { background: #dee2e6; }
+        .tab.active { background: white; border-color: #007bff; border-bottom-color: white; z-index: 1; margin-bottom: -2px; }
+        .tab-title { font-size: 14px; font-weight: 500; }
+        .tab-close { background: none; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: #999; padding: 0; width: 18px; height: 18px; }
+        .tab-close:hover { color: #dc3545; }
+        .tabs-body { flex: 1; overflow: auto; padding: 20px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-icon { font-size: 64px; margin-bottom: 20px; }
+        .view-data-container { max-width: 100%; }
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .table-wrapper { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; }
+        .data-table td .qr-icon { display: inline-block; width: 16px; height: 16px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23888"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM13 21h8v-8h-8v8zm2-6h4v4h-4v-4z"/></svg>'); background-size: contain; background-repeat: no-repeat; margin-left: 8px; cursor: pointer; vertical-align: middle; opacity: 0.5; }
+        .data-table td:hover .qr-icon { opacity: 1; }
+        .qr-modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .qr-modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: fit-content; text-align: center; border-radius: 8px; position: relative; }
+        .qr-modal-close { color: #aaa; position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; }
+        .qr-modal-close:hover, .qr-modal-close:focus { color: black; text-decoration: none; cursor: pointer; }
     `;
-
     document.head.appendChild(style);
 }
 
-// 导出初始化函数
+// Export initialization function
 window.initDatabaseViewsPage = initDatabaseViewsPage;

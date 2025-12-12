@@ -1,10 +1,10 @@
 /**
  * API 请求模块
  * 封装所有后端 API 请求
- */
+ */ 
 
 // API 基础URL（从 config.js 获取）
-const API_BASE = window.BACKEND_URL || 'https://six666.up.railway.app';
+const API_BASE = window.BACKEND_URL || 'localhost:8000';
 
 // ==================== 数据采集相关 API ====================
 
@@ -500,7 +500,7 @@ async function reloadScheduler() {
 }
 
 /**
- * 获取调度器配置
+ * 获取调度���配置
  * @returns {Promise<Object>} 配置数据
  */
 async function getSchedulerConfig() {
@@ -665,6 +665,16 @@ async function exportHot20Minus10(lotteryType, pos, year = '') {
   return await response.blob();
 }
 
+async function getGreedy20Analysis(lotteryType, page = 1) {
+    const url = `${API_BASE}/api/analysis/greedy20?lottery_type=${lotteryType}&page=${page}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+}
+
 
 // ==================== 自主30码分析相关 API ====================
 
@@ -802,6 +812,7 @@ window.API = {
   // 分析相关（按需添加其他导出）
   getHot20Minus10,
   exportHot20Minus10,
+  getGreedy20Analysis,
 
   // 自主30码分析
   getCustom30Analysis,

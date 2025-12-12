@@ -24,6 +24,7 @@ const PAGE_CONFIG = {
   'menuRecommend30Btn': { pageId: 'recommend30Page', title: '推荐30码分析' },
   'menuHigh20Btn': { pageId: 'high20Page', title: '高20码分析', initFunc: 'initHigh20Page' },
   'menuCustom30Btn': { pageId: 'custom30AnalysisPage', title: '自适应智能30码', initFunc: 'renderCustom30AnalysisPage' },
+  'menuGreedy20Btn': { pageId: 'greedy20AnalysisPage', title: '贪心20码' },
   'menuSeventhSmart20Btn': { pageId: 'seventhSmart20Page', title: '第7个号码智能推荐20码' },
   'menuSecondFourxiaoBtn': { pageId: 'secondFourxiaoPage', title: '第二个号码四肖分析' },
   'menuSixthThreexiaoBtn': { pageId: 'sixthThreexiaoPage', title: '第6个号码6肖分析' },

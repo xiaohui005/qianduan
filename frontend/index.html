@@ -68,6 +68,7 @@
             <button class="menu-btn menu-btn-sub" id="menuRecommend30Btn">推荐30码分析</button>
             <button class="menu-btn menu-btn-sub" id="menuHigh20Btn">高20码分析</button>
             <button class="menu-btn menu-btn-sub" id="menuCustom30Btn">自适应智能30码</button>
+            <button class="menu-btn menu-btn-sub" id="menuGreedy20Btn">贪心20码</button>
           </div>
         </div>
 
@@ -1817,6 +1818,56 @@
       <!-- 监控命中记录页面 -->
       <div id="monitorHitRecordsPage" class="hidden"></div>
 
+      <!-- 贪心20码分析页面 -->
+      <div id="greedy20AnalysisPage" class="hidden">
+        <h2>贪心20码分析</h2>
+        <div class="query-form" style="margin-bottom: 20px;">
+          <div class="query-item">
+            <label for="greedy20-lottery-type">选择彩种：</label>
+            <select id="greedy20-lottery-type">
+              <option value="am" selected>澳门</option>
+              <option value="hk">香港</option>
+            </select>
+          </div>
+          <div class="query-actions">
+            <button id="startGreedy20AnalysisBtn" class="btn-primary">开始分析</button>
+            <button id="exportGreedy20CsvBtn" class="btn-secondary" style="display: none;">导出CSV</button>
+          </div>
+        </div>
+
+        <div id="greedy20-results-summary" class="stats-container" style="display: none;">
+          <!-- Summary will be rendered here -->
+        </div>
+
+        <div id="greedy20-results-recommendation" class="result-container" style="display: none;">
+          <!-- Recommendation will be rendered here -->
+        </div>
+        
+        <div id="greedy20-qrcode-container" style="margin-top: 15px; text-align: center;">
+          <!-- QR Code will be rendered here -->
+        </div>
+
+        <div id="greedy20-results-history" class="table-container" style="margin-top: 20px; display: none;">
+          <h3>历史回测</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>期号</th>
+                <th>开奖号码</th>
+                <th>推荐号码</th>
+                <th>是否命中</th>
+                <th>当期遗漏</th>
+                <th>当时最大遗漏</th>
+              </tr>
+            </thead>
+            <tbody id="greedy20-history-table-body">
+              <!-- History rows will be rendered here -->
+            </tbody>
+          </table>
+          <div id="greedy20-pagination" class="pagination-container" style="justify-content: center;"></div>
+        </div>
+      </div>
+
     </main>
   </div>
   <!-- 核心工具模块 -->
@@ -1861,6 +1912,7 @@
   <script src="js/modules/omission-monitor.js"></script>
   <script src="js/modules/omission-monitor-config.js"></script>
   <script src="js/modules/monitor-hit-records.js"></script>
+  <script src="js/modules/greedy20.js"></script>
   <!-- <script src="upload.js"></script> 暂时禁用：与新模块产生变量冲突 -->
   <script src="js/features/fivePeriodThreexiao.js"></script>
   <script src="js/features/seventhSmart20.js"></script>
